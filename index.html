@@ -3659,7 +3659,7 @@ function formHTML(d, ro) {
   const dis = ro ? " disabled" : ""; const gos = d.type === "goshuin"; const digi = !gos && d.medium === "digital"; const cat = catNorm(d.cat);
   return `
   ${gos || digi ? "" : `<div class="sec"><h4>大きさ（実寸）</h4>
-    <div class="sizebox"><input id="f_size" inputmode="decimal" placeholder="例 4.5" value="${d.sizeMm ? (d.sizeMm / 10).toFixed(1) : ""}" aria-label="スタンプの大きさ（cm）"${dis}><span>cm（いちばん長い所・丸なら直径）</span><span class="src" id="sizeSrc"${d.sizeSrc ? "" : " hidden"}>${d.sizeSrc === "ref" ? "基準物で測定" : d.sizeSrc === "ai" ? "AIの見積もり" : "手入力"}</span>
+    <div class="sizebox"><input id="f_size" inputmode="decimal" placeholder="未入力" value="${d.sizeMm ? (d.sizeMm / 10).toFixed(1) : ""}" aria-label="スタンプの大きさ（cm）"${dis}><span>cm（いちばん長い所・丸なら直径）</span><span class="src" id="sizeSrc"${d.sizeSrc ? "" : " hidden"}>${d.sizeSrc === "ref" ? "基準物で測定" : d.sizeSrc === "ai" ? "AIの見積もり" : "手入力"}</span>
       ${ro ? "" : `<button class="btn small" type="button" id="measureBtn">写真で測る</button>`}</div>
     <div class="measure" id="measureBox" hidden>
       <div id="measCanvasBox"></div>
@@ -3697,7 +3697,7 @@ function formHTML(d, ro) {
 function rallySelectHTML() { return ""; }
 function addStepHTML(c) {
   const g = c.type === "goshuin", dg = !g && !!c.digital;
-  return `${c.queue ? `<div class="qbar">この写真の <b>${c.queue.i + 1} / ${c.queue.boxes.length}</b> 個目。日付・場所・イベントは前の入力を引き継いでいます。</div>` : c.fixedType ? "" : ``}
+  return `${c.queue ? `<div class="qbar">この写真の <b>${c.queue.i + 1} / ${c.queue.boxes.length}</b> 個目。日付・場所・イベント・大きさは前の入力を引き継いでいます。</div>` : c.fixedType ? "" : ``}
   <label class="drop" id="drop"${c.queue ? " hidden" : ""}><input type="file" id="fileIn" accept="image/*,application/pdf"><strong>${g ? "御朱印の写真を選ぶ" : dg ? "デジタルスタンプのスクショを選ぶ" : "スタンプの写真・スクショ・PDFを選ぶ"}</strong><span>${dg ? "アプリなどに表示されたスタンプの画面を撮ったスクリーンショットから、スタンプの部分だけを色そのままで切り抜きます。<br>まわりの背景の色は自動で抜きます。1枚に複数あっても、1つずつ登録できます。" : g ? "斜めから撮っても、ページの四隅を見つけてまっすぐに整えます。<br>影や紙の色むらも白く補正します。" : "範囲を自動で見つけて切り抜きます。斜めから撮った丸や四角もまっすぐに直します。<br>1枚に複数のスタンプが写っていても、1つずつ登録できます。<br>硬貨やカードを横に置いて撮ると、大きさも測れます。"}</span></label>
   <div id="cropStep" hidden>
     <div class="multibar" id="multiBar" hidden></div>
@@ -4002,7 +4002,7 @@ async function commitSave(c, d) {
   closeSheet(); refreshAll(); Others.rank = null;
   if (ms) setTimeout(() => Party.show(ms), 420);
   if (q && mode !== "edit" && q.i + 1 < q.boxes.length) {
-    const carry = { medium: d.medium, date: d.date, event: d.event, line: d.line, lat: d.lat, lng: d.lng, locSrc: d.locSrc, pref: d.pref, place: d.place, priv: d.priv, cat: d.cat };
+    const carry = { medium: d.medium, date: d.date, event: d.event, line: d.line, lat: d.lat, lng: d.lng, locSrc: d.locSrc, pref: d.pref, place: d.place, priv: d.priv, cat: d.cat, sizeMm: d.sizeMm, sizeSrc: d.sizeSrc };
     toast(`${q.i + 1}個目を保存しました。次のスタンプへ`); openStamp("add", null, carry, { queue: { ...q, i: q.i + 1 }, type: "stamp", adj }); return;
   }
   if (mode === "add") { const r = rallyOf(rallyKeyOf(d)); if (!ms) toast(r ? `${r.r.name} ${r.st.n}駅 をゲット！` : "スタンプ帳に入れました"); }

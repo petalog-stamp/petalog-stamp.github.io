@@ -124,6 +124,8 @@ function ham(a: string, b: string): number {
   let d = 0; for (let i = 0; i < 16; i++) d += hexBits[parseInt(a[i], 16) ^ parseInt(b[i], 16)]; return d;
 }
 const SAME = 14;   // 64ビット中これ以下の差なら「同じデザイン」
+// 名前がどちらかに含まれていれば「同じスタンプかも」。片方が空なら判断しない
+const sameName = (x: unknown, y: unknown) => { const p = normKey(x), q = normKey(y); return !p || !q || p === q || p.includes(q) || q.includes(p); };
 
 function triviaPrompt(a: Record<string, string>, digital: boolean, search: string, fix = "") {
   const today = new Date(Date.now() + 9 * 3600e3).toISOString().slice(0, 10).replace(/^(\d+)-0?(\d+)-0?(\d+)$/, "$1年$2月$3日");
@@ -213,14 +215,19 @@ async function trivia(uid: string, body: Record<string, unknown>) {
 
   // 1) すでにある文章をさがす（同じ場所名、または近く300mくらい）
   const cand: Record<string, unknown>[] = [];
-  const q1 = await admin.from("trivia").select("id, dh, text, motif, pkey").eq("pkey", pkey).limit(50);
+  const q1 = await admin.from("trivia").select("id, dh, text, motif, pkey, name, created_by").eq("pkey", pkey).limit(50);
   if (q1.data) cand.push(...q1.data);
   if (hasLL) {
-    const q2 = await admin.from("trivia").select("id, dh, text, motif, pkey").gte("lat", lat - 0.003).lte("lat", lat + 0.003).gte("lng", lng - 0.0035).lte("lng", lng + 0.0035).limit(50);
+    const q2 = await admin.from("trivia").select("id, dh, text, motif, pkey, name, created_by").gte("lat", lat - 0.003).lte("lat", lat + 0.003).gte("lng", lng - 0.0035).lte("lng", lng + 0.0035).limit(50);
     if (q2.data) cand.push(...q2.data);
   }
   let best: Record<string, unknown> | null = null, bd = 99;
   for (const c of cand) {
+    // 同じ施設に図柄の似たスタンプが何種類もある（例: 外交史料館の人物スタンプ）ので、画像の指紋だけでは決めない
+    //  - 名前がはっきりちがう（どちらにも含まれない）ものは別のスタンプ
+    //  - 自分が前に作った文章は使い回さない（同じ人が同じ場所で2つ目を登録したなら、ほぼ別のスタンプ）
+    if (!sameName(a.name, c.name)) continue;
+    if (!fix && c.created_by === uid) continue;
     const d = dh ? ham(dh, String(c.dh ?? "")) : (!c.dh && c.pkey === pkey ? 0 : 99);
     if (d < bd) { bd = d; best = c; }
   }
