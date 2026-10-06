@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex">
+<title>ぺたろぐ｜引っ越し中</title>
+<style>body{margin:0;min-height:100vh;display:grid;place-items:center;background:#ECEDEF;color:#1B2130;font:16px/1.7 "Hiragino Sans",system-ui,sans-serif;text-align:center;padding:0 24px}</style>
+</head><body><p id="m">ぺたろぐを新しいアドレスへ引っ越し中…</p>
+<script>
+/* 旧アドレス（coretagishi-lab.github.io/petalog/）からの引っ越し受け取り口。
+   - #mv=… : 旧アドレスの端末内の設定・ログイン状態（localStorage の petalog*）を受け取る
+   - ?popup=1 : 「この端末だけに保存」の記録（IndexedDB）を旧ページから postMessage で受け取る
+   受け取ったら新アドレスのアプリを開く。もともと新アドレス側にあるものは上書きしない */
+(function () {
+  var OLD = "https://coretagishi-lab.github.io", m = document.getElementById("m");
+  function setLS(ls) { try { for (var k in ls) if (/^petalog/.test(k) && localStorage.getItem(k) == null) localStorage.setItem(k, ls[k]); } catch (e) {} }
+  function open(q, h) { location.replace("./" + (q || "") + (h || "")); }
+  if (location.hash.indexOf("#mv=") === 0) {
+    var d = {}; try { d = JSON.parse(decodeURIComponent(location.hash.slice(4))); } catch (e) {}
+    setLS(d.ls || {}); open(d.q, d.h); return;
+  }
+  if (/[?&]popup=1/.test(location.search) && window.opener) {
+    addEventListener("message", function (e) {
+      if (e.origin !== OLD || !e.data || e.data.type !== "petalog-move") return;
+      var d = e.data; setLS(d.ls || {});
+      var r = indexedDB.open("petalog", 1);
+      r.onupgradeneeded = function () { var db = r.result; ["stamps", "photos", "meta"].forEach(function (n) { if (!db.objectStoreNames.contains(n)) db.createObjectStore(n); }); };
+      r.onsuccess = function () {
+        var db = r.result, tx = db.transaction(["stamps", "photos", "meta"], "readwrite");
+        ["stamps", "photos", "meta"].forEach(function (n) { (d.idb && d.idb[n] || []).forEach(function (kv) { tx.objectStore(n).put(kv[1], kv[0]); }); });
+        tx.oncomplete = function () { try { e.source.postMessage("petalog-done", OLD); } catch (x) {} m.textContent = "引っ越し完了！"; setTimeout(function () { open(); }, 600); };
+        tx.onerror = function () { m.textContent = "引っ越しがうまくいきませんでした。前のページからもう一度試してください"; };
+      };
+      r.onerror = function () { m.textContent = "この端末では保存場所が使えませんでした"; };
+    });
+    window.opener.postMessage("petalog-ready", OLD);
+    return;
+  }
+  open(location.search);
+})();
+</script></body></html>
