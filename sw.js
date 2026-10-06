@@ -2,7 +2,7 @@
    - アプリ本体（画面のファイル・ライブラリ・フォント）を端末に保存して、電波やサーバーの調子が悪くても開けるようにする
    - 画面のファイルは「まずネット、だめなら保存分」なので、更新はすぐ届く
    - 記録のデータ（Supabase）や地図のタイルはここでは扱わない */
-const V = "petalog-9cf274ce88";
+const V = "petalog-334a8efdcd";
 const SHELL = ["./", "./index.html", "./cloud.js", "./vendor/supabase.js", "./vendor/leaflet.js", "./vendor/matter.min.js", "./manifest.webmanifest", "./icon-192.png", "./icon-512.png", "./apple-touch-icon.png"];
 const LIBS = /^https:\/\/(cdnjs\.cloudflare\.com|fonts\.googleapis\.com|fonts\.gstatic\.com)\//;
 

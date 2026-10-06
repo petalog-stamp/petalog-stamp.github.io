@@ -5,6 +5,8 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <meta name="description" content="押した記念スタンプを写真から切り抜いて、トレカ・スタンプ帳・地図で集めるアプリ">
 <meta name="theme-color" content="#ECEDEF">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="ぺたろぐ">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
@@ -1374,7 +1376,7 @@ function hayOf(s) {
 /* ================= GRID (トレカ) ================= */
 function rulerHTML(s) {
   if (!s || !s.sizeMm || isDigi(s) || s.type === "goshuin") return "";
-  const n = s.sizeMm / 10 * ((s.ch || 1) / Math.max(s.cw || 1, s.ch || 1));
+  const n = sizeDims(s).h / 10;
   return n > 0.3 ? `<i class="rul" style="--n:${n.toFixed(3)}" aria-hidden="true"></i>` : "";
 }
 function figHTML(s) {
@@ -2481,7 +2483,7 @@ async function renderCardOld(s, no) {
     x.save(); x.globalCompositeOperation = isDigi(s) || s.type === "goshuin" || A.sheet ? "source-over" : "multiply";
     if (s.type === "goshuin" || A.sheet) { x.shadowColor = "rgba(0,0,0,.18)"; x.shadowBlur = 4 * K; x.shadowOffsetY = K; }
     x.imageSmoothingQuality = "high"; x.drawImage(im, ix, iy, iw, ih); x.restore();
-    if (rul) drawRuler(x, ix - 5 * K, iy, ih, s.sizeMm * (im.height / Math.max(im.width, im.height)), K);
+    if (rul) drawRuler(x, ix - 5 * K, iy, ih, sizeDims(s).lh, K);
   } catch {}
   if (s.overlap) {
     x.save(); const gg = x.createLinearGradient(0, 0, W, H); gg.addColorStop(0, "#E9C766"); gg.addColorStop(0.5, "#B8892E"); gg.addColorStop(1, "#E9C766");
@@ -4088,6 +4090,15 @@ async function importBackup(file) {
 
 /* ================= v10: 場所ピッカー・イベントと路線・公開設定・みんなのコレクション・白い紙で拡大・達成のお祝い ================= */
 const BLANK = "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7";
+// 実物の大きさ（mm）。入力する数字は「いちばん長いところ・丸なら直径」。
+// 丸いスタンプ（とほぼ正方形）は、切り抜きの縦横が少しずれていても「直径＝入力した数字」として扱う（5cmと入れたら横も高さも5.0cm）
+//   w, h: 切り抜き画像ぜんたいの実物の大きさ（描く・定規の長さ用）　lw, lh: 表示する横幅・高さ
+function sizeDims(s) {
+  if (!s || !s.sizeMm) return null;
+  const cw = s.cw || 1, ch = s.ch || 1, ar = cw / ch;
+  if (s.shape === "circle" || Math.abs(ar - 1) < 0.06) { const k = s.sizeMm / ((cw + ch) / 2); return { w: cw * k, h: ch * k, lw: s.sizeMm, lh: s.sizeMm }; }
+  return ar >= 1 ? { w: s.sizeMm, h: s.sizeMm / ar, lw: s.sizeMm, lh: s.sizeMm / ar } : { w: s.sizeMm * ar, h: s.sizeMm, lw: s.sizeMm * ar, lh: s.sizeMm };
+}
 // the base map: a clean, Google-like street map (OpenFreeMap "Liberty" vector style, free, no key) — plain OpenStreetMap pictures if that cannot start
 const OFM_STYLE = "https://tiles.openfreemap.org/styles/liberty";
 let mapLibP = null;
@@ -4450,7 +4461,7 @@ const PaperView = {
     const st = $("#pvStage"), s = this.s; if (!st || !s) return; const P = Math.max(120, Math.min(st.clientWidth, st.clientHeight) - 28); const paper = $("#pvPaper");
     paper.style.width = paper.style.height = P + "px";
     const A = artOf(s); const ar = clamp((A.w || 1) / (A.h || 1), 0.2, 5); const M = P * (A.sheet ? 0.84 : 0.7); const w = ar >= 1 ? M : M * ar, h = ar >= 1 ? M / ar : M;
-    const hmm = !A.sheet && s.sizeMm && !isDigi(s) && s.type !== "goshuin" ? s.sizeMm * ((s.ch || 1) / Math.max(s.cw || 1, s.ch || 1)) : 0;
+    const hmm = !A.sheet && s.sizeMm && !isDigi(s) && s.type !== "goshuin" ? sizeDims(s).h : 0;
     paper.innerHTML = `<div class="pv-fig" style="width:${w.toFixed(1)}px;height:${h.toFixed(1)}px"><img src="${A.url}" alt="${esc(s.name || "")}" draggable="false"${isDigi(s) || A.sheet ? "" : ' class="mul"'}>${hmm ? rulerSVG(hmm, h) : ""}</div>`;
     this.apply();
   },
@@ -5289,7 +5300,7 @@ const PrintCard = {
     }
     // 写真とスタンプの箱
     const BX = 4.2 * m, BY = 12 * m, BW = 54.6 * m, BH = 28.2 * m; this.recess(x, BX, BY, BW, BH, 1.2 * m, m);
-    const ar = clamp((s.cw || 1) / (s.ch || 1), 0.2, 5), wmm = s.sizeMm ? (ar >= 1 ? s.sizeMm : s.sizeMm * ar) : 0, hmm = s.sizeMm ? (ar >= 1 ? s.sizeMm / ar : s.sizeMm) : 0;
+    const ar = clamp((s.cw || 1) / (s.ch || 1), 0.2, 5), SD = sizeDims(s), wmm = SD ? SD.lw : 0, hmm = SD ? SD.lh : 0;
     const sizeTxt = s.sizeMm ? `横${(wmm / 10).toFixed(1)} × 高さ${(hmm / 10).toFixed(1)}cm` : "";
     const B = (v) => v * m;
     const stamp = (l, t, w, h) => { const im = P.cut; x.save(); if (!isDigi(s)) x.globalCompositeOperation = "multiply"; x.drawImage(im, ...this.fit(im, BX + B(l), BY + B(t), B(w), B(h))); x.restore(); };
@@ -5434,7 +5445,7 @@ const PrintCard = {
         <ol class="pc-how"><li><b>コンビニで印刷：</b>「画像を保存」→ セブン‐イレブンは「ネットプリント」、ローソン・ファミマは「ネットワークプリント」で、用紙を <b>はがき・カラー</b> にして印刷（実寸で出ます）</li><li><b>家のプリンターで印刷：</b>「PDFを保存」→ 無地のはがき用紙に <b>実際のサイズ（100%）</b> で印刷。「用紙に合わせる」などの拡大・縮小はオフに</li><li>右のものさしが50mmなら実寸です</li><li>コンビニのはがきは裏に郵便番号の枠があり、光に透かすとうっすら見えます（ふつうに持つぶんにはほぼ見えません）</li><li>作り方：点線で山折り → 内側をテープのりで貼る（水のりは乾かないので×） → 折り目側の線を先に切って、上から押さえて貼り直す → 残りの3辺を切る</li><li>切るときは白い線（重ね押しは金の線）を消すように線の上を切ると、ちょうど63×88mmになります。外の黒いトンボが目印です</li></ol></div>`;
     $("#pcX").onclick = () => { d.hidden = true; this.s = null; this.gen++; this.blob = null; if (this.burl) { URL.revokeObjectURL(this.burl); this.burl = null; } if (this.cv) { this.cv.width = this.cv.height = 0; this.cv = null; } d.innerHTML = ""; };
     const ta = $("#pcText"); ta.value = this.text;
-    ta.oninput = () => { this.edited = true; const rb = $("#pcAi"); if (rb) rb.hidden = !s.trivia; this.text = ta.value; lsSet("petalog.pt." + s.id, JSON.stringify({ text: this.text })); clearTimeout(this.tm); this.tm = setTimeout(() => this.render(), 450); };
+    ta.oninput = () => { this.edited = true; const rb = $("#pcAi"); if (rb) rb.hidden = !s.trivia; this.text = ta.value; lsSet("petalog.pt." + s.id, JSON.stringify({ text: this.text })); Trivia.saveOwn(s, this.text); clearTimeout(this.tm); this.tm = setTimeout(() => this.render(), 450); };
     $("#pcSave").onclick = () => this.save("jpg"); $("#pcPdf").onclick = () => this.save("pdf");
     try { this.P = await this.assets(s); } catch (e) { $("#pcWait").textContent = "画像を読み込めませんでした。通信を確かめてもう一度どうぞ"; return; }
     if (this.s !== s) return;
@@ -5444,7 +5455,7 @@ const PrintCard = {
     const cb = $("#pcCrop"); cb.hidden = !((s.scenes && s.scenes.length) || s.hasPhoto || s.sheet); cb.onclick = () => { $("#pcX").click(); BackCrop.open(s, () => PrintCard.open(s)); };
     const useAi = t => { if (this.s !== s || this.edited) return; this.text = t; ta.value = t; fx.hidden = !Trivia.can(s); st("AIが書いたこの場所のプチ情報です（同じスタンプを持つ人と共通）。書きかえると、あなたのトレカだけ変わります。"); this.render(); };
     const rb = $("#pcAi"); rb.hidden = !(own && s.trivia);
-    rb.onclick = () => { try { localStorage.removeItem("petalog.pt." + s.id); } catch (_) {} this.edited = false; rb.hidden = true; useAi(s.trivia); };
+    rb.onclick = () => { try { localStorage.removeItem("petalog.pt." + s.id); } catch (_) {} Trivia.saveOwn(s, ""); this.edited = false; rb.hidden = true; useAi(s.trivia); };
     if (own) st("あなたが書いた解説です。書きかえるとすぐ反映されます。");
     else if (s.trivia) useAi(s.trivia);
     else {
@@ -5482,10 +5493,10 @@ function tcLayout(s) {
   const A = artOf(s), ar = clamp((A.w || 1) / (A.h || 1), 0.2, 5), known = !!s.sizeMm && !A.sheet;
   const room = TC.bot - TC.top, maxH = room - (known ? TC.gap + TC.dimh : 0);
   let w, h, real = false;
-  if (known) { w = ar >= 1 ? s.sizeMm : s.sizeMm * ar; h = w / ar; real = w <= TC.maxW + 0.01 && h <= maxH + 0.01; if (!real) { const k = Math.min(TC.maxW / w, maxH / h); w *= k; h *= k; } }
+  if (known) { w = sizeDims(s).w; h = w / ar; real = w <= TC.maxW + 0.01 && h <= maxH + 0.01; if (!real) { const k = Math.min(TC.maxW / w, maxH / h); w *= k; h *= k; } }
   else { w = Math.min(TC.maxW, maxH * ar) * 0.88; h = w / ar; }
   const G = h + (known ? TC.gap + TC.dimh : 0), y = TC.top + (room - G) * 0.56, x = (TC.ww - w) / 2;   // C3: ひとかたまりを真ん中より少し下に
-  const wmm = known ? (ar >= 1 ? s.sizeMm : s.sizeMm * ar) : 0;
+  const wmm = known ? sizeDims(s).lw : 0;
   const len = [...String(s.name || "名前未設定")].reduce((a, ch) => a + (/[\x20-\x7e]/.test(ch) ? 0.58 : 1), 0) * 1.04;
   return { A, ar, x, y, w, h, real, dimY: known ? y + h + TC.gap : null, dimTxt: known ? fmtCm(wmm) : "", fs: clamp(49.5 / Math.max(1, len), 2.4, 5.2) };
 }
@@ -5665,7 +5676,16 @@ async function pubCards(P) {
    同じ場所・同じデザインのスタンプなら、サーバーでみんなと同じ文章を使い回す（画像の指紋 dh で見分ける） */
 const Trivia = {
   wait: new Map(), err: new Map(),
-  own(s) { try { const v = JSON.parse(lsGet("petalog.pt." + s.id) || "null"); if (v && !v.wiki && v.text) return v.text; } catch (_) {} return ""; },   // 自分で書きかえた文章
+  own(s) {   // 自分で書きかえた文章。アカウントに保存（端末にだけ残っている前の分は、見つけたら1回だけアカウントへ移す）
+    if (!s) return ""; if (s.ownText) return s.ownText;
+    try { const v = JSON.parse(lsGet("petalog.pt." + s.id) || "null"); if (v && !v.wiki && v.text) { this.saveOwn(s, v.text); return v.text; } } catch (_) {} return "";
+  },
+  saveOwn(s, text) {   // text が空なら消す
+    if (!s || s.sample || s._pub) return; const st = (typeof findStamp === "function" && findStamp(s.id)) || null; if (!st) return;
+    if ((st.ownText || "") === (text || "")) return;
+    if (text) { st.ownText = text; s.ownText = text; } else { delete st.ownText; delete s.ownText; }
+    const tm = this.otm || (this.otm = new Map()); clearTimeout(tm.get(st.id)); tm.set(st.id, setTimeout(() => { tm.delete(st.id); Store.saveStamp(st).catch(() => {}); }, 900));
+  },
   text(s) { return (s && (this.own(s) || s.trivia)) || ""; },
   can(s) { return !!(s && !s.sample && !s.other && !s._pub && s.cut && (s.name || s.place) && window.PetalogCloud && PetalogCloud.loggedIn && PetalogCloud.loggedIn() && !(PetalogCloud.isOffline && PetalogCloud.isOffline())); },
   async dhash(b) {   // 64ビットの差分ハッシュ（白い紙の上に置いて、9×8に縮めて明るさの左右差をとる）
@@ -5702,6 +5722,7 @@ const Trivia = {
   async fix(s, hint) {   // 「ここがちがう」を伝えてAIに書き直してもらう（同じスタンプのみんなの文章も直る）
     const t = await this.once(s, { fix: true, hint, bad: this.text(s) || s.trivia || "" });
     try { localStorage.removeItem("petalog.pt." + s.id); } catch (_) {}
+    this.saveOwn(s, "");
     this.err.delete(s.id); return t;
   },
   soft(e) { const c = e && e.code; return !c || c === "error" || c === "network" || c === "rate_limited"; },   // やり直せば直るかもしれない失敗

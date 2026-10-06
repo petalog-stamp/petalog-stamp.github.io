@@ -4,7 +4,7 @@
  "description": "記念スタンプのコレクションアプリ",
  "start_url": ".",
  "scope": ".",
- "display": "browser",
+ "display": "standalone",
  "background_color": "#ECEDEF",
  "theme_color": "#ECEDEF",
  "lang": "ja",
