@@ -19,6 +19,9 @@
     set(k, v) { try { sessionStorage.setItem(k, v); } catch {} },
   };
 
+  // ログイン直後に「この画面では保存できなかった」ときは、ログイン情報をURLで渡して読み込み直す（このしるしで判断）
+  const memLogin = /[#&]pl_mem=1/.test(location.hash);
+  const storeOK = () => { try { const k = "petalog.ping"; localStorage.setItem(k, String(Date.now())); return !!localStorage.getItem(k); } catch { return false; } };
   let sb = null;
   try {
     if (window.supabase && supabase.createClient) {
@@ -282,6 +285,32 @@
     };
   }
 
+  /* ---------- ログインを切らさないための控え ----------
+     ・ログインの情報は localStorage に入るが、iPhone では消えたり、書き込めなかったりすることがある
+       （プライベートブラウズ・アプリの中のブラウザ・空き容量が少ないとき など）
+     ・そこで IndexedDB にも控えを置き、localStorage から消えていたら控えから戻す
+     ・ログイン直後に保存できていなければ、URL でログイン情報を渡して読み込み直す（その画面を閉じるまではログインしたまま使える） */
+  const AUTH_BK = "auth-backup";
+  async function backupSession(s) { if (s && s.access_token && s.refresh_token) await Cache.put("kv", AUTH_BK, { a: s.access_token, r: s.refresh_token, at: Date.now() }); }
+  async function restoreSession() {
+    const b = await Cache.get("kv", AUTH_BK); if (!b || !b.a || !b.r || !sb) return null;
+    try {
+      const r = await within(sb.auth.setSession({ access_token: b.a, refresh_token: b.r }), 8000);
+      if (r && r.data && r.data.session) return r.data.session;
+      if (r && r.error && !/fetch|network/i.test(String(r.error.message || ""))) await Cache.del("kv", AUTH_BK);   // 期限切れなど、もう使えない控え
+    } catch {}
+    return null;
+  }
+  async function reloadKeepingSession() {
+    let s = null; try { const r = await within(sb.auth.getSession(), 4000); s = r.data && r.data.session; } catch {}
+    if (s) await backupSession(s);
+    if (s && s.access_token && s.refresh_token && !(storeOK() && ls.get("petalog-auth"))) {
+      const h = `#access_token=${encodeURIComponent(s.access_token)}&refresh_token=${encodeURIComponent(s.refresh_token)}&expires_in=${s.expires_in || 3600}${s.expires_at ? "&expires_at=" + s.expires_at : ""}&token_type=bearer&pl_mem=1`;
+      try { history.replaceState(null, "", location.pathname + location.search + h); } catch { location.hash = h.slice(1); }
+    }
+    location.reload();
+  }
+
   /* ---------- AI through the server ---------- */
   async function token() {
     if (!sb) return null;
@@ -322,7 +351,8 @@
     if (/invalid.*email|email.*invalid|validation_failed/.test(m + code)) return "メールアドレスの形が正しくないようです。";
     if (/signups? not allowed|signup_disabled/.test(m + code)) return "いまは新しい登録を受け付けていません。";
     if (/fetch|network|failed to/.test(m)) return "通信できませんでした。電波を確かめてもう一度どうぞ。";
-    return "うまくいきませんでした。もう一度どうぞ。";
+    const d = String((e && (e.name || e.code)) || "").slice(0, 40);
+    return "うまくいきませんでした。もう一度どうぞ。" + (d ? `（${d}）` : "");
   }
 
   function openLogin(welcome) {
@@ -382,7 +412,7 @@
         }
         ls.set(LS_SKIP, "");
         $("#auMsg").textContent = "ログインしました。読み込み直します…";
-        setTimeout(() => location.reload(), 300);
+        setTimeout(() => { reloadKeepingSession(); }, 300);
       } catch (e) {
         $("#auMsg").textContent = authError(e);
       } finally { go.disabled = false; go.textContent = mode === "in" ? "ログイン" : "登録してはじめる"; }
@@ -503,6 +533,7 @@
       if (!sb) return false;
       let session = null, err = null;
       try { const r = await within(sb.auth.getSession(), 6000); session = r.data && r.data.session; err = r.error; } catch (e) { err = e; }
+      if ((!session || !session.user) && !err && navigator.onLine !== false && !ls.get(LS_SKIP)) { const b = await restoreSession(); if (b && b.user) session = b; }
       if (!session || !session.user) {
         // no connection: keep showing the signed-in user's last saved records instead of an empty app
         let saved = null; try { const j = JSON.parse(ls.get("petalog-auth") || "null"); saved = j && (j.user || (j.currentSession && j.currentSession.user)); } catch {}
@@ -510,6 +541,7 @@
         session = { user: saved }; offline = true;
       }
       user = session.user; uid = user.id; attached = true;
+      try { if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {}); } catch {}   // 端末の空きが少ないときも、ぺたろぐのデータを消さないでとお願いする
       Object.assign(store, methods, { uid, mode: "cloud", pub: true, col: null });
       return true;
     },
@@ -536,7 +568,7 @@
     wireSettings() {
       const i = $("#acIn"); if (i) i.onclick = () => openLogin(false);
       const o = $("#acOut"); if (o) o.onclick = async () => {
-        o.disabled = true;
+        o.disabled = true; await Cache.del("kv", AUTH_BK);
         await sb.auth.signOut().catch(() => {});
         await Cache.wipe();
         location.reload();
@@ -556,6 +588,7 @@
     afterBoot() {
       if (offline) { say("電波かサーバーにつながらないので、前回の記録を表示しています。いまは保存できません。", 6000); return; }
       if (recovery && attached) { openNewPassword(); return; }
+      if (attached && (memLogin || !storeOK())) setTimeout(() => say("この画面ではログインを覚えておけないので、閉じるとログアウトします。Safariで開くか、ホーム画面のぺたろぐのアイコンから使ってください。", 9000), 3000);
       if (attached) { offerMove(); return; }
       if (!ls.get(LS_SKIP) && !ss.get(SS_ASKED)) openLogin(true);
     },
@@ -578,7 +611,8 @@
   }
   addEventListener("online", () => { if (offline) { say("つながりました。読み込み直します"); setTimeout(() => location.reload(), 1200); } });
   if (sb) {
-    sb.auth.onAuthStateChange((event) => {
+    sb.auth.onAuthStateChange((event, session) => {
+      if ((event === "SIGNED_IN" || event === "TOKEN_REFRESHED") && session) setTimeout(() => { backupSession(session); }, 0);
       if (event === "PASSWORD_RECOVERY") { recovery = true; if (typeof ready !== "undefined" && ready) openNewPassword(); }
       if (event === "SIGNED_OUT" && attached && !offline) setTimeout(() => location.reload(), 200);
     });
