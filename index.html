@@ -1041,6 +1041,11 @@ html.tcv-on #toast{z-index:95}
 .sc-url{display:flex;gap:8px;align-items:center;margin:6px 0}
 .year-img{display:flex;justify-content:center;min-height:200px;align-items:center}
 .year-img img{width:100%;max-width:420px;border-radius:14px;box-shadow:0 8px 24px rgba(0,0,0,.25)}
+
+/* 10/12 スタンプ台の写真で場所を入れる・地図の検索欄 */
+.stand-ask{margin-top:8px;display:flex;flex-direction:column;gap:6px;background:var(--ai-soft);border-radius:12px;padding:10px 12px;font-size:13px}
+.stand-ask small{color:var(--muted);font-size:11.5px;line-height:1.6}
+.mapq{font-size:16px}
 </style>
 
 <div id="app">
@@ -2219,6 +2224,11 @@ const MapV = {
 };
 $("#mapMe").onclick = () => MapV.setMode("me"); $("#mapAll").onclick = () => MapV.setMode("all");
 $("#mapQ").oninput = e => MapV.search(e.target.value);
+// iPhone: 地図の検索欄に文字を打っている間、キーボードに押されて画面全体がずれないようにする
+(function keepMapStill() { const q = $("#mapQ"), fix = () => { if (document.activeElement === q && (scrollY || document.documentElement.scrollTop)) scrollTo(0, 0); };
+  q.addEventListener("focus", () => { setTimeout(fix, 60); setTimeout(fix, 320); }); addEventListener("scroll", fix, { passive: true });
+  if (window.visualViewport) { visualViewport.addEventListener("resize", fix); visualViewport.addEventListener("scroll", fix); } })();
+
 $("#mapQ").onkeydown = e => { if (e.key === "Enter") { const b = $("#mapResults button"); if (b) b.click(); } };
 $("#zIn").onclick = () => MapV.map && MapV.map.zoomIn(); $("#zOut").onclick = () => MapV.map && MapV.map.zoomOut(); $("#zFit").onclick = () => MapV.fit(); $("#zMe").onclick = () => MapV.locate();
 $("#pickCancel").onclick = () => MapV.endPick(false); $("#pickOk").onclick = () => MapV.endPick(true);
@@ -3593,6 +3603,7 @@ function renderPhotos() {
   };
 }
 function wireForm() {
+  setTimeout(wireStandPhoto, 0);
   const c = sheetCtx; const sheet = $("#sheet");
   sheet.onclick = e => {
     if (e.target.closest("[data-pv]")) { PaperView.open(c.mode === "edit" ? findStamp(c.d.id) || c.d : c.d); return; }
@@ -3876,7 +3887,7 @@ async function findDuplicates(cutUrl, d, type) {
     let score = 0; const sg = await sigOf(s);
     if (sg) for (const r of rots) { let dot = 0; for (let i = 0; i < r.length; i++) dot += r[i] * sg[i]; if (dot > score) score = dot; }
     const sameName = d.name && norm(s.name) === norm(d.name) && (!d.place || !s.place || norm(s.place) === norm(d.place));
-    if (score > 0.8 || sameName) out.push({ s, score: Math.max(score, sameName ? 0.9 : 0) });
+    if (score > 0.8) out.push({ s, score });   // 名前や場所が同じでも、絵が似ていなければ聞かない
   }
   return out.sort((a, b) => b.score - a.score).slice(0, 3);
 }
@@ -3968,7 +3979,7 @@ function formHTML(d, ro) {
     <div class="pmap-wrap" id="pmapWrap"><div class="pmap" id="pmap"></div>
       <div class="pmhint" id="pmHint"${d.lat != null ? " hidden" : ""}>${ro ? "" : "地図をタップしてピンを立てる"}</div></div>
     <div class="locinfo" id="locInfo" style="margin-top:6px"></div>
-    ${ro ? "" : `<div class="row2" style="margin-top:6px"><button class="btn small" type="button" id="exifBtn" hidden>写真の位置を使う</button><button class="btn small ghost" type="button" id="locClear" hidden>ピンを消す</button></div>`}
+    ${ro ? "" : `<div class="row2" style="margin-top:6px"><button class="btn small" type="button" id="standBtn">📷 スタンプ台の写真で場所を入れる</button></div><div id="standAsk" hidden></div><div class="row2" style="margin-top:6px"><button class="btn small" type="button" id="exifBtn" hidden>写真の位置を使う</button><button class="btn small ghost" type="button" id="locClear" hidden>ピンを消す</button></div>`}
     <label class="fld" style="margin-top:10px"><span>置き場所メモ（公開するとみんなに共有）</span><input id="f_spot" maxlength="80" value="${esc(d.spot || "")}" placeholder="例: 窓口の左の台"${dis}></label>
   </div>
   <div class="sec"><h4>写真</h4><div class="photos" id="photos"></div><p class="cap">スタンプの写真と、その場所の風景などを一緒に残せます。</p></div>
@@ -5498,7 +5509,7 @@ const YahooLS = {
 let _pg = { sig: "", groups: [] };
 function pinGroups() { return groupNear(list(), _pg, s => s.id); }
 let _pbg = { sig: "", groups: [] };
-function pubGroups(P) { return groupNear(P.filter(p => p.lat != null && p.by !== Store.uid && !p.miss && p.reviewed !== "hide"), _pbg, p => p._id); }
+function pubGroups(P) { return groupNear(designPos(P.filter(p => p.lat != null && p.by !== Store.uid && !p.miss && p.reviewed !== "hide"), P), _pbg, p => p._id); }
 function groupNear(src, cache, idOf) {
   const L = src.filter(s => s.lat != null && s.lng != null && !isNaN(s.lat) && !isNaN(s.lng));
   const sig = L.length + ":" + L.map(s => idOf(s) + "," + s.lat + "," + s.lng + "," + (s.date || "") + "," + (s.cut || s.thumb || "").length + "," + (s.place || "")).join("|");
@@ -6277,7 +6288,7 @@ const Zukan = {
     if (!d.share) { if (d.design) this.leave(d.id); return null; }
     let dh = ""; try { dh = await this.dh(d.cut); } catch (_) { return null; }
     let thumb = ""; try { thumb = await thumbOf(d.cut); } catch (_) {}
-    const r = await PetalogCloud.zukan("register", { stamp_id: d.id, design: design || d.design || null, dh, name: d.name || "", place: d.place || "", pref: d.pref || "", cat: catNorm(d.cat), lat: d.lat, lng: d.lng, size_mm: d.sizeMm || null, digital: isDigi(d), thumb, t: this.t(d) });
+    const r = await PetalogCloud.zukan("register", { stamp_id: d.id, design: design || d.design || null, lr: locRank(d.locSrc), dh, name: d.name || "", place: d.place || "", pref: d.pref || "", cat: catNorm(d.cat), lat: d.lat, lng: d.lng, size_mm: d.sizeMm || null, digital: isDigi(d), thumb, t: this.t(d) });
     if (!r || !r.design) return null;
     const cur = findStamp(d.id) || d, changed = cur.design !== r.design || !!cur.first !== !!r.first;
     cur.design = r.design; d.design = r.design; if (r.first) { cur.first = true; d.first = true; } else { delete cur.first; delete d.first; }
@@ -6866,6 +6877,34 @@ const Track = {
     if (typeof setCols === "function") on(G, "setCols", n => T.ev("grid_cols", { n }));
   }
 };
+
+/* ---------- 場所の確かさ と、スタンプ台の写真から場所を入れる ----------
+   スタンプ台の写真（現地で撮った写真の位置情報）がいちばん確か。みんなの地図では、同じスタンプ（図鑑の番号が同じ）は
+   いちばん確かな場所1か所にまとめて立てる（検索で駅の位置にした人と、台の写真で入れた人がいても、ピンは1本） */
+function locRank(src) {
+  src = String(src || ""); if (/スタンプ台の写真/.test(src)) return 3;
+  if (/写真の位置情報|現在地/.test(src)) return 2; if (/地図|Google|検索|ピン/.test(src)) return 1; return 0;
+}
+function designPos(L, all) {
+  const by = new Map(); for (const p of all || L) if (p.design && p.lat != null && !p.miss) { let a = by.get(p.design); if (!a) by.set(p.design, a = []); a.push(p); }
+  const med = arr => { const s = arr.slice().sort((x, y) => x - y); return s[s.length >> 1]; }, rep = new Map();
+  for (const [k, a] of by) { const top = Math.max(...a.map(p => +p.lr || 0)), b = a.filter(p => (+p.lr || 0) === top); rep.set(k, { lat: med(b.map(p => +p.lat)), lng: med(b.map(p => +p.lng)) }); }
+  return L.map(p => { const r = p.design && rep.get(p.design); return r && kmBetween(+p.lat, +p.lng, r.lat, r.lng) < 3 ? { ...p, lat: r.lat, lng: r.lng } : p; });
+}
+function wireStandPhoto() {
+  const c = sheetCtx, b = $("#standBtn"); if (!c || !b) return;
+  b.onclick = () => { const i = document.createElement("input"); i.type = "file"; i.accept = "image/*"; i.onchange = () => { if (i.files[0]) useStandPhoto(i.files[0]); }; i.click(); };
+}
+async function useStandPhoto(f) {
+  const c = sheetCtx, box = $("#standAsk"); if (!c || !box) return;
+  const ex = await exifOf(f).catch(() => null), ok = ex && ex.lat != null && ex.lng != null;
+  if (ok) { setLoc(+(+ex.lat).toFixed(6), +(+ex.lng).toFixed(6), "スタンプ台の写真（GPS）"); toast("スタンプ台の写真の位置から場所を入れました"); }
+  box.hidden = false;
+  box.innerHTML = `<div class="stand-ask">${ok ? `<b>✓ スタンプ台の写真の位置を入れました</b>` : `<b>この写真には場所の情報が入っていませんでした</b><small>カメラの位置情報がオフのときや、写真の選び方によっては位置が外れることがあります。地図をタップしてピンを立てても大丈夫です。</small>`}
+    <span>この写真を、スタンプの「写真」にも残しますか？</span><div class="row2"><button class="btn small primary" type="button" id="standKeep">残す</button><button class="btn small" type="button" id="standNo">残さない</button></div></div>`;
+  $("#standNo").onclick = () => { box.hidden = true; box.innerHTML = ""; };
+  $("#standKeep").onclick = async () => { try { const cv = await fileToCanvas(f, 1400); const p = makePhoto(cv); if (p) { c.newScenes.push({ k: uid("p").slice(1), url: p.url }); renderPhotos(); toast("写真に追加しました"); } } catch (_) { toast("この写真は追加できませんでした"); } box.hidden = true; box.innerHTML = ""; };
+}
 
 /* ================= boot ================= */
 addEventListener("resize", () => { Book.layout(); if (view === "fall") { Fall.dirty = true; Fall.stop(); Fall.start(); } if (view === "map") MapV.draw(); });

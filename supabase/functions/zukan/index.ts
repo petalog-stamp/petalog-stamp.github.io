@@ -77,6 +77,7 @@ async function designs(uid: string, task: string, body: Record<string, unknown>)
   // register
   if (!sid) return json({ error: "bad_request" }, 400);
   const name = clip(a.name, 80).trim(), place = clip(a.place, 80).trim(), pref = clip(a.pref, 10).trim(), cat = clip(a.cat, 20).trim();
+  const lr = Math.max(0, Math.min(3, Math.round(num(a.lr) ?? 0)));   // 場所の確かさ（3=スタンプ台の写真のGPS）
   const size = num(a.size_mm), t = num(a.t) ?? Date.now(), thumb = /^data:image\/(png|jpeg|webp);base64,/.test(String(a.thumb ?? "")) && String(a.thumb).length < 60000 ? String(a.thumb) : null;
   // 前にこのスタンプで入っていたら、まずそこからぬける（名前や絵を直したとき）
   const { data: was } = await admin.from("design_members").select("design_id").eq("user_id", uid).eq("stamp_id", sid);
@@ -99,17 +100,17 @@ async function designs(uid: string, task: string, body: Record<string, unknown>)
   }
   let isNew = false;
   if (pick == null) {
-    const { data: d, error } = await admin.from("designs").insert({ dh, lat, lng, name, place, pref, cat, size_mm: size, digital, thumb, first_by: uid, first_stamp: sid, first_t: t }).select("id").single();
+    const { data: d, error } = await admin.from("designs").insert({ dh, lat, lng, loc_rank: lat != null ? lr : null, name, place, pref, cat, size_mm: size, digital, thumb, first_by: uid, first_stamp: sid, first_t: t }).select("id").single();
     if (error || !d) { console.error("design insert", error?.message); return json({ error: "server" }, 500); }
     pick = d.id; isNew = true;
   } else {
-    // 足りない情報をうめる（大きさ・ジャンル・小さな絵）
-    const { data: d } = await admin.from("designs").select("size_mm, cat, thumb, lat").eq("id", pick).maybeSingle();
+    // 足りない情報をうめる（大きさ・ジャンル・小さな絵・より確かな場所）
+    const { data: d } = await admin.from("designs").select("size_mm, cat, thumb, lat, loc_rank").eq("id", pick).maybeSingle();
     const up: Record<string, unknown> = {};
     if (d && d.size_mm == null && size != null) up.size_mm = size;
     if (d && !d.cat && cat) up.cat = cat;
     if (d && !d.thumb && thumb) up.thumb = thumb;
-    if (d && d.lat == null && lat != null) { up.lat = lat; up.lng = lng; }
+    if (d && lat != null && (d.lat == null || lr > (d.loc_rank ?? 0))) { up.lat = lat; up.lng = lng; up.loc_rank = lr; }   // より確かな場所が来たら、図鑑の場所をそこに
     if (Object.keys(up).length) await admin.from("designs").update(up).eq("id", pick);
   }
   for (const r of was ?? []) if (r.design_id !== pick) {

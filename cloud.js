@@ -241,7 +241,7 @@
       return idx.map((r) => keep[r.id]).filter(Boolean).map((r) => ({
         _id: r.id, sid: r.stamp_id, by: r.user_id, nick: r.nick, name: r.name, place: r.place, pref: r.pref, cat: r.cat,
         date: r.date, lat: r.lat, lng: r.lng, sizeMm: r.size_mm, thumb: r.thumb, rk: r.rk, spot: r.spot, spotTags: r.spot_tags || [],
-        type: r.type, miss: r.kind === "miss", reason: r.reason, t: Date.parse(r.updated_at) || 0, ct: Date.parse(r.created_at) || 0, design: r.design || null, reviewed: r.reviewed || null,
+        type: r.type, miss: r.kind === "miss", reason: r.reason, t: Date.parse(r.updated_at) || 0, ct: Date.parse(r.created_at) || 0, design: r.design || null, reviewed: r.reviewed || null, lr: r.lr,
       }));
     },
     async pubPut(s, thumb, nick) {
@@ -286,6 +286,7 @@
       spot: clip(s.spot, 120), spot_tags: (s.spotTags || []).slice(0, 12).map((t) => clip(t, 30)),
       thumb: thumb && thumb.length < 115000 ? thumb : "",
       design: num(s.design),
+      lr: typeof locRank === "function" ? locRank(s.locSrc) : null,
     };
   }
 
