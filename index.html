@@ -1657,7 +1657,7 @@ function cardHTML(s, no, o = {}) {   // スタンプトレカ（印刷の表と�
   return `<button type="button" class="${cls}" data-open="${esc(s.id)}" style="--g:${gcol(g)}"><span class="pick" aria-hidden="true">✓</span>
     <span class="tc-hd"><span class="tc-k">ぺたろぐ</span>${o.tag ? `<span class="tc-no tag">${esc(o.tag)}</span>` : `<span class="tc-no">${no ? "No." + String(no).padStart(4, "0") : ""}</span>`}</span>
     <span class="tc-win"><span class="tc-tab"><span class="tc-tabf"></span><svg viewBox="0 0 214 52" preserveAspectRatio="none" aria-hidden="true"><path d="M0 1 L19.5 51 L194.5 51 L214 1" fill="none" stroke="#C9A24A" stroke-width="2.4"/></svg><span class="tc-tabt"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="${gicon(g)}"/></svg>${esc(g)}</span></span>
-      ${s.overlap || isDigi(s) || s.first ? `<span class="tc-badges">${s.first ? '<span class="tc-badge fd">第一発見者</span>' : ""}${s.overlap ? '<span class="tc-badge">重ね押し</span>' : ""}${isDigi(s) ? '<span class="tc-badge dgs">デジスタ</span>' : ""}</span>` : ""}
+      ${s.overlap || isDigi(s) || (FIRST_ON && s.first) ? `<span class="tc-badges">${FIRST_ON && s.first ? '<span class="tc-badge fd">第一発見者</span>' : ""}${s.overlap ? '<span class="tc-badge">重ね押し</span>' : ""}${isDigi(s) ? '<span class="tc-badge dgs">デジスタ</span>' : ""}</span>` : ""}
       <span class="tc-art${L.A.sheet ? " sh" : ""}" style="left:${u(L.x)};top:${u(L.y)};width:${u(L.w)};height:${u(L.h)}"><img src="${L.A.url}" alt="" loading="lazy" draggable="false" data-ck="${esc(s.id)}"></span>
       ${L.dimY != null ? `<span class="tc-dim" style="left:${u(L.x)};top:${u(L.dimY)};width:${u(L.w)}"><i></i><i></i><b>${L.dimTxt}</b></span>` : ""}
       <span class="tc-nm" style="font-size:${u(L.fs)}">${esc(s.name || "名前未設定")}</span><span class="tc-rule"></span>
@@ -4378,6 +4378,8 @@ const BLANK = "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAA
 // 重ね押しの裏面は「台紙ごと」が標準（台紙を登録しているときだけ）。s.backView = "stamp" でスタンプだけ
 const backSheetOK = s => !!(s && s.overlap && s.sheet);
 const backSheetOn = s => backSheetOK(s) && s.backView !== "stamp";
+// 「第一発見者」のバッジと「新種発見」の演出。利用者が少ないうちは、ほとんど全部に付いてレアにならないので出さない（データは集めつづける）。増えたら true に
+const FIRST_ON = false;
 function sizeDims(s) {
   if (!s || !s.sizeMm) return null;
   const cw = s.cw || 1, ch = s.ch || 1, ar = cw / ch;
@@ -5615,7 +5617,7 @@ const PrintCard = {
     x.textAlign = "left"; x.textBaseline = "middle"; this.spaced(x, gname, 0.2 * 2.7 * m, sx + isz + 1 * m, cy); x.restore();
     // 重ね押し・デジスタのバッジ
     let bx = wx + 1.8 * m; const by = wy + 1.6 * m, bh = 4.2 * m;
-    for (const [on, label, c0, c1, c2, sh] of [[s.first, "第一発見者", "#FFF1B8", "#E9B949", "#A8741A", "rgba(90,60,10,.4)"], [s.overlap, "重ね押し", "#F0D27A", "#C9A24A", "#A07A2C", "rgba(80,55,10,.35)"], [isDigi(s), "デジスタ", "#A9DDF7", "#4F93D8", "#2E5EA6", "rgba(20,50,100,.35)"]]) {
+    for (const [on, label, c0, c1, c2, sh] of [[FIRST_ON && s.first, "第一発見者", "#FFF1B8", "#E9B949", "#A8741A", "rgba(90,60,10,.4)"], [s.overlap, "重ね押し", "#F0D27A", "#C9A24A", "#A07A2C", "rgba(80,55,10,.35)"], [isDigi(s), "デジスタ", "#A9DDF7", "#4F93D8", "#2E5EA6", "rgba(20,50,100,.35)"]]) {
       if (!on) continue; x.font = `700 ${2.2 * m}px ${UI}`; const bw = this.spaced(x, label, 0.08 * 2.2 * m) + 4.4 * m;
       const gr = x.createLinearGradient(0, by, 0, by + bh); gr.addColorStop(0, c0); gr.addColorStop(0.48, c1); gr.addColorStop(1, c2);
       x.save(); x.shadowColor = sh; x.shadowBlur = 0.25 * m; x.shadowOffsetY = 0.15 * m; x.fillStyle = gr; this.rr(x, bx, by, bw, bh, bh / 2); x.fill(); x.restore();
@@ -6259,7 +6261,7 @@ const Zukan = {
     if (c.design) { const p = L.find(x => x.id === c.design) || c.zkPick || {}; box.hidden = false;
       box.innerHTML = `<div class="zk-on"><b>✓ みんなの図鑑の「${esc(p.name || "スタンプ")}」として登録します</b><button class="btn small ghost" type="button" id="zkOff">やめる</button></div>`;
       $("#zkOff").onclick = () => { c.design = null; c.zkPick = null; this.render(c); }; return; }
-    if (!L.length) { box.hidden = false; box.innerHTML = `<div class="zk-new"><b>✨ 新種かも！</b><span>みんなの図鑑にまだないスタンプです。名前と場所を入れて登録すると、あなたが<b>第一発見者</b>になれるかもしれません。</span></div>`; return; }
+    if (!L.length) { if (!FIRST_ON) { box.hidden = true; box.innerHTML = ""; return; } box.hidden = false; box.innerHTML = `<div class="zk-new"><b>✨ 新種かも！</b><span>みんなの図鑑にまだないスタンプです。名前と場所を入れて登録すると、あなたが<b>第一発見者</b>になれるかもしれません。</span></div>`; return; }
     box.hidden = false;
     box.innerHTML = `<div class="zk-hit"><b>みんなの図鑑に、同じスタンプがありました</b><small>絵を見くらべて、同じならタップ。名前・場所・ジャンル・大きさが入ります。</small>
       ${L.map(x => `<button type="button" class="zk-row" data-zk="${x.id}">${x.thumb ? `<img src="${x.thumb}" alt="">` : `<i></i>`}<span><b>${esc(x.name || "名前なし")}</b><small>${esc([x.place && x.place !== x.name ? x.place : "", x.pref, x.size_mm ? "約" + fmtCm(x.size_mm) : "", x.members ? x.members + "人が登録" : ""].filter(Boolean).join(" · "))}${x.mine ? " · 自分も登録ずみ" : ""}</small></span><em>これにする</em></button>`).join("")}
@@ -6314,9 +6316,9 @@ const Pack = {
       const fx = Sparks($e(".pk-fx"), kind);
       let stage = 0, flipped = false, closed = false, reg = null, tm = [];
       const at = (ms, f) => tm.push(setTimeout(f, reduce ? 0 : ms));
-      if (o.reg) o.reg.then(r => { reg = r; if (r && r.first) { s.first = true; el.classList.add("k-first"); const f = $e(".pk-f"); f.innerHTML = cardHTML(s, s._no != null ? s._no : PrintCard.no(s)).replace(/^<button type="button"/, "<div").replace(/<\/button>$/, "</div>") + `<span class="pk-holo"></span>`; } if (stage >= 2) setTitle(); }).catch(() => {});
-      const setTitle = () => { const t = reg && reg.first ? (reg.isNew ? "新種発見！ 第一発見者" : "第一発見者！") : kind === "ovl" ? "重ね押しトレカ GET！" : kind === "digi" ? "デジスタ GET！" : "トレカ GET！";
-        if (title.dataset.t === t) return; title.dataset.t = t; title.innerHTML = `<b>${t}</b>${reg && reg.members > 1 ? `<small>みんなの図鑑で ${reg.members} 人目</small>` : reg && reg.first ? `<small>このデザインを最初に登録しました</small>` : ""}`; title.classList.remove("on"); void title.offsetWidth; title.classList.add("on"); if (reg && reg.first) fx.burst(160, true); };
+      if (o.reg) o.reg.then(r => { reg = r; if (r && r.first && FIRST_ON) { s.first = true; el.classList.add("k-first"); const f = $e(".pk-f"); f.innerHTML = cardHTML(s, s._no != null ? s._no : PrintCard.no(s)).replace(/^<button type="button"/, "<div").replace(/<\/button>$/, "</div>") + `<span class="pk-holo"></span>`; } if (stage >= 2) setTitle(); }).catch(() => {});
+      const setTitle = () => { const fo = FIRST_ON && reg && reg.first; const t = fo ? (reg.isNew ? "新種発見！ 第一発見者" : "第一発見者！") : kind === "ovl" ? "重ね押しトレカ GET！" : kind === "digi" ? "デジスタ GET！" : "トレカ GET！";
+        if (title.dataset.t === t) return; title.dataset.t = t; title.innerHTML = `<b>${t}</b>${reg && reg.members > 1 ? `<small>みんなの図鑑で ${reg.members} 人目</small>` : fo ? `<small>このデザインを最初に登録しました</small>` : ""}`; title.classList.remove("on"); void title.offsetWidth; title.classList.add("on"); if (fo) fx.burst(160, true); };
       const paintBack = async () => {
         const b = $e(".pk-b");
         try { if (Trivia.can(s) && !Trivia.text(s)) await Trivia.get(s).catch(() => {}); const u = await CardView.backURL(findStamp(s.id) || s); if (!closed) b.innerHTML = `<img src="${u}" alt="裏面">`; }
@@ -6765,7 +6767,7 @@ const YearSum = {
     tiles.forEach(([v, l], i) => { const tx = 64 + (i % 2) * 486, ty = 730 + Math.floor(i / 2) * 150; x.fillStyle = "rgba(255,255,255,.08)"; x.beginPath(); x.roundRect ? x.roundRect(tx, ty, 466, 130, 22) : x.rect(tx, ty, 466, 130); x.fill();
       x.fillStyle = "#FFFFFF"; x.font = "800 50px 'Zen Kaku Gothic New',sans-serif"; x.fillText(v, tx + 28, ty + 70); x.fillStyle = "rgba(255,255,255,.65)"; x.font = "500 24px 'Zen Kaku Gothic New',sans-serif"; x.fillText(l, tx + 28, ty + 108); });
     // レア
-    x.fillStyle = "#F0C35A"; x.font = "700 28px 'Zen Kaku Gothic New',sans-serif"; x.fillText(`レア  重ね押し ${D.ovl} ・ デジスタ ${D.digi} ・ 第一発見者 ${D.first}`, 64, 1068);
+    x.fillStyle = "#F0C35A"; x.font = "700 28px 'Zen Kaku Gothic New',sans-serif"; x.fillText(`レア  重ね押し ${D.ovl} ・ デジスタ ${D.digi}${FIRST_ON ? ` ・ 第一発見者 ${D.first}` : ""}`, 64, 1068);
     // スタンプのならび
     const pick = [...D.L].filter(s => s.cut).slice(-9).reverse(); const cs = 104, gap = 12; let ix = 64;
     for (const s of pick) { try { const im = await loadImg(s.cut); x.save(); x.fillStyle = "#FBF8F1"; x.beginPath(); x.roundRect ? x.roundRect(ix, 1110, cs, cs, 14) : x.rect(ix, 1110, cs, cs); x.fill(); x.clip(); const sc = (cs - 14) / Math.max(im.naturalWidth, im.naturalHeight); x.globalCompositeOperation = isDigi(s) ? "source-over" : "multiply"; x.drawImage(im, ix + cs / 2 - im.naturalWidth * sc / 2, 1110 + cs / 2 - im.naturalHeight * sc / 2, im.naturalWidth * sc, im.naturalHeight * sc); x.restore(); } catch (_) {} ix += cs + gap; if (ix + cs > Wd - 40) break; }
