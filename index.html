@@ -906,6 +906,89 @@ html.tcv-on #toast{z-index:95}
 .book.wig{animation:tnWig .85s ease-in-out}
 @keyframes tnWig{0%,100%{rotate:0deg;scale:1}12%{rotate:-1.4deg;scale:1.008}26%{rotate:1.25deg}40%{rotate:-.9deg}54%{rotate:.55deg}68%{rotate:-.28deg}84%{rotate:.1deg}}
 .bk-zr{position:absolute;right:12px;top:8px;z-index:40;box-shadow:0 2px 8px rgba(0,0,0,.18)}
+
+/* 10/11 みんなの図鑑（かんたん登録） */
+.zk{margin:10px 0 0}
+.zk-hit,.zk-new,.zk-on{border-radius:14px;padding:12px 12px 10px;display:flex;flex-direction:column;gap:8px}
+.zk-hit{background:linear-gradient(180deg,#F3F7FF,#EAF1FF);box-shadow:inset 0 0 0 1px rgba(60,100,200,.18)}
+.zk-hit>b,.zk-new b{font-size:14px}
+.zk-hit>small,.zk-note{color:var(--muted);font-size:11.5px;line-height:1.6}
+.zk-row{display:flex;align-items:center;gap:10px;background:#fff;border:0;border-radius:12px;padding:8px;text-align:left;box-shadow:0 1px 3px rgba(20,30,60,.1);cursor:pointer;color:inherit;font:inherit}
+.zk-row img,.zk-row i{width:52px;height:52px;object-fit:contain;flex:none;border-radius:8px;background:#F6F3EC;mix-blend-mode:multiply}
+.zk-row span{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.zk-row span b{font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.zk-row span small{font-size:11.5px;color:var(--muted)}
+.zk-row em{font-style:normal;font-size:12px;font-weight:700;color:#fff;background:var(--ai);border-radius:99px;padding:6px 10px;flex:none}
+.zk-new{background:linear-gradient(120deg,#FFF6DA,#FFEFD0 40%,#F3E8FF);box-shadow:inset 0 0 0 1px rgba(200,150,40,.25)}
+.zk-new span{font-size:12.5px;line-height:1.7;color:#5A4520}
+.zk-on{flex-direction:row;align-items:center;background:#EAF6EE;box-shadow:inset 0 0 0 1px rgba(40,140,80,.25)}
+.zk-on b{flex:1;font-size:13px;color:#1E6B3C}
+
+/* 10/11 第一発見者のバッジ（ホロ） */
+.tc-badge.fd{background:linear-gradient(110deg,#FFE9A6 0%,#FFD0E8 18%,#C9E8FF 36%,#D7FFD9 52%,#FFF0A8 68%,#FFC7DE 84%,#C8E4FF 100%);background-size:240% 100%;color:#5B3E00;text-shadow:0 1px 0 rgba(255,255,255,.7);box-shadow:inset 0 0 0 calc(var(--u) * .25) rgba(255,255,255,.75),0 calc(var(--u) * .4) calc(var(--u) * .9) rgba(120,80,0,.35);animation:fdHolo 3.2s linear infinite}
+@keyframes fdHolo{from{background-position:0 0}to{background-position:-240% 0}}
+
+/* 10/11 開封演出 */
+.pk{position:fixed;inset:0;z-index:9000;display:flex;flex-direction:column;align-items:center;justify-content:center;background:radial-gradient(120% 90% at 50% 42%,rgba(40,48,80,.86),rgba(8,10,20,.96));opacity:0;transition:opacity .25s;overflow:hidden;-webkit-user-select:none;user-select:none;touch-action:manipulation}
+.pk.s-in{opacity:1}.pk.s-out{opacity:0}
+.pk-fx{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+.pk-rays{position:absolute;left:50%;top:44%;width:180vmax;height:180vmax;margin:-90vmax 0 0 -90vmax;background:repeating-conic-gradient(from 0deg,rgba(255,236,170,.16) 0 6deg,transparent 6deg 18deg);opacity:0;transition:opacity .6s;animation:pkSpin 18s linear infinite;pointer-events:none;-webkit-mask:radial-gradient(circle,#000 10%,transparent 60%);mask:radial-gradient(circle,#000 10%,transparent 60%)}
+.pk.k-ovl .pk-rays{background:repeating-conic-gradient(from 0deg,rgba(255,120,190,.16) 0 6deg,transparent 6deg 12deg,rgba(120,220,255,.16) 12deg 18deg,transparent 18deg 24deg,rgba(255,220,110,.16) 24deg 30deg,transparent 30deg 36deg)}
+.pk.k-digi .pk-rays{background:repeating-conic-gradient(from 0deg,rgba(120,232,255,.18) 0 5deg,transparent 5deg 15deg)}
+.pk.s-show .pk-rays{opacity:1}
+@keyframes pkSpin{to{transform:rotate(360deg)}}
+.pk-glow{position:absolute;left:50%;top:44%;width:70vmin;height:70vmin;margin:-35vmin 0 0 -35vmin;border-radius:50%;background:radial-gradient(circle,rgba(255,240,190,.55),rgba(255,210,110,.12) 45%,transparent 70%);opacity:0;transform:scale(.4);transition:opacity .5s,transform .8s cubic-bezier(.2,.8,.2,1);pointer-events:none}
+.pk.k-digi .pk-glow{background:radial-gradient(circle,rgba(160,240,255,.55),rgba(80,170,255,.14) 45%,transparent 70%)}
+.pk.k-ovl .pk-glow{background:radial-gradient(circle,rgba(255,200,240,.5),rgba(160,200,255,.16) 45%,transparent 70%)}
+.pk.s-shake .pk-glow{opacity:.7;transform:scale(.8)}.pk.s-show .pk-glow{opacity:1;transform:scale(1.15)}
+.pk-stage{position:relative;width:min(64vw,300px);aspect-ratio:63/88;margin-top:-6vh;perspective:1200px}
+.pk-pack{position:absolute;inset:-6% -7%;z-index:2;transform:translateY(-120vh) rotate(-8deg);transition:transform .55s cubic-bezier(.2,1.25,.4,1)}
+.pk.s-in .pk-pack{transform:none}
+.pk.s-shake .pk-pack{animation:pkShake .9s ease-in-out infinite}
+@keyframes pkShake{0%,100%{transform:rotate(0)}10%{transform:rotate(-2.5deg) translateX(-3px)}20%{transform:rotate(2.5deg) translateX(3px)}30%{transform:rotate(-2deg)}40%{transform:rotate(1.6deg)}50%{transform:rotate(0) scale(1.02)}}
+.pk-top,.pk-body{position:absolute;left:0;right:0;background:linear-gradient(115deg,#C9CDD6 0%,#F4F6FA 18%,#AEB4C2 34%,#E8EBF2 52%,#9EA5B5 70%,#F2F4F8 86%,#BCC1CC 100%);box-shadow:inset 0 0 0 1px rgba(255,255,255,.5)}
+.pk.k-std .pk-top,.pk.k-std .pk-body{background:linear-gradient(115deg,#C8A24E 0%,#FFF0BE 18%,#B98E3A 34%,#FBE3A0 52%,#A57C2E 70%,#FFF3C8 86%,#C59B45 100%)}
+.pk.k-ovl .pk-top,.pk.k-ovl .pk-body{background:linear-gradient(115deg,#FFB3D9 0%,#FFF2B0 16%,#B6F0FF 32%,#D9C2FF 48%,#BFFFD6 64%,#FFD0B0 80%,#C8D8FF 100%)}
+.pk.k-digi .pk-top,.pk.k-digi .pk-body{background:linear-gradient(115deg,#123A66 0%,#2F86C8 20%,#0E2E55 38%,#59C4F0 56%,#163F70 74%,#7FE0FF 90%,#1A4C82 100%)}
+.pk-top{top:0;height:13%;border-radius:10px 10px 2px 2px;transform-origin:85% 100%;transition:transform .5s cubic-bezier(.4,0,.2,1),opacity .5s}
+.pk-top i{position:absolute;left:0;right:0;bottom:-3px;height:6px;background:repeating-linear-gradient(90deg,transparent 0 5px,rgba(0,0,0,.18) 5px 7px)}
+.pk-body{top:13%;bottom:0;border-radius:2px 2px 12px 12px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;overflow:hidden;transition:transform .6s cubic-bezier(.5,0,.75,0),opacity .6s}
+.pk-logo{font-family:"Shippori Mincho","Hiragino Mincho ProN",serif;font-weight:800;font-size:clamp(30px,10vw,44px);letter-spacing:.06em;color:rgba(40,28,6,.82);text-shadow:0 1px 0 rgba(255,255,255,.6)}
+.pk.k-digi .pk-logo,.pk.k-digi .pk-sub{color:#E8FBFF;text-shadow:0 0 12px rgba(120,230,255,.8)}
+.pk-sub{font:700 11px/1 var(--f-mono);letter-spacing:.32em;color:rgba(40,28,6,.6)}
+.pk-gx{position:absolute;left:12%;right:12%;bottom:12%;height:5px;border-radius:3px;background:var(--g);opacity:.75}
+.pk-shine{position:absolute;inset:-50%;background:linear-gradient(105deg,transparent 40%,rgba(255,255,255,.75) 50%,transparent 60%);animation:pkShine 1.6s ease-in-out infinite;mix-blend-mode:overlay}
+@keyframes pkShine{from{transform:translateX(-60%)}to{transform:translateX(60%)}}
+.pk.s-open .pk-top{transform:translate(40%,-90%) rotate(28deg);opacity:0}
+.pk.s-open .pk-pack{animation:none}
+.pk.s-rise .pk-body{transform:translateY(120vh) rotate(6deg);opacity:0}
+.pk-card{position:absolute;inset:0;z-index:1;transform:translateY(10%) scale(.92);transition:transform .7s cubic-bezier(.2,1.3,.35,1)}
+.pk.s-rise .pk-card{z-index:3;transform:translateY(-6%) scale(1.02)}
+.pk.s-show .pk-card{transform:none}
+.pk-in{position:absolute;inset:0;transform-style:preserve-3d;transition:transform .8s cubic-bezier(.3,1.25,.45,1)}
+.pk-in.flip{transform:rotateY(180deg)}
+.pk-f,.pk-b{position:absolute;inset:0;backface-visibility:hidden;-webkit-backface-visibility:hidden;border-radius:4.5%/3.2%;overflow:hidden;box-shadow:0 18px 50px rgba(0,0,0,.55)}
+.pk-f .card{width:100%;height:100%;pointer-events:none}
+.pk-b{transform:rotateY(180deg);background:#FBF8F1;display:flex;align-items:center;justify-content:center}
+.pk-b img{width:100%;height:100%;object-fit:cover;display:block}
+.pk-b .tcv-wait{display:flex;flex-direction:column;align-items:center;gap:8px;color:var(--muted);font-size:12px}
+.pk-holo{position:absolute;inset:0;pointer-events:none;opacity:0;background:linear-gradient(115deg,transparent 20%,rgba(255,170,220,.45) 32%,rgba(170,230,255,.45) 42%,rgba(200,255,190,.45) 52%,rgba(255,240,170,.45) 62%,transparent 75%);background-size:250% 100%;mix-blend-mode:color-dodge;animation:pkHolo 2.4s linear infinite}
+.pk.k-ovl .pk-holo,.pk.k-first .pk-holo{opacity:.85}
+.pk.k-digi .pk-holo{opacity:.5;background:linear-gradient(115deg,transparent 30%,rgba(140,240,255,.55) 45%,rgba(255,255,255,.5) 50%,rgba(140,240,255,.55) 55%,transparent 70%);background-size:250% 100%}
+.pk.k-std .pk-holo{opacity:.4;background:linear-gradient(115deg,transparent 38%,rgba(255,255,255,.6) 50%,transparent 62%);background-size:250% 100%}
+@keyframes pkHolo{from{background-position:120% 0}to{background-position:-130% 0}}
+.pk-title{position:relative;z-index:4;margin-top:22px;text-align:center;color:#fff;opacity:0;transform:translateY(10px) scale(.9);min-height:52px}
+.pk-title.on{animation:pkTitle .6s cubic-bezier(.2,1.5,.4,1) forwards}
+@keyframes pkTitle{to{opacity:1;transform:none}}
+.pk-title b{display:block;font:900 clamp(22px,7vw,30px)/1.2 var(--f-ui);letter-spacing:.06em;background:linear-gradient(180deg,#FFF6D0,#FFD36E 55%,#E39B2A);-webkit-background-clip:text;background-clip:text;color:transparent;filter:drop-shadow(0 2px 6px rgba(255,190,60,.45))}
+.pk.k-digi .pk-title b{background:linear-gradient(180deg,#F0FDFF,#7CE8FF 60%,#3A9BE8);-webkit-background-clip:text;background-clip:text}
+.pk.k-ovl .pk-title b,.pk.k-first .pk-title b{background:linear-gradient(90deg,#FF9BD0,#FFE58A,#8EE8FF,#C7A6FF,#9BFFC2);-webkit-background-clip:text;background-clip:text}
+.pk-title small{display:block;margin-top:6px;font-size:12.5px;color:rgba(255,255,255,.8)}
+.pk-acts{position:relative;z-index:4;display:flex;gap:10px;margin-top:14px;opacity:0;pointer-events:none;transition:opacity .4s .2s}
+.pk.s-done .pk-acts{opacity:1;pointer-events:auto}
+.pk-tap{position:absolute;bottom:calc(28px + env(safe-area-inset-bottom));left:0;right:0;text-align:center;color:rgba(255,255,255,.7);font-size:12.5px;letter-spacing:.1em;transition:opacity .3s}
+.pk.s-open .pk-tap{opacity:0}
+@media (prefers-reduced-motion: reduce){.pk *,.pk{animation:none!important;transition:none!important}}
 </style>
 
 <div id="app">
@@ -1522,7 +1605,7 @@ function cardHTML(s, no, o = {}) {   // スタンプトレカ（印刷の表と�
   return `<button type="button" class="${cls}" data-open="${esc(s.id)}" style="--g:${gcol(g)}"><span class="pick" aria-hidden="true">✓</span>
     <span class="tc-hd"><span class="tc-k">ぺたろぐ</span>${o.tag ? `<span class="tc-no tag">${esc(o.tag)}</span>` : `<span class="tc-no">${no ? "No." + String(no).padStart(4, "0") : ""}</span>`}</span>
     <span class="tc-win"><span class="tc-tab"><span class="tc-tabf"></span><svg viewBox="0 0 214 52" preserveAspectRatio="none" aria-hidden="true"><path d="M0 1 L19.5 51 L194.5 51 L214 1" fill="none" stroke="#C9A24A" stroke-width="2.4"/></svg><span class="tc-tabt"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="${gicon(g)}"/></svg>${esc(g)}</span></span>
-      ${s.overlap || isDigi(s) ? `<span class="tc-badges">${s.overlap ? '<span class="tc-badge">重ね押し</span>' : ""}${isDigi(s) ? '<span class="tc-badge dgs">デジスタ</span>' : ""}</span>` : ""}
+      ${s.overlap || isDigi(s) || s.first ? `<span class="tc-badges">${s.first ? '<span class="tc-badge fd">第一発見者</span>' : ""}${s.overlap ? '<span class="tc-badge">重ね押し</span>' : ""}${isDigi(s) ? '<span class="tc-badge dgs">デジスタ</span>' : ""}</span>` : ""}
       <span class="tc-art${L.A.sheet ? " sh" : ""}" style="left:${u(L.x)};top:${u(L.y)};width:${u(L.w)};height:${u(L.h)}"><img src="${L.A.url}" alt="" loading="lazy" draggable="false" data-ck="${esc(s.id)}"></span>
       ${L.dimY != null ? `<span class="tc-dim" style="left:${u(L.x)};top:${u(L.dimY)};width:${u(L.w)}"><i></i><i></i><b>${L.dimTxt}</b></span>` : ""}
       <span class="tc-nm" style="font-size:${u(L.fs)}">${esc(s.name || "名前未設定")}</span><span class="tc-rule"></span>
@@ -2737,7 +2820,7 @@ async function deleteStamps(L) {
   let n = 0; const done = [];
   for (const s of L) {
     if (s.sample) continue;
-    try { await Store.removeStamp(s); await Store.pubDel(s.id); done.push(s.id); n++; } catch { toast("削除できないものがありました。通信を確かめてください", 3600); break; }
+    try { await Store.removeStamp(s); await Store.pubDel(s.id); if (s.design) Zukan.leave(s.id); done.push(s.id); n++; } catch { toast("削除できないものがありました。通信を確かめてください", 3600); break; }
   }
   const gone = new Set(done); stamps = stamps.filter(x => !gone.has(x.id)); Grid.sel && done.forEach(id => Grid.sel.delete(id));
   Books.removeStamps(done); MapV.pubs = null;
@@ -3805,7 +3888,7 @@ function formHTML(d, ro) {
       <details><summary style="cursor:pointer;color:var(--muted)">よく使う基準物を登録する</summary><div class="row2" style="margin-top:8px"><input id="refNewN" class="grow" placeholder="例: 5cmのキーホルダー"><input id="refNewCm" inputmode="decimal" placeholder="cm" style="width:70px"><button class="btn small" type="button" id="refAdd">登録</button></div></details>
     </div>
   </div>`}
-  ${ro ? "" : `<div class="sec ai-box" id="aiBox"><div class="hd"><span>AIでどこのスタンプか調べる</span><span class="spacer"></span><button class="btn small" type="button" id="aiRun">調べる</button></div><div class="bd" id="aiBd"><small>${digi ? "文字や図柄から、名前・場所・ジャンル・地図の位置を推定します。" : "文字や図柄から、名前・場所・ジャンル・地図の位置を推定します。基準物が写っていれば大きさも見積もります。"}</small></div></div>`}
+  ${ro || !(sheetCtx && sheetCtx.mode === "add") ? "" : `<div class="zk" id="zkBox" hidden></div>`}${ro ? "" : `<div class="sec ai-box" id="aiBox"><div class="hd"><span>AIでどこのスタンプか調べる</span><span class="spacer"></span><button class="btn small" type="button" id="aiRun">調べる</button></div><div class="bd" id="aiBd"><small>${digi ? "文字や図柄から、名前・場所・ジャンル・地図の位置を推定します。" : "文字や図柄から、名前・場所・ジャンル・地図の位置を推定します。基準物が写っていれば大きさも見積もります。"}</small></div></div>`}
   <div class="sec"><h4>記録</h4><div class="form">
     <label class="fld full"><span>${gos ? "寺社名" : "スタンプの名前"}</span><input id="f_name" class="hand" value="${esc(d.name)}" placeholder="${gos ? "例: ○○神社" : "例: 東京駅"}"${dis}></label>
     ${gos ? "" : `<label class="fld"><span>ジャンル</span><select id="f_cat" aria-label="ジャンル"${dis}>${GENRES.map(g => `<option${g === cat ? " selected" : ""}>${g}</option>`).join("")}</select></label><label class="fld"><span>種類</span><select id="f_medium" aria-label="リアルかデジタルか"${dis}><option value="real"${digi ? "" : " selected"}>リアルスタンプ</option><option value="digital"${digi ? " selected" : ""}>デジタルスタンプ</option></select></label>`}
@@ -3927,7 +4010,7 @@ function wireAdd() {
 function rebuildForm() {
   const c = sheetCtx; const fa = $("#formArea");
   fa.innerHTML = `${formHTML(c.d, false)}<div class="acts"><button class="btn primary" type="button" id="saveBtn">登録する</button></div><div id="confirmArea"></div>`;
-  wireForm();
+  wireForm(); if (c.zkList) Zukan.render(c); else Zukan.soon(c);
 }
 function setTool(t) {
   const c = sheetCtx; if (!c || !c.crop) return;
@@ -4011,7 +4094,7 @@ function recut() {
   const t = clamp(c.an.t + c.offset, 12, 220);
   const src = c.rect || c.src, box = c.rect ? { x: 0, y: 0, w: c.rect.width, h: c.rect.height } : c.box;
   c.cut = makeCut(src, box, c.an.paper, t, c.colorMode, { ghost: c.ghost, erase: c.erase, flat: c.flat !== false });
-  drawResult();
+  drawResult(); Zukan.soon(c);
   const cp = $("#cutCap"); if (cp) cp.textContent = `${c.cut.shape === "circle" ? "丸型" : "角型"} · ${c.cut.color ? (c.cut.multi ? "多色（重ね押し）として元の色で" : "元の色で") : "インク1色で"}切り抜き${c.cut.colors && c.cut.colors.length ? " · 色: " + c.cut.colors.join("・") : ""}${!c.ghost && c.cut.faint > 0.3 ? " · うすい影が多めです（裏写りなら「裏写り・うすい影を消す」）。撮影のコツ：明るい場所で、自分やスマホの影が入らない向きから、真上から撮る（フラッシュなし）" : ""}`;
   if (c.stampPx) updateMeas();
 }
@@ -4136,12 +4219,15 @@ async function commitSave(c, d) {
   if (first) { await Books.load(); Fall.setFilter("all"); }
   const mode = c.mode, q = c.queue, adj = c.adj;
   closeSheet(); refreshAll(); Others.rank = null;
-  if (ms) setTimeout(() => Party.show(ms), 420);
+  const reg = d.type !== "goshuin" && (mode === "add" || mode === "edit" || mode === "update") ? Zukan.register(d, c.design).catch(() => null) : null;
+  const packed = mode === "add" && d.type !== "goshuin" && !(q && q.i + 1 < q.boxes.length);
+  if (packed) Pack.play(d, { reg }).then(() => { if (ms) Party.show(ms); else { const r = rallyOf(rallyKeyOf(d)); if (r) toast(`${r.r.name} ${r.st.n}駅 をゲット！`); } });
+  else if (ms) setTimeout(() => Party.show(ms), 420);
   if (q && mode !== "edit" && q.i + 1 < q.boxes.length) {
     const carry = { medium: d.medium, date: d.date, event: d.event, line: d.line, lat: d.lat, lng: d.lng, locSrc: d.locSrc, pref: d.pref, place: d.place, priv: d.priv, cat: d.cat, sizeMm: d.sizeMm, sizeSrc: d.sizeSrc };
     toast(`${q.i + 1}個目を保存しました。次のスタンプへ`); openStamp("add", null, carry, { queue: { ...q, i: q.i + 1 }, type: "stamp", adj }); return;
   }
-  if (mode === "add") { const r = rallyOf(rallyKeyOf(d)); if (!ms) toast(r ? `${r.r.name} ${r.st.n}駅 をゲット！` : "登録しました"); }
+  if (mode === "add") { const r = rallyOf(rallyKeyOf(d)); if (!ms && !packed) toast(r ? `${r.r.name} ${r.st.n}駅 をゲット！` : "登録しました"); }
   else if (mode === "update") toast(`前の記録を更新しました（${(d.visits || []).length + 1}回目）`);
   else toast("保存しました");
 }
@@ -5467,7 +5553,7 @@ const PrintCard = {
     x.textAlign = "left"; x.textBaseline = "middle"; this.spaced(x, gname, 0.2 * 2.7 * m, sx + isz + 1 * m, cy); x.restore();
     // 重ね押し・デジスタのバッジ
     let bx = wx + 1.8 * m; const by = wy + 1.6 * m, bh = 4.2 * m;
-    for (const [on, label, c0, c1, c2, sh] of [[s.overlap, "重ね押し", "#F0D27A", "#C9A24A", "#A07A2C", "rgba(80,55,10,.35)"], [isDigi(s), "デジスタ", "#A9DDF7", "#4F93D8", "#2E5EA6", "rgba(20,50,100,.35)"]]) {
+    for (const [on, label, c0, c1, c2, sh] of [[s.first, "第一発見者", "#FFF1B8", "#E9B949", "#A8741A", "rgba(90,60,10,.4)"], [s.overlap, "重ね押し", "#F0D27A", "#C9A24A", "#A07A2C", "rgba(80,55,10,.35)"], [isDigi(s), "デジスタ", "#A9DDF7", "#4F93D8", "#2E5EA6", "rgba(20,50,100,.35)"]]) {
       if (!on) continue; x.font = `700 ${2.2 * m}px ${UI}`; const bw = this.spaced(x, label, 0.08 * 2.2 * m) + 4.4 * m;
       const gr = x.createLinearGradient(0, by, 0, by + bh); gr.addColorStop(0, c0); gr.addColorStop(0.48, c1); gr.addColorStop(1, c2);
       x.save(); x.shadowColor = sh; x.shadowBlur = 0.25 * m; x.shadowOffsetY = 0.15 * m; x.fillStyle = gr; this.rr(x, bx, by, bw, bh, bh / 2); x.fill(); x.restore();
@@ -6083,6 +6169,127 @@ const BackCrop = {
   window.RallyCols = setRC;   // 確認用
 })();
 
+/* ---------- みんなのスタンプ図鑑（かんたん登録・新種発見・第一発見者） ----------
+   写真から切り抜いたら、みんなの図鑑に同じスタンプがないかさがす（AIは使わないので無料）。
+   見つかれば名前・場所・ジャンル・大きさをそのまま使える。同じ施設に似た別スタンプもあるので、最後は本人が絵を見て選ぶ。
+   公開するスタンプを登録すると図鑑に入り、まだだれも入れていないデザインなら、その人が「第一発見者」 */
+const Zukan = {
+  ok() { return Store.mode === "cloud" && !!window.PetalogCloud && !!(PetalogCloud.loggedIn && PetalogCloud.loggedIn()) && !(PetalogCloud.isOffline && PetalogCloud.isOffline()); },
+  async dh(url) { const r = await fetch(url); if (!r.ok) throw { code: "network" }; return Trivia.dhash(await r.blob()); },
+  t(s) { const m = /^s([0-9a-z]+)[0-9a-z]{5}$/.exec((s && s.id) || ""); const v = m ? parseInt(m[1], 36) : NaN; return isFinite(v) && v > 1.5e12 && v < 4e12 ? v : Date.now(); },
+  soon(c) { if (!c || c.mode !== "add" || c.type === "goshuin" || !this.ok()) return; clearTimeout(c.zkT); c.zkT = setTimeout(() => this.match(c), 900); },
+  async match(c) {
+    if (sheetCtx !== c || !c.cut || !$("#zkBox")) return;
+    let dh = ""; try { dh = await this.dh(c.cut.url); } catch (_) { return; }
+    const lat = c.d.lat != null ? c.d.lat : c.exif && c.exif.lat, lng = c.d.lng != null ? c.d.lng : c.exif && c.exif.lng;
+    const key = dh + "|" + (lat != null ? (+lat).toFixed(3) + "," + (+lng).toFixed(3) : ""); if (c.zkKey === key) return; c.zkKey = key; c.zkDh = dh;
+    let r; try { r = await PetalogCloud.zukan("match", { dh, lat, lng, digital: !!c.digital }); } catch (_) { return; }
+    if (sheetCtx !== c) return; c.zkList = (r && r.list) || []; this.render(c);
+  },
+  render(c) {
+    const box = $("#zkBox"); if (!box) return; const L = c.zkList || [];
+    if (c.design) { const p = L.find(x => x.id === c.design) || c.zkPick || {}; box.hidden = false;
+      box.innerHTML = `<div class="zk-on"><b>✓ みんなの図鑑の「${esc(p.name || "スタンプ")}」として登録します</b><button class="btn small ghost" type="button" id="zkOff">やめる</button></div>`;
+      $("#zkOff").onclick = () => { c.design = null; c.zkPick = null; this.render(c); }; return; }
+    if (!L.length) { box.hidden = false; box.innerHTML = `<div class="zk-new"><b>✨ 新種かも！</b><span>みんなの図鑑にまだないスタンプです。名前と場所を入れて登録すると、あなたが<b>第一発見者</b>になれるかもしれません。</span></div>`; return; }
+    box.hidden = false;
+    box.innerHTML = `<div class="zk-hit"><b>みんなの図鑑に、同じスタンプがありました</b><small>絵を見くらべて、同じならタップ。名前・場所・ジャンル・大きさが入ります。</small>
+      ${L.map(x => `<button type="button" class="zk-row" data-zk="${x.id}">${x.thumb ? `<img src="${x.thumb}" alt="">` : `<i></i>`}<span><b>${esc(x.name || "名前なし")}</b><small>${esc([x.place && x.place !== x.name ? x.place : "", x.pref, x.size_mm ? "約" + fmtCm(x.size_mm) : "", x.members ? x.members + "人が登録" : ""].filter(Boolean).join(" · "))}${x.mine ? " · 自分も登録ずみ" : ""}</small></span><em>これにする</em></button>`).join("")}
+      <small class="zk-note">似ているけれど別のスタンプのこともあります（同じ施設に何種類もあるときなど）。ちがうときは、そのまま入力してください。</small></div>`;
+    box.querySelectorAll("[data-zk]").forEach(b => b.onclick = () => { const x = L.find(y => String(y.id) === b.dataset.zk); if (!x) return; c.design = x.id; c.zkPick = x;
+      applyAI({ name: x.name, place: x.place, cat: x.cat, lat: typeof x.lat === "number" ? x.lat : undefined, lng: typeof x.lng === "number" ? x.lng : undefined, size_cm: x.size_mm ? x.size_mm / 10 : undefined }, true);
+      if (x.size_mm && $("#sizeSrc")) { c.d.sizeSrc = "zukan"; $("#sizeSrc").hidden = false; $("#sizeSrc").textContent = "みんなの図鑑"; }
+      if (x.pref) c.d.pref = x.pref; this.render(c); toast("みんなの図鑑の内容を入れました"); });
+  },
+  // 登録・編集したあとで図鑑に入れる（公開するスタンプだけ）。→ { design, first, members, isNew }
+  async register(d, design) {
+    if (!this.ok() || d.type === "goshuin" || !d.cut) return null;
+    if (!d.share) { if (d.design) this.leave(d.id); return null; }
+    let dh = ""; try { dh = await this.dh(d.cut); } catch (_) { return null; }
+    let thumb = ""; try { thumb = await thumbOf(d.cut); } catch (_) {}
+    const r = await PetalogCloud.zukan("register", { stamp_id: d.id, design: design || d.design || null, dh, name: d.name || "", place: d.place || "", pref: d.pref || "", cat: catNorm(d.cat), lat: d.lat, lng: d.lng, size_mm: d.sizeMm || null, digital: isDigi(d), thumb, t: this.t(d) });
+    if (!r || !r.design) return null;
+    const cur = findStamp(d.id) || d, changed = cur.design !== r.design || !!cur.first !== !!r.first;
+    cur.design = r.design; d.design = r.design; if (r.first) { cur.first = true; d.first = true; } else { delete cur.first; delete d.first; }
+    if (changed) { try { await Store.saveStamp(cur); } catch (_) {} refreshAll(); }
+    return r;
+  },
+  leave(id) { if (!this.ok()) return; PetalogCloud.zukan("leave", { stamp_id: id }).catch(() => {}); const s = findStamp(id); if (s && (s.design || s.first)) { delete s.design; delete s.first; } },
+  // 前に登録したスタンプも、1回だけ図鑑に入れる（古い順。早く登録した人が第一発見者）
+  async backfill() {
+    if (this.busy || !this.ok()) return; this.busy = true;
+    try {
+      const L = stamps.filter(s => !s.sample && s.type !== "goshuin" && s.share && !s.design && s.cut && !/^data:image\/svg/.test(s.cut)).sort((a, b) => this.t(a) - this.t(b));
+      for (const s of L) { if (!this.ok()) break; try { await this.register(s); } catch (e) { if (e && (e.code === "login_required" || e.code === "network")) break; } await new Promise(r => setTimeout(r, 250)); }
+    } finally { this.busy = false; }
+  }
+};
+
+/* ---------- 登録したときの開封演出（トレカのパックを開けるように） ----------
+   最後にカードがくるっと裏返り、そこで初めて裏面のプチ情報が見える。重ね押し・デジスタ・第一発見者は特別な見た目 */
+const Pack = {
+  play(s, o = {}) {
+    return new Promise(done => {
+      const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+      const kind = s.overlap ? "ovl" : isDigi(s) ? "digi" : "std";
+      const el = document.createElement("div"); el.className = "pk k-" + kind; el.setAttribute("role", "dialog"); el.setAttribute("aria-label", "トレカをゲット");
+      const front = cardHTML(s, s._no != null ? s._no : PrintCard.no(s)).replace(/^<button type="button"/, "<div").replace(/<\/button>$/, "</div>");
+      el.innerHTML = `<canvas class="pk-fx"></canvas><div class="pk-rays"></div><div class="pk-glow"></div>
+        <div class="pk-stage"><div class="pk-pack"><div class="pk-top"><i></i></div><div class="pk-body"><span class="pk-shine"></span><span class="pk-logo">ぺたろぐ</span><span class="pk-sub">STAMP CARD${kind === "ovl" ? " · 重ね押し" : kind === "digi" ? " · DIGITAL" : ""}</span><span class="pk-gx" style="--g:${gcol(catNorm(s.cat))}"></span></div></div>
+          <div class="pk-card"><div class="pk-in"><div class="pk-f">${front}<span class="pk-holo"></span></div><div class="pk-b" style="--g:${gcol(catNorm(s.cat))}"><div class="tcv-wait"><span class="spin"></span><small>プチ情報を書いています…</small></div></div></div></div></div>
+        <div class="pk-title" aria-live="polite"></div>
+        <div class="pk-acts"><button class="btn" type="button" data-pk="close">とじる</button><button class="btn primary" type="button" data-pk="view">トレカを見る</button></div>
+        <div class="pk-tap">タップで開ける</div>`;
+      document.body.appendChild(el); document.documentElement.classList.add("tcv-on");
+      const $e = q => el.querySelector(q), card = $e(".pk-card"), inner = $e(".pk-in"), title = $e(".pk-title");
+      const fx = Sparks($e(".pk-fx"), kind);
+      let stage = 0, flipped = false, closed = false, reg = null, tm = [];
+      const at = (ms, f) => tm.push(setTimeout(f, reduce ? 0 : ms));
+      if (o.reg) o.reg.then(r => { reg = r; if (r && r.first) { s.first = true; el.classList.add("k-first"); const f = $e(".pk-f"); f.innerHTML = cardHTML(s, s._no != null ? s._no : PrintCard.no(s)).replace(/^<button type="button"/, "<div").replace(/<\/button>$/, "</div>") + `<span class="pk-holo"></span>`; } if (stage >= 2) setTitle(); }).catch(() => {});
+      const setTitle = () => { const t = reg && reg.first ? (reg.isNew ? "新種発見！ 第一発見者" : "第一発見者！") : kind === "ovl" ? "重ね押しトレカ GET！" : kind === "digi" ? "デジスタ GET！" : "トレカ GET！";
+        if (title.dataset.t === t) return; title.dataset.t = t; title.innerHTML = `<b>${t}</b>${reg && reg.members > 1 ? `<small>みんなの図鑑で ${reg.members} 人目</small>` : reg && reg.first ? `<small>このデザインを最初に登録しました</small>` : ""}`; title.classList.remove("on"); void title.offsetWidth; title.classList.add("on"); if (reg && reg.first) fx.burst(160, true); };
+      const paintBack = async () => {
+        const b = $e(".pk-b");
+        try { if (Trivia.can(s) && !Trivia.text(s)) await Trivia.get(s).catch(() => {}); const u = await CardView.backURL(findStamp(s.id) || s); if (!closed) b.innerHTML = `<img src="${u}" alt="裏面">`; }
+        catch (_) { if (!closed) b.innerHTML = `<div class="tcv-wait"><small>裏面はトレカの画面で見られます</small></div>`; }
+      };
+      const open = () => { if (stage >= 1) return; stage = 1; el.classList.add("s-open"); fx.burst(kind === "std" ? 70 : 120); tm.forEach(clearTimeout); tm = [];
+        at(380, () => { el.classList.add("s-rise"); }); at(1050, () => { stage = 2; el.classList.add("s-show"); setTitle(); fx.ring(); }); at(2500, flip); };
+      const flip = () => { if (closed) return; flipped = !flipped; inner.classList.toggle("flip", flipped); el.classList.add("s-done"); if (flipped && !paintBack.done) { paintBack.done = true; paintBack(); } };
+      const close = view => { if (closed) return; closed = true; tm.forEach(clearTimeout); fx.stop(); el.classList.add("s-out"); setTimeout(() => { el.remove(); if (!document.querySelector(".tcv:not([hidden])")) document.documentElement.classList.remove("tcv-on"); done(); if (view) { CardView.open(s.id); CardView.base = 180; } }, reduce ? 0 : 260); };
+      el.addEventListener("click", e => {
+        const a = e.target.closest("[data-pk]"); if (a) return close(a.dataset.pk === "view");
+        if (stage === 0) return open(); if (stage === 1) return;
+        if (e.target.closest(".pk-card")) { tm.forEach(clearTimeout); tm = []; flip(); return; }
+        if (el.classList.contains("s-done")) close(false);
+      });
+      requestAnimationFrame(() => el.classList.add("s-in"));
+      if (reduce) { open(); return; }
+      at(500, () => el.classList.add("s-shake")); at(2300, open);   // 揺れて光ってから、自動で開く（タップすればすぐ開く）
+    });
+  }
+};
+// キラキラの粒（canvas）
+function Sparks(cv, kind) {
+  const x = cv.getContext("2d"), P = []; let raf = 0, run = true, ringT = 0; const dpr = Math.min(2, devicePixelRatio || 1);
+  const cols = kind === "ovl" ? ["#FF7AB6", "#FFD36E", "#7CE0FF", "#B48CFF", "#8CFFB0"] : kind === "digi" ? ["#7CE8FF", "#B9F4FF", "#5AA8FF", "#FFFFFF"] : ["#FFE7A0", "#FFFFFF", "#FFD36E", "#FFF4D0"];
+  const size = () => { cv.width = innerWidth * dpr; cv.height = innerHeight * dpr; }; size();
+  const add = (n, gold) => { const cx = innerWidth / 2, cy = innerHeight * 0.44; for (let i = 0; i < n; i++) { const a = Math.random() * Math.PI * 2, v = 2 + Math.random() * (gold ? 9 : 7);
+    P.push({ x: cx, y: cy, vx: Math.cos(a) * v, vy: Math.sin(a) * v - 2, life: 1, d: 0.008 + Math.random() * 0.014, r: 1.5 + Math.random() * 3.2, c: gold ? (Math.random() < .6 ? "#FFD36E" : "#FFFFFF") : cols[i % cols.length], star: Math.random() < 0.35 }); } };
+  const tick = () => {
+    x.setTransform(dpr, 0, 0, dpr, 0, 0); x.clearRect(0, 0, innerWidth, innerHeight);
+    if (run && Math.random() < 0.5) { const cx = innerWidth / 2 + (Math.random() - .5) * 300, cy = innerHeight * 0.44 + (Math.random() - .5) * 380; P.push({ x: cx, y: cy, vx: 0, vy: -0.2, life: 1, d: 0.02, r: 1 + Math.random() * 2.2, c: cols[(Math.random() * cols.length) | 0], star: true, tw: 1 }); }
+    for (let i = P.length - 1; i >= 0; i--) { const p = P[i]; p.x += p.vx; p.y += p.vy; p.vy += p.tw ? 0 : 0.12; p.vx *= 0.985; p.life -= p.d; if (p.life <= 0) { P.splice(i, 1); continue; }
+      x.globalAlpha = Math.max(0, Math.min(1, p.life * 1.4)); x.fillStyle = p.c;
+      if (p.star) { const r = p.r * (p.tw ? Math.sin(p.life * Math.PI) * 1.8 : 1.6); x.beginPath(); for (let k = 0; k < 8; k++) { const rr = k % 2 ? r * 0.28 : r; const a = k * Math.PI / 4; x.lineTo(p.x + Math.cos(a) * rr, p.y + Math.sin(a) * rr); } x.fill(); }
+      else { x.beginPath(); x.arc(p.x, p.y, p.r, 0, 7); x.fill(); } }
+    if (ringT) { const t = (performance.now() - ringT) / 700; if (t < 1) { x.globalAlpha = 1 - t; x.strokeStyle = cols[0]; x.lineWidth = 3 * (1 - t) + 0.5; x.beginPath(); x.arc(innerWidth / 2, innerHeight * 0.44, 40 + t * Math.max(innerWidth, innerHeight) * 0.6, 0, 7); x.stroke(); } else ringT = 0; }
+    x.globalAlpha = 1; if (run || P.length) raf = requestAnimationFrame(tick);
+  };
+  raf = requestAnimationFrame(tick); addEventListener("resize", size);
+  return { burst(n, gold) { add(n, gold); if (!raf) raf = requestAnimationFrame(tick); }, ring() { ringT = performance.now(); }, stop() { run = false; P.length = 0; cancelAnimationFrame(raf); removeEventListener("resize", size); } };
+}
+
 /* ================= boot ================= */
 addEventListener("resize", () => { Book.layout(); if (view === "fall") { Fall.dirty = true; Fall.stop(); Fall.start(); } if (view === "map") MapV.draw(); });
 document.addEventListener("visibilitychange", () => { if (document.hidden) Fall.stop(); else if (view === "fall") Fall.start(); });
@@ -6099,7 +6306,7 @@ document.addEventListener("contextmenu", e => { if (!e.target.closest("input,tex
   ready = true; Book.idx = 0; MapV.shown = false;
   refreshAll(); show(view);
   if (window.PetalogCloud) PetalogCloud.afterBoot();
-  setTimeout(() => Privacy.firstSync(), 2500); loadSheets(); setTimeout(trimOld, 6000); setTimeout(() => Numbers.ensure(), 1500);
+  setTimeout(() => Privacy.firstSync(), 2500); loadSheets(); setTimeout(trimOld, 6000); setTimeout(() => Zukan.backfill(), 9000); setTimeout(() => Numbers.ensure(), 1500);
   if (!lsGet("petalog.pinchHint")) { lsSet("petalog.pinchHint", "1"); setTimeout(() => toast("トレカ一覧は、2本指でつまむと並べる列の数（1〜5列）を変えられます", 4200), 4000); }
   (async () => { let n = 0; for (const s of stamps) { if (await fillStats(s)) n++; } if (n) Grid.render(); })();
 })();

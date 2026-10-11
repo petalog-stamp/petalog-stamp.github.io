@@ -549,6 +549,12 @@
     isOffline() { return offline || noNet(); },
     email() { return user ? user.email : ""; },
     aiAvailable() { return attached; },
+    // みんなのスタンプ図鑑（AIは使わない）: match / register / leave
+    async zukan(task, args) {
+      if (!attached) throw { code: "login_required" };
+      const j = await callFn("zukan", { task, args });
+      return j.result;
+    },
     async ai(task, args, images, signal) {
       if (!attached) throw { code: "login_required" };
       const imgs = [];
