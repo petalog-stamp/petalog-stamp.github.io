@@ -6412,7 +6412,7 @@ const HQ = {
   async settings() {
     if (Store.mode !== "cloud" || !Store.hqAdmin) return; if (this.admin == null) this.admin = await Store.hqAdmin(); if (!this.admin || !$("#sheet") || (sheetCtx && sheetCtx.mode !== "settings")) return;
     const head = $("#sheet .sheet-head"); if (!head || $("#hqSec")) return;
-    head.insertAdjacentHTML("afterend", `<div class="sec" id="hqSec"><h4>本部</h4><div class="row2"><a class="btn small primary" href="admin.html" target="_blank" rel="noopener">統計を見る</a><button class="btn small" type="button" id="hqOpen">「ちがうよ」報告の一覧</button></div><p class="cap" style="margin:6px 0 0">本部のアカウントにだけ出ています。</p></div>`);
+    head.insertAdjacentHTML("afterend", `<div class="sec" id="hqSec"><h4>本部</h4><button class="btn small" type="button" id="hqOpen">「ちがうよ」報告の一覧</button><p class="cap" style="margin:6px 0 0">本部のアカウントにだけ出ています。</p></div>`);
     $("#hqOpen").onclick = () => this.open();
   },
   groups() {
