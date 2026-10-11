@@ -361,7 +361,7 @@
     sheetCtx = { mode: "login" };
     let mode = "in";
     openSheet(`<div class="sheet-head"><h2>${welcome ? "ようこそ、ぺたろぐへ" : "ログイン"}</h2><button class="btn small ghost" type="button" data-close>閉じる</button></div>
-      ${welcome ? `<p class="cap" style="margin-top:0">押した記念スタンプを写真から切り抜いて、トレカ・スタンプ帳・地図で集めるアプリです。</p>` : ""}
+      ${welcome ? `<p class="cap" style="margin-top:0">押した記念スタンプを写真から切り抜いて、トレカ・スタンプジャーナル・地図で集めるアプリです。</p>` : ""}
       <div class="sec">
         <div class="seg" role="group" aria-label="ログインか登録か"><button type="button" data-am="in" aria-pressed="true">ログイン</button><button type="button" data-am="up" aria-pressed="false">はじめての方（登録）</button></div>
         <form id="auForm" style="display:grid;gap:8px;margin-top:12px" novalidate>

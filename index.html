@@ -873,7 +873,7 @@ html.tcv-on #toast{z-index:95}
     <button class="icon-btn" id="setBtn" type="button" aria-label="設定"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></button>
     <button class="btn primary" id="addBtn" type="button">＋ 追加</button>
   </header>
-  <div class="banner" id="sampleBanner" hidden>いま見えているのはサンプルです。「＋ 追加」から写真かPDFを入れると、自分のスタンプ帳に切り替わります。</div>
+  <div class="banner" id="sampleBanner" hidden>いま見えているのはサンプルです。「＋ 追加」から写真かPDFを入れると、自分のコレクションに切り替わります。</div>
   <main>
     <section class="view" id="v-book">
       <div class="subbar">
@@ -941,11 +941,11 @@ html.tcv-on #toast{z-index:95}
 
     <section class="view" id="v-board" hidden>
       <div class="bkv" id="shelfV">
-        <div class="subbar"><b style="font-size:15px">スタンプ帳</b><span class="spacer"></span><button class="btn small primary" type="button" id="bkNew">＋ 新しいスタンプ帳</button></div>
+        <div class="subbar"><b style="font-size:15px">スタンプジャーナル</b><span class="spacer"></span><button class="btn small primary" type="button" id="bkNew">＋ 新しいスタンプジャーナル</button></div>
         <div class="scroll" id="shelfBox"></div>
       </div>
       <div class="bkv" id="bookV" hidden>
-        <div class="subbar"><button class="btn small" type="button" id="bkBack">‹ 本棚</button><b id="bkTitle" style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-family:var(--f-hand);font-size:16px"></b><button class="btn small" type="button" id="bkMenu" aria-label="スタンプ帳の設定">設定</button><button class="btn small primary" type="button" id="pgNew">＋ ページ</button></div>
+        <div class="subbar"><button class="btn small" type="button" id="bkBack">‹ 本棚</button><b id="bkTitle" style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-family:var(--f-hand);font-size:16px"></b><button class="btn small" type="button" id="bkMenu" aria-label="スタンプジャーナルの設定">設定</button><button class="btn small primary" type="button" id="pgNew">＋ ページ</button></div>
         <div id="flipMode" style="flex:1;display:flex;flex-direction:column;min-height:0">
           <div class="book-area" id="bookArea"><div class="book" id="book"></div></div>
           <div class="book-ctl">
@@ -980,7 +980,7 @@ html.tcv-on #toast{z-index:95}
     <button role="tab" data-v="fall" aria-selected="true"><svg viewBox="0 0 24 24"><circle cx="8" cy="15" r="4"/><circle cx="16.5" cy="16.5" r="3.5"/><circle cx="13" cy="7" r="3.5"/></svg>ぜんぶ</button>
     <button role="tab" data-v="book" aria-selected="false"><svg viewBox="0 0 24 24"><rect x="3.5" y="5" width="11" height="15" rx="1.5"/><path d="M9 4.2 17.8 3a1.5 1.5 0 0 1 1.7 1.3l1.6 12.2a1.5 1.5 0 0 1-1.3 1.7l-2.3.3"/></svg>トレカ</button>
     <button role="tab" data-v="map" aria-selected="false"><svg viewBox="0 0 24 24"><path d="M12 21s-6-5.6-6-11a6 6 0 0 1 12 0c0 5.4-6 11-6 11z"/><circle cx="12" cy="10" r="2.2"/></svg>地図</button>
-    <button role="tab" data-v="board" aria-selected="false"><svg viewBox="0 0 24 24"><rect x="4" y="3" width="16" height="18" rx="1.5"/><circle cx="10" cy="10" r="3"/><rect x="12" y="13" width="5" height="4" rx=".8"/></svg>スタンプ帳</button>
+    <button role="tab" data-v="board" aria-selected="false"><svg viewBox="0 0 24 24"><rect x="4" y="3" width="16" height="18" rx="1.5"/><circle cx="10" cy="10" r="3"/><rect x="12" y="13" width="5" height="4" rx=".8"/></svg>ジャーナル</button>
     <button role="tab" data-v="rally" aria-selected="false"><svg viewBox="0 0 24 24"><path d="M12 3l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 16.4 6.8 19.1l1-5.8L3.5 9.2l5.9-.9z"/></svg>特集</button>
   </nav>
 </div>
@@ -1962,13 +1962,15 @@ $("#pickCancel").onclick = () => MapV.endPick(false); $("#pickOk").onclick = () 
 matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => { MapV.cols = null; MapV.draw(); });
 new MutationObserver(() => { MapV.cols = null; MapV.draw(); }).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
 
-/* ================= STAMP BOOKS (スタンプ帳: 自分で作るページを集めるノート) ================= */
+/* ================= STAMP BOOKS (スタンプジャーナル: 自分で作るページを集めるノート) ================= */
 const PAGE_SIZES = {
   a4: { n: "A4", w: 2100, h: 2970, px: 1 },
   a5: { n: "A5", w: 1480, h: 2100, px: 1.2 },
   post: { n: "はがき", w: 1000, h: 1480, px: 1.5 },
   sq: { n: "正方形（インスタ）", w: 2000, h: 2000, px: 1.08 },
   story: { n: "9:16（待ち受け）", w: 1125, h: 2000, px: 0.96 },
+  tn2: { n: "トラベラーズノート（見開き）", w: 2200, h: 2100, px: 1.18 },
+  tn1: { n: "トラベラーズノート（1ページ）", w: 1100, h: 2100, px: 1.18 },
   inf: { n: "無限", w: 0, h: 0, px: 1 }
 };
 const PAPERS = { washi: "和紙", plain: "白", grid: "方眼", dot: "ドット", lined: "罫線", kraft: "クラフト", seigaiha: "青海波", cork: "コルク", pamph: "パンフレット", photo: "写真" };
@@ -1977,6 +1979,7 @@ const TFONT = { hand: ["Klee One", 600, "手書き"], goth: ["Zen Kaku Gothic Ne
 const TCOLORS = ["#1D2230", "#C8412E", "#2B4C9B", "#2F7A4F", "#B0641A", "#6B47A6", "#C0396A", "#FFFFFF"];
 const BOOK_COLORS = ["#1F2A44", "#5B1F28", "#1F3A2E", "#2B2A2E", "#6A4A2E", "#3D2B46", "#1C3D44", "#7B6A55"];
 const OLD_BOOK_COLORS = { "#2B4C9B": "#1F2A44", "#C8412E": "#5B1F28", "#2F7A4F": "#1F3A2E", "#B0641A": "#6A4A2E", "#6B47A6": "#3D2B46", "#1F6F82": "#1C3D44", "#1B2130": "#2B2A2E", "#C0396A": "#5B1F28" };
+const bookTitle = t => t === "わたしのスタンプ帳" ? "わたしのスタンプジャーナル" : t === "スタンプ帳" ? "スタンプジャーナル" : t === "読み込んだスタンプ帳" ? "読み込んだスタンプジャーナル" : t;
 const bookColor = c => OLD_BOOK_COLORS[c] || c || BOOK_COLORS[0];
 const fontCss = (it, px) => { const [f, w] = TFONT[it.font] || TFONT.hand; return `${w} ${Math.max(1, px).toFixed(1)}px '${f}','Hiragino Sans','Noto Sans JP',sans-serif`; };
 const measCtx = mkCanvas(4, 4).getContext("2d");
@@ -2276,29 +2279,29 @@ const Books = {
     const a = L.slice(0, 5).map((s, i) => ({ k: "k" + i, sid: s.id, x: 560 + (i % 2) * 1000 + hash(s.id) * 80, y: 960 + Math.floor(i / 2) * 640 + hash(s.id + "y") * 100, s: 1, r: (hash(s.id + "r") - 0.5) * 24 }));
     const b = L.slice(1, 5).map((s, i) => ({ k: "q" + i, sid: s.id, x: 560 + (i % 2) * 880, y: 520 + Math.floor(i / 2) * 760, s: 1, r: (hash(s.id + "q") - 0.5) * 20 }));
     b.push({ k: "qt", t: "text", text: "週末のおでかけ", font: "hand", color: "#C8412E", fs: 120, s: 1, x: 1000, y: 1800, r: -3 });
-    return { books: [{ id: "sbook", title: "サンプルのスタンプ帳", color: "#1F2A44", created: 0, pages: [
+    return { books: [{ id: "sbook", title: "サンプルのスタンプジャーナル", color: "#1F2A44", created: 0, pages: [
       { id: "spg1", title: "はじめての駅めぐり", size: "a4", paper: "pamph", items: a, created: 0, updated: 1 },
       { id: "spg2", title: "週末", size: "sq", paper: "grid", items: b, created: 0, updated: 1 }] }] };
   },
   async load() {
     this.thumbs.clear(); this.cur = null; this.mode = "shelf"; Board.data = null;
     let d = null; try { d = await Store.getMeta("books"); } catch {}
-    if (d && Array.isArray(d.books) && (d.books.length || stamps.length)) { this.data = { books: d.books.map(b => ({ ...b, color: bookColor(b.color) })) }; this.sample = false; return; }
+    if (d && Array.isArray(d.books) && (d.books.length || stamps.length)) { this.data = { books: d.books.map(b => ({ ...b, title: bookTitle(b.title), color: bookColor(b.color) })) }; this.sample = false; return; }
     if (!stamps.length) { this.data = this.sampleData(); this.sample = true; return; }
     this.sample = false; this.data = { books: [] };
     let old = null; try { old = await Store.getMeta("board"); } catch {}
     if (old && Array.isArray(old.items) && old.items.length) {
-      const b = this.mkBook("わたしのスタンプ帳"); b.pages.push(this.mkPage({ size: old.paper === "inf" ? "inf" : "a4", paper: "washi", items: old.items.map(i => ({ ...i })) }));
+      const b = this.mkBook("わたしのスタンプジャーナル"); b.pages.push(this.mkPage({ size: old.paper === "inf" ? "inf" : "a4", paper: "washi", items: old.items.map(i => ({ ...i })) }));
       this.data.books.push(b); this.save(true);
     }
   },
-  mkBook(title, color) { return { id: uid("b"), title: title || "スタンプ帳", color: color || BOOK_COLORS[this.data.books.length % BOOK_COLORS.length], created: Date.now(), pages: [] }; },
+  mkBook(title, color) { return { id: uid("b"), title: title || "スタンプジャーナル", color: color || BOOK_COLORS[this.data.books.length % BOOK_COLORS.length], created: Date.now(), pages: [] }; },
   mkPage(o = {}) { return { id: uid("p"), title: "", size: "a4", paper: "washi", bg: null, items: [], created: Date.now(), updated: Date.now(), ...o }; },
   // the sample becomes the user's own as soon as they change it
   adopt() { if (!this.sample) return; this.sample = false; for (const b of this.data.books) { const nid = uid("b"); if (this.cur === b.id) this.cur = nid; b.id = nid; b.created = Date.now(); for (const p of b.pages) { p.id = uid("p"); p.created = p.updated = Date.now(); } } },
   save(now) {
     if (this.sample) this.adopt(); clearTimeout(this._t);
-    const go = () => Store.putMeta("books", { books: this.data.books }).catch(() => toast("スタンプ帳を保存できませんでした"));
+    const go = () => Store.putMeta("books", { books: this.data.books }).catch(() => toast("スタンプジャーナルを保存できませんでした"));
     if (now) return go(); this._t = setTimeout(go, 700);
   },
   book(id) { return this.data.books.find(b => b.id === id); },
@@ -2327,10 +2330,10 @@ const Books = {
   },
   renderShelf() {
     const box = $("#shelfBox"); if (!box) return; if (!ready) { box.innerHTML = `<div class="empty"><span class="spin"></span></div>`; return; } const B = this.data.books;
-    box.innerHTML = `${this.sample ? `<p class="cap shelfnote">いま見えているのはサンプルです。「＋ 新しいスタンプ帳」から自分のスタンプ帳を作れます（スタンプを登録する前でも作れます）。</p>` : ""}
+    box.innerHTML = `${this.sample ? `<p class="cap shelfnote">いま見えているのはサンプルです。「＋ 新しいスタンプジャーナル」から自分のスタンプジャーナルを作れます（スタンプを登録する前でも作れます）。</p>` : ""}
       <div class="shelf">${B.map(b => `<button type="button" class="bcover" data-book="${b.id}" style="--c:${bookColor(b.color)}" aria-label="${esc(b.title)}"><span class="bk"><span class="frame"><span class="kick">STAMP BOOK</span><span class="bt">${esc(b.title)}</span><span class="rule"></span><small>${b.pages.length} PAGES</small></span></span></button>`).join("")}
-      <button type="button" class="bcover new" data-newbook="1"><span class="bk"><span class="plus">＋</span><span>新しいスタンプ帳</span></span></button></div>
-      ${B.length && !this.sample ? "" : `<p class="cap shelfnote">スタンプ帳は、好きな紙に好きなスタンプや文字を貼って作る「自分だけのページ」を集めるノートです。「2025年」「謎解き」など、テーマごとにいくつでも作れます。</p>`}`;
+      <button type="button" class="bcover new" data-newbook="1"><span class="bk"><span class="plus">＋</span><span>新しいスタンプジャーナル</span></span></button></div>
+      ${B.length && !this.sample ? "" : `<p class="cap shelfnote">スタンプジャーナルは、好きな紙に好きなスタンプや文字を貼って作る「自分だけのページ」を集めるノートです。「2025年」「謎解き」など、テーマごとにいくつでも作れます。</p>`}`;
   },
   async openBook(id) {
     this.cur = id; const b = this.curBook; if (!b) { this.setMode("shelf"); this.renderShelf(); return; }
@@ -2346,13 +2349,13 @@ const Books = {
   newBookSheet(b) {
     const edit = !!b; let color = edit ? b.color : BOOK_COLORS[this.data.books.length % BOOK_COLORS.length];
     sheetCtx = { mode: "book" };
-    openSheet(`<div class="sheet-head"><h2>${edit ? "スタンプ帳の設定" : "新しいスタンプ帳"}</h2><button class="btn small ghost" type="button" data-close>閉じる</button></div>
+    openSheet(`<div class="sheet-head"><h2>${edit ? "スタンプジャーナルの設定" : "新しいスタンプジャーナル"}</h2><button class="btn small ghost" type="button" data-close>閉じる</button></div>
       <div class="sec"><h4>名前</h4><input id="bkName" class="search" maxlength="30" value="${edit ? esc(b.title) : ""}" placeholder="例: 2025年のスタンプ / 謎解きの記録" style="font-size:16px"></div>
       <div class="sec"><h4>表紙の色</h4><div class="swatches" id="bkCol">${BOOK_COLORS.map(c => `<button type="button" data-tc="${c}" style="--c:${c}" aria-pressed="${c === color}" aria-label="色 ${c}"></button>`).join("")}</div></div>
-      <div class="acts">${edit ? `<button class="btn ghost" type="button" id="bkDel">このスタンプ帳を削除</button>` : ""}<button class="btn primary" type="button" id="bkOk">${edit ? "保存" : "つくる"}</button></div><div id="bkConfirm"></div>`);
+      <div class="acts">${edit ? `<button class="btn ghost" type="button" id="bkDel">このスタンプジャーナルを削除</button>` : ""}<button class="btn primary" type="button" id="bkOk">${edit ? "保存" : "つくる"}</button></div><div id="bkConfirm"></div>`);
     $("#bkCol").onclick = e => { const x = e.target.closest("[data-tc]"); if (!x) return; color = x.dataset.tc; document.querySelectorAll("#bkCol [data-tc]").forEach(y => y.setAttribute("aria-pressed", y === x)); };
     $("#bkOk").onclick = () => {
-      const t = $("#bkName").value.trim() || (edit ? b.title : "わたしのスタンプ帳");
+      const t = $("#bkName").value.trim() || (edit ? b.title : "わたしのスタンプジャーナル");
       if (edit) { b.title = t; b.color = color; this.save(); closeSheet(); this.openBook(b.id); return; }
       if (this.sample) { this.data.books = []; this.sample = false; }
       const nb = this.mkBook(t, color); this.data.books.push(nb); this.save(); closeSheet(); Book.idx = 0; this.openBook(nb.id);
@@ -2409,7 +2412,7 @@ const Books = {
     let b = Board.book && this.book(Board.book.id), p = b && Board.data && b.pages.includes(Board.data) ? Board.data : null;
     if (!p) {
       b = [...this.data.books].sort((x, y) => Math.max(0, ...y.pages.map(q => q.updated || 0)) - Math.max(0, ...x.pages.map(q => q.updated || 0)))[0];
-      if (!b) { b = this.mkBook("わたしのスタンプ帳"); this.data.books.push(b); }
+      if (!b) { b = this.mkBook("わたしのスタンプジャーナル"); this.data.books.push(b); }
       p = b.pages[b.pages.length - 1]; if (!p) { p = this.mkPage(); b.pages.push(p); }
       this.save();
     }
@@ -2444,7 +2447,7 @@ async function applyFallBg() {
   } else if (k !== "washi") { const t = Paper.tileURL(k, 0.5); if (t) { w.style.backgroundImage = `url(${t})`; w.style.backgroundSize = "600px 600px"; } }
 }
 
-/* ================= 画像で保存（トレカ・スタンプだけ・スタンプ帳のページ） ================= */
+/* ================= 画像で保存（トレカ・スタンプだけ・スタンプジャーナルのページ） ================= */
 const MM = 300 / 25.4; // px per mm at 300dpi
 function wrapLines(x, text, maxW, maxLines) {
   const out = []; let cur = "";
@@ -2602,7 +2605,7 @@ function renderSelBar() {
 function confirmDelete(L, after) {
   if (!L.length) return; sheetCtx = { mode: "confirmdel" };
   openSheet(`<div class="sheet-head"><h2>削除</h2><button class="btn small ghost" type="button" data-close>やめる</button></div>
-    <div class="sec"><p style="margin:0 0 10px">${L.length > 1 ? `${L.length}まいの` : `「${esc(L[0].name)}」の`}記録と写真を削除します。スタンプ帳のページからもはがれます。<b>元には戻せません。</b></p>
+    <div class="sec"><p style="margin:0 0 10px">${L.length > 1 ? `${L.length}まいの` : `「${esc(L[0].name)}」の`}記録と写真を削除します。スタンプジャーナルのページからもはがれます。<b>元には戻せません。</b></p>
     <div class="delthumbs">${L.slice(0, 24).map(s => `<img src="${s.cut}" alt="">`).join("")}${L.length > 24 ? `<span>ほか${L.length - 24}まい</span>` : ""}</div>
     <div class="acts"><button class="btn" type="button" data-close>やめる</button><button class="btn shu" type="button" id="cdYes">削除する</button></div></div>`);
   $("#cdYes").onclick = async () => { const b = $("#cdYes"); b.disabled = true; b.innerHTML = `<span class="spin"></span> 削除中`; const n = await deleteStamps(L); closeSheet(); toast(`${n}まい削除しました`); after && after(); };
@@ -3748,9 +3751,9 @@ function openStamp(mode, s, preset, extra = {}) {
       ${d.spot ? `<div class="meta" style="margin-top:4px">置き場所: ${esc(d.spot)}</div>` : ""}${d.lat != null ? `<div class="meta" style="margin-top:6px"><a href="${gmapsDir(d.lat, d.lng)}" target="_blank" rel="noopener">ここへ行く（Googleマップ）</a></div>` : ""}${ro ? `<div class="meta" style="margin-top:6px">サンプルは編集できません。</div>` : d.priv ? `<div class="meta" style="margin-top:4px">🔒 非公開のトレカ</div>` : ""}</div></div>` : "";
   const title = mode === "add" ? (preset && preset.rally ? esc(preset.name) + " を追加" : "追加") : ro ? "サンプル" : "スタンプの記録";
   openSheet(`<div class="sheet-head"><h2>${title}</h2><span class="headbtns">${mode === "edit" && !ro ? `<button class="btn small danger" type="button" id="hDel"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/></svg>削除</button>` : ""}<button class="btn small ghost" type="button" data-close>閉じる</button></span></div>
-    ${mode === "add" ? `<div id="addStep">${addStepHTML(c)}</div>` : `<div id="heroConfirm"></div>` + hero + `<div class="heroacts"><button class="btn small" type="button" id="hExport">画像で保存</button>${ro || type === "goshuin" ? "" : `<button class="btn small" type="button" id="hBoard">スタンプ帳に貼る</button><button class="btn small" type="button" id="hRecut">切り抜きを直す</button><button class="btn small" type="button" id="hRetake">写真を撮り直す</button><button class="btn small" type="button" id="hPrint">印刷用をつくる</button>`}</div>`}
+    ${mode === "add" ? `<div id="addStep">${addStepHTML(c)}</div>` : `<div id="heroConfirm"></div>` + hero + `<div class="heroacts"><button class="btn small" type="button" id="hExport">画像で保存</button>${ro || type === "goshuin" ? "" : `<button class="btn small" type="button" id="hBoard">スタンプジャーナルに貼る</button><button class="btn small" type="button" id="hRecut">切り抜きを直す</button><button class="btn small" type="button" id="hRetake">写真を撮り直す</button><button class="btn small" type="button" id="hPrint">印刷用をつくる</button>`}</div>`}
     <div id="formArea"${mode === "add" ? " hidden" : ""}>${formHTML(d, ro)}
-    ${ro ? "" : `<div class="acts">${mode === "edit" ? `<button class="btn ghost" type="button" id="delBtn">削除</button>${type === "goshuin" ? "" : `<button class="btn" type="button" id="toBoard">スタンプ帳に貼る</button>`}` : ""}<button class="btn primary" type="button" id="saveBtn">${mode === "add" ? "スタンプ帳に入れる" : "保存"}</button></div><div id="confirmArea"></div>`}</div>`);
+    ${ro ? "" : `<div class="acts">${mode === "edit" ? `<button class="btn ghost" type="button" id="delBtn">削除</button>${type === "goshuin" ? "" : `<button class="btn" type="button" id="toBoard">スタンプジャーナルに貼る</button>`}` : ""}<button class="btn primary" type="button" id="saveBtn">${mode === "add" ? "登録する" : "保存"}</button></div><div id="confirmArea"></div>`}</div>`);
   wireForm();
   if (mode === "add") { wireAdd(); if (c.queue) startFromOrig(c.queue.orig, c.queue.exif); }
   if (mode === "edit" && !ro) wireEdit();
@@ -3760,7 +3763,7 @@ function openStamp(mode, s, preset, extra = {}) {
     const hb = $("#hBoard"); if (hb) hb.onclick = () => Books.addStamp(d.id);
     const hr = $("#hRecut"); if (hr) hr.onclick = () => openRecrop(s); const hrt = $("#hRetake"); if (hrt) hrt.onclick = () => { const i = document.createElement("input"); i.type = "file"; i.accept = "image/*,application/pdf"; i.onchange = () => { if (i.files[0]) openRecrop(s, i.files[0]); }; i.click(); }; const hpr = $("#hPrint"); if (hpr) hpr.onclick = () => PrintCard.open(s);
     const hd = $("#hDel"); if (hd) hd.onclick = () => {
-      $("#heroConfirm").innerHTML = `<div class="confirm"><span style="flex:1">この記録と写真を削除します。スタンプ帳のページからもはがれます。元には戻せません。</span><button class="btn small" type="button" id="hNo">やめる</button><button class="btn small shu" type="button" id="hYes">削除する</button></div>`;
+      $("#heroConfirm").innerHTML = `<div class="confirm"><span style="flex:1">この記録と写真を削除します。スタンプジャーナルのページからもはがれます。元には戻せません。</span><button class="btn small" type="button" id="hNo">やめる</button><button class="btn small shu" type="button" id="hYes">削除する</button></div>`;
       $("#hNo").onclick = () => $("#heroConfirm").innerHTML = "";
       $("#hYes").onclick = async () => { $("#hYes").disabled = true; const n = await deleteStamps([s]); if (n) { closeSheet(); toast("削除しました"); } };
     };
@@ -3799,7 +3802,7 @@ function wireAdd() {
 }
 function rebuildForm() {
   const c = sheetCtx; const fa = $("#formArea");
-  fa.innerHTML = `${formHTML(c.d, false)}<div class="acts"><button class="btn primary" type="button" id="saveBtn">スタンプ帳に入れる</button></div><div id="confirmArea"></div>`;
+  fa.innerHTML = `${formHTML(c.d, false)}<div class="acts"><button class="btn primary" type="button" id="saveBtn">登録する</button></div><div id="confirmArea"></div>`;
   wireForm();
 }
 function setTool(t) {
@@ -3930,7 +3933,7 @@ function wireEdit() {
   $("#saveBtn").onclick = saveStampForm;
   const tb = $("#toBoard"); if (tb) tb.onclick = () => Books.addStamp(c.d.id);
   $("#delBtn").onclick = () => {
-    $("#confirmArea").innerHTML = `<div class="confirm"><span style="flex:1">この記録と写真を削除します。${c.type === "goshuin" ? "" : "スタンプ帳のページからもはがれます。"}</span><button class="btn small" type="button" id="noDel">やめる</button><button class="btn small shu" type="button" id="yesDel">削除する</button></div>`;
+    $("#confirmArea").innerHTML = `<div class="confirm"><span style="flex:1">この記録と写真を削除します。${c.type === "goshuin" ? "" : "スタンプジャーナルのページからもはがれます。"}</span><button class="btn small" type="button" id="noDel">やめる</button><button class="btn small shu" type="button" id="yesDel">削除する</button></div>`;
     $("#noDel").onclick = () => $("#confirmArea").innerHTML = "";
     $("#yesDel").onclick = async () => {
       $("#yesDel").disabled = true; const n = await deleteStamps([c.orig]); if (n) { closeSheet(); toast("削除しました"); }
@@ -3963,7 +3966,7 @@ async function saveStampForm() {
   if (c.mode === "add" && c.type !== "goshuin" && !c.dupDone && stamps.length) {
     c.dupDone = true; const btn = $("#saveBtn"); btn.disabled = true; btn.innerHTML = `<span class="spin"></span> 確認中`;
     let dups = []; try { dups = await findDuplicates(c.cut.url, d, c.type); } catch {}
-    btn.disabled = false; btn.textContent = "スタンプ帳に入れる";
+    btn.disabled = false; btn.textContent = "登録する";
     if (dups.length && sheetCtx === c) { showDupPanel(dups); return; }
   }
   await commitSave(c, d);
@@ -4014,7 +4017,7 @@ async function commitSave(c, d) {
     const carry = { medium: d.medium, date: d.date, event: d.event, line: d.line, lat: d.lat, lng: d.lng, locSrc: d.locSrc, pref: d.pref, place: d.place, priv: d.priv, cat: d.cat, sizeMm: d.sizeMm, sizeSrc: d.sizeSrc };
     toast(`${q.i + 1}個目を保存しました。次のスタンプへ`); openStamp("add", null, carry, { queue: { ...q, i: q.i + 1 }, type: "stamp", adj }); return;
   }
-  if (mode === "add") { const r = rallyOf(rallyKeyOf(d)); if (!ms) toast(r ? `${r.r.name} ${r.st.n}駅 をゲット！` : "スタンプ帳に入れました"); }
+  if (mode === "add") { const r = rallyOf(rallyKeyOf(d)); if (!ms) toast(r ? `${r.r.name} ${r.st.n}駅 をゲット！` : "登録しました"); }
   else if (mode === "update") toast(`前の記録を更新しました（${(d.visits || []).length + 1}回目）`);
   else toast("保存しました");
 }
@@ -4090,7 +4093,7 @@ async function importBackup(file) {
     for (const b of j.books) { if (!b || !b.id || hb.has(b.id) || !Array.isArray(b.pages)) continue; Books.data.books.push(b); for (const p of b.pages) if (p.bg && j.photos && j.photos[p.bg]) await Store.putPhoto(p.bg, j.photos[p.bg]).catch(() => {}); }
     Books.save(true);
   } else if (!Books.sample && j.board && Array.isArray(j.board.items) && j.board.items.length) {
-    const b = Books.mkBook("読み込んだスタンプ帳"); b.pages.push(Books.mkPage({ size: j.board.paper === "inf" ? "inf" : "a4", items: j.board.items })); Books.data.books.push(b); Books.save(true);
+    const b = Books.mkBook("読み込んだスタンプジャーナル"); b.pages.push(Books.mkPage({ size: j.board.paper === "inf" ? "inf" : "a4", items: j.board.items })); Books.data.books.push(b); Books.save(true);
   }
   closeSheet(); refreshAll(); toast(`${n} まい読み込みました`);
 }
@@ -4408,7 +4411,7 @@ const Privacy = {
     if (!window.PetalogCloud) return "";
     if (Store.mode !== "cloud") return `<div class="sec"><h4>公開</h4><p class="cap" style="margin-top:0">ログインすると、自分のコレクションをみんなに見せたり、ほかの人のコレクションを見たりできます。</p></div>`;
     return `<div class="sec"><h4>公開</h4>
-      <label class="toggle"><input type="checkbox" id="pvPub"${this.public ? " checked" : ""}><span><b>コレクションを公開する</b><br><small>ほかの人が「トレカ → みんな」のランキングから、あなたのトレカとスタンプ帳を見られます。</small></span></label>
+      <label class="toggle"><input type="checkbox" id="pvPub"${this.public ? " checked" : ""}><span><b>コレクションを公開する</b><br><small>ほかの人が「トレカ → みんな」のランキングから、あなたのトレカとスタンプジャーナルを見られます。</small></span></label>
       <div class="pvbox" id="pvBox"${this.public ? "" : " hidden"}>
         <div class="row2"><span class="lab">ニックネーム</span><input id="pvNick" class="search grow" maxlength="20" value="${esc(Profile.nick)}" placeholder="例: えきすたん" autocomplete="nickname"></div>
         <div class="pvlab">見せる項目</div>
@@ -4546,7 +4549,7 @@ async function saveRecrop() {
   refreshAll(); openStamp("edit", d); toast(c.retake ? "写真を撮り直しました" : "切り抜きを直しました");
 }
 
-/* ---------- みんなのコレクション（ランキング → その人のトレカ・スタンプ帳） ---------- */
+/* ---------- みんなのコレクション（ランキング → その人のトレカ・スタンプジャーナル） ---------- */
 async function inPool(items, n, fn) { let i = 0; await Promise.all(Array.from({ length: Math.min(n, items.length) }, async () => { while (i < items.length) { const k = i++; try { await fn(items[k], k); } catch {} } })); }
 const Others = {
   rank: null, err: null, loading: false, user: null, stamps: [], byId: new Map(), books: null, book: null, tab: "cards", uLoading: false, uErr: null, cuts: new Map(),
@@ -4602,7 +4605,7 @@ const Others = {
     const L = [...this.stamps].sort((p, q) => (q.date || "").localeCompare(p.date || "") || (q.created || 0) - (p.created || 0));
     const numOf = new Map([...this.stamps].sort((p, q) => (p.date || "9999").localeCompare(q.date || "9999") || (p.created || 0) - (q.created || 0)).map((s, i) => [s.id, +s.no > 0 ? +s.no : i + 1])); this.stamps.forEach(s => { s._no = numOf.get(s.id); });
     box.innerHTML = `<div class="ouser"><button class="btn small" type="button" id="oBack">‹ ランキング</button><div class="oname"><b>${esc(r.nick || "名無しのコレクター")}</b>${me ? "<em>あなた</em>" : ""}<small>${this.uLoading ? "" : L.length + " まい"}</small></div></div>
-      <div class="subbar"><div class="seg" id="oTab" role="group" aria-label="表示"><button type="button" data-t="cards" aria-pressed="${this.tab === "cards"}">トレカ</button><button type="button" data-t="books" aria-pressed="${this.tab === "books"}">スタンプ帳</button></div></div>
+      <div class="subbar"><div class="seg" id="oTab" role="group" aria-label="表示"><button type="button" data-t="cards" aria-pressed="${this.tab === "cards"}">トレカ</button><button type="button" data-t="books" aria-pressed="${this.tab === "books"}">ジャーナル</button></div></div>
       <div id="oBody"></div>`;
     $("#oBack").onclick = () => { this.user = null; this.book = null; this.renderRank(); if (!this.rank) this.loadRank(); };
     $("#oTab").onclick = e => { const b = e.target.closest("[data-t]"); if (!b) return; this.tab = b.dataset.t; this.book = null; this.renderUser(); };
@@ -4626,7 +4629,7 @@ const Others = {
     const B = (this.books || []).filter(b => b && Array.isArray(b.pages));
     if (this.book) {
       const b = B.find(x => x.id === this.book); if (!b) { this.book = null; return this.renderBooks(body); }
-      body.innerHTML = `<div class="obook"><button class="btn small" type="button" id="obBack">‹ 本棚</button><b>${esc(b.title || "スタンプ帳")}</b><small>${b.pages.length} ページ</small></div>
+      body.innerHTML = `<div class="obook"><button class="btn small" type="button" id="obBack">‹ 本棚</button><b>${esc(b.title || "スタンプジャーナル")}</b><small>${b.pages.length} ページ</small></div>
         <div class="opages">${b.pages.map((p, i) => `<figure class="opg"><div class="opi" data-pi="${i}"><span class="spin"></span></div><figcaption>${esc(p.title || "タイトルなし")}<small> · ${i + 1}/${b.pages.length}</small></figcaption></figure>`).join("") || `<div class="empty">まだページがありません。</div>`}</div>`;
       $("#obBack").onclick = () => { this.book = null; this.renderBooks($("#oBody")); };
       body.onclick = e => { const im = e.target.closest(".opi img"); if (im) lightbox(im.src); };
@@ -4638,7 +4641,7 @@ const Others = {
       }
       return;
     }
-    body.innerHTML = B.length ? `<div class="shelf oshelf">${B.map(b => `<button type="button" class="bcover" data-ob="${esc(b.id)}" style="--c:${bookColor(b.color)}" aria-label="${esc(b.title)}"><span class="bk"><span class="frame"><span class="kick">STAMP BOOK</span><span class="bt">${esc(b.title)}</span><span class="rule"></span><small>${b.pages.length} PAGES</small></span></span></button>`).join("")}</div>` : `<div class="empty">公開しているスタンプ帳はありません。</div>`;
+    body.innerHTML = B.length ? `<div class="shelf oshelf">${B.map(b => `<button type="button" class="bcover" data-ob="${esc(b.id)}" style="--c:${bookColor(b.color)}" aria-label="${esc(b.title)}"><span class="bk"><span class="frame"><span class="kick">STAMP BOOK</span><span class="bt">${esc(b.title)}</span><span class="rule"></span><small>${b.pages.length} PAGES</small></span></span></button>`).join("")}</div>` : `<div class="empty">公開しているスタンプジャーナルはありません。</div>`;
     body.onclick = e => { const b = e.target.closest("[data-ob]"); if (b) { this.book = b.dataset.ob; this.renderBooks(body); } };
   }
 };
@@ -4666,7 +4669,7 @@ const Party = {
   words(n) {
     const W = { 5: ["はじめの5まい！", "コレクションの第一歩。ここからどんどん増えていきます。"], 10: ["10まい達成！", "立派なコレクターの仲間入りです。"], 25: ["25まい達成！", "地図がにぎやかになってきました。"],
       50: ["50まい達成！", "もう止まりません。次はいよいよ100まい。"], 100: ["100まい達成！", "大台にのりました。ここまで集めるのは本当にすごいことです。"], 200: ["200まい達成！", "旅の記録が、ずっしり厚くなってきました。"],
-      300: ["300まい達成！", "スタンプ帳が何冊でも作れる量です。"], 400: ["400まい達成！", "行った場所の数だけ、思い出があります。"], 500: ["500まい達成！", "折り返しの500。せんまいが見えてきました。"],
+      300: ["300まい達成！", "スタンプジャーナルが何冊でも作れる量です。"], 400: ["400まい達成！", "行った場所の数だけ、思い出があります。"], 500: ["500まい達成！", "折り返しの500。せんまいが見えてきました。"],
       600: ["600まい達成！", "ここまで来る人は、なかなかいません。"], 700: ["700まい達成！", "まだまだ、押したい場所がありますね。"], 800: ["800まい達成！", "あと200まいで、せんまいです。"], 900: ["900まい達成！", "せんまいまで、あと100まい！"] };
     if (n >= 1000) return [n === 1000 ? "1000まい達成！！" : `${n.toLocaleString()}まい達成！！`, n === 1000 ? "せんまい。ここまで集めた人は、ほんのひと握りです。心からおめでとうございます。" : "とんでもない記録です。本当におめでとうございます。"];
     return W[n] || [`${n}まい達成！`, "おめでとうございます。"];
