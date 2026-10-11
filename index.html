@@ -4100,6 +4100,9 @@ const BLANK = "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAA
 // 実物の大きさ（mm）。入力する数字は「いちばん長いところ・丸なら直径」。
 // 丸いスタンプ（とほぼ正方形）は、切り抜きの縦横が少しずれていても「直径＝入力した数字」として扱う（5cmと入れたら横も高さも5.0cm）
 //   w, h: 切り抜き画像ぜんたいの実物の大きさ（描く・定規の長さ用）　lw, lh: 表示する横幅・高さ
+// 重ね押しの裏面は「台紙ごと」が標準（台紙を登録しているときだけ）。s.backView = "stamp" でスタンプだけ
+const backSheetOK = s => !!(s && s.overlap && s.sheet);
+const backSheetOn = s => backSheetOK(s) && s.backView !== "stamp";
 function sizeDims(s) {
   if (!s || !s.sizeMm) return null;
   const cw = s.cw || 1, ch = s.ch || 1, ar = cw / ch;
@@ -5157,7 +5160,8 @@ const PrintCard = {
     // QRコード: その場所のGoogleマップ（見た人がそのまま行ける）。場所が未登録ならQRなし
     let qr = null; if (s.lat != null && s.lng != null && !isNaN(s.lat)) { try { qr = qrcode(0, "M"); qr.addData(`https://www.google.com/maps/search/?api=1&query=${(+s.lat).toFixed(6)},${(+s.lng).toFixed(6)}`); qr.make(); } catch (_) { qr = null; } }
     if (!this.washi) this.washi = makeWashi();
-    return { A, front, cut, photos, added: added.length, qr, no: this.no(s) };
+    const sheetIm = backSheetOK(s) && s._sheet ? (A.sheet ? front : await loadImg(s._sheet).catch(() => null)) : null;
+    return { A, front, cut, photos, added: added.length, qr, no: this.no(s), sheetIm };
   },
   async fonts(txt) {
     await Promise.all(['500 40px "IBM Plex Mono"', '600 40px "Klee One"', '600 40px "Shippori Mincho"', '700 40px "Shippori Mincho"', '400 40px "Zen Kaku Gothic New"', '500 40px "Zen Kaku Gothic New"', '700 40px "Zen Kaku Gothic New"', '400 40px "Dela Gothic One"']
@@ -5310,7 +5314,8 @@ const PrintCard = {
     const ar = clamp((s.cw || 1) / (s.ch || 1), 0.2, 5), SD = sizeDims(s), wmm = SD ? SD.lw : 0, hmm = SD ? SD.lh : 0;
     const sizeTxt = s.sizeMm ? `横${(wmm / 10).toFixed(1)} × 高さ${(hmm / 10).toFixed(1)}cm` : "";
     const B = (v) => v * m;
-    const stamp = (l, t, w, h) => { const im = P.cut; x.save(); if (!isDigi(s)) x.globalCompositeOperation = "multiply"; x.drawImage(im, ...this.fit(im, BX + B(l), BY + B(t), B(w), B(h))); x.restore(); };
+    const shOn = backSheetOn(s) && !!P.sheetIm;
+    const stamp = (l, t, w, h) => { const im = shOn ? P.sheetIm : P.cut; x.save(); if (!isDigi(s)) x.globalCompositeOperation = "multiply"; x.drawImage(im, ...this.fit(im, BX + B(l), BY + B(t), B(w), B(h))); x.restore(); };
     const photo = (im, l, t, w, h) => { const X = BX + B(l), Y = BY + B(t), pad = 0.5 * m;
       x.save(); x.shadowColor = "rgba(40,30,10,.26)"; x.shadowBlur = 0.25 * m; x.shadowOffsetY = 0.15 * m; x.fillStyle = "#fff"; x.fillRect(X, Y, B(w), B(h)); x.restore();
       const iw = B(w) - 2 * pad, ih = B(h) - 2 * pad, c = (s.bcrop || {})[im._key], z = c ? clamp(+c.z || 1, 1, 5) : 1, k = Math.max(iw / im.width, ih / im.height) * z, dw = im.width * k, dh = im.height * k;
@@ -5321,7 +5326,7 @@ const PrintCard = {
     const text = (t, cxm, tm, fsz, font = MIN, w = 600, col = "#3A3F4B") => { x.font = `${w} ${fsz * m}px ${font}`; x.fillStyle = col; x.textAlign = "center"; x.textBaseline = "middle"; x.fillText(t, BX + B(cxm), BY + B(tm)); };
     const kv = (l, t, rows) => rows.forEach(([k, v], i) => { const yy = BY + B(t + i * 3.4); x.textAlign = "left"; x.textBaseline = "middle"; x.font = `500 ${1.9 * m}px ${UI}`; x.fillStyle = "#7A7F89"; this.spaced(x, k, 0.1 * 1.9 * m, BX + B(l), yy); x.font = `700 ${2.2 * m}px ${MIN}`; x.fillStyle = ink; x.fillText(v, BX + B(l + 9.6), yy); });
     const rows = [["ジャンル", catNorm(s.cat)], ...(s.sizeMm ? [["横　幅", fmtCm(wmm)], ["高　さ", fmtCm(hmm)]] : s.pref ? [["場　所", s.pref]] : [])];
-    const ph0 = P.photos || [], n = P.added || 0, date = `押した日 ${fmtDate(s.date)}`;
+    const ph0 = (P.photos || []).filter(im => !(shOn && im._key === "sh")), n = P.added || 0, date = `押した日 ${fmtDate(s.date)}`;
     const order = list => { const tall = [...list].sort((p, q) => p.width / p.height - q.width / q.height); return tall; };
     if (n <= 1) { stamp(1.4, 1.6, 29.6, 21.4); text(date, 16.2, 25.2, 2.1);
       if (ph0[0]) { photo(ph0[0], 33, 1.6, 19.8, 12.8); kv(33.6, 17.4, rows); } else kv(33.6, 4.5, rows); }
@@ -5447,7 +5452,7 @@ const PrintCard = {
     d.innerHTML = `<div class="pv-top"><div class="pv-t">印刷用（はがき・実寸）</div><button class="btn small" type="button" id="pcX">閉じる</button></div>
       <div class="pc-body"><div class="pc-prev"><img id="pcImg" alt="印刷用の画像（長押しでも保存できます）"><div class="pc-wait" id="pcWait"><span class="spin"></span> つくっています…</div></div>
         <label class="pc-l">裏面の解説<textarea id="pcText" rows="7" placeholder="この場所やスタンプのプチ情報"></textarea><small class="pc-rb">むずかしい読みは 首里城《しゅりじょう》 のように書くとルビになります</small></label>
-        <div class="pc-st"><span id="pcSt"></span> <button class="linkbtn" type="button" id="pcAi" hidden>AIのプチ情報にもどす</button><button class="linkbtn" type="button" id="pcRe" hidden>もう一度つくる</button><button class="linkbtn" type="button" id="pcFix" hidden>まちがいを直す</button><button class="linkbtn" type="button" id="pcCrop" hidden>写真の位置</button></div>
+        <div class="pc-st"><span id="pcSt"></span> <button class="linkbtn" type="button" id="pcAi" hidden>AIのプチ情報にもどす</button><button class="linkbtn" type="button" id="pcRe" hidden>もう一度つくる</button><button class="linkbtn" type="button" id="pcFix" hidden>まちがいを直す</button><button class="linkbtn" type="button" id="pcCrop" hidden>写真の位置</button><button class="linkbtn" type="button" id="pcSheet" hidden></button></div>
         <div class="row2"><button class="btn primary" type="button" id="pcSave">画像を保存</button><button class="btn" type="button" id="pcPdf">PDFを保存</button></div>
         <ol class="pc-how"><li><b>コンビニで印刷：</b>「画像を保存」→ セブン‐イレブンは「ネットプリント」、ローソン・ファミマは「ネットワークプリント」で、用紙を <b>はがき・カラー</b> にして印刷（実寸で出ます）</li><li><b>家のプリンターで印刷：</b>「PDFを保存」→ 無地のはがき用紙に <b>実際のサイズ（100%）</b> で印刷。「用紙に合わせる」などの拡大・縮小はオフに</li><li>右のものさしが50mmなら実寸です</li><li>コンビニのはがきは裏に郵便番号の枠があり、光に透かすとうっすら見えます（ふつうに持つぶんにはほぼ見えません）</li><li>作り方：点線で山折り → 内側をテープのりで貼る（水のりは乾かないので×） → 折り目側の線を先に切って、上から押さえて貼り直す → 残りの3辺を切る</li><li>切るときは白い線（重ね押しは金の線）を消すように線の上を切ると、ちょうど63×88mmになります。外の黒いトンボが目印です</li></ol></div>`;
     $("#pcX").onclick = () => { d.hidden = true; this.s = null; this.gen++; this.blob = null; if (this.burl) { URL.revokeObjectURL(this.burl); this.burl = null; } if (this.cv) { this.cv.width = this.cv.height = 0; this.cv = null; } d.innerHTML = ""; };
@@ -5459,6 +5464,8 @@ const PrintCard = {
     await this.render(); const w = $("#pcWait"); if (w) w.hidden = true;
     const st = t => { const e = $("#pcSt"); if (e && this.s === s) e.textContent = t; };
     const fx = $("#pcFix"); fx.onclick = () => { $("#pcX").click(); openTriviaFix(s, () => PrintCard.open(s)); };
+    const sb = $("#pcSheet"); if (sb) { const lab = () => { sb.hidden = !backSheetOK(s); sb.textContent = backSheetOn(s) ? "裏をスタンプだけに" : "裏を台紙ごとに"; }; lab();
+      sb.onclick = async () => { const st = findStamp(s.id) || s; st.backView = backSheetOn(st) ? "stamp" : "sheet"; s.backView = st.backView; lab(); this.render(); try { await Store.saveStamp(st); } catch (_) {} }; }
     const cb = $("#pcCrop"); cb.hidden = !((s.scenes && s.scenes.length) || s.hasPhoto || s.sheet); cb.onclick = () => { $("#pcX").click(); BackCrop.open(s, () => PrintCard.open(s)); };
     const useAi = t => { if (this.s !== s || this.edited) return; this.text = t; ta.value = t; fx.hidden = !Trivia.can(s); st("AIが書いたこの場所のプチ情報です（同じスタンプを持つ人と共通）。書きかえると、あなたのトレカだけ変わります。"); this.render(); };
     const rb = $("#pcAi"); rb.hidden = !(own && s.trivia);
@@ -5544,7 +5551,7 @@ const CardView = {
       .catch(e => { clearTimeout(tm); if (told || (e && e.code !== "not_configured")) toast(Trivia.msg(e) + (Trivia.soft(e) ? "。もう一度裏返すと作り直します" : ""), 3600); });
   },
   async backURL(s) {
-    const txt = this.noteOf(s), key = [s.id, (s.scenes || []).join(","), s.hasPhoto ? 1 : 0, txt, s.name, s.place, s.date, s.cat, s.sizeMm, s.lat, JSON.stringify(s.bcrop || {})].join("|");
+    const txt = this.noteOf(s), key = [s.id, (s.scenes || []).join(","), s.hasPhoto ? 1 : 0, txt, s.name, s.place, s.date, s.cat, s.sizeMm, s.lat, JSON.stringify(s.bcrop || {}), backSheetOn(s) ? "sh" : "st"].join("|");
     if (this.cache.has(key)) return this.cache.get(key);
     const P = await PrintCard.assets(s); await PrintCard.fonts(`${s.name || ""}${s.place || ""}${s.pref || ""}${PrintCard.plain(txt)}No.0123456789押した日ジャンル横幅高さ場所ぺたろぐスタンプトレカ°'"NSEW${catNorm(s.cat)}`);
     const K = 16, cv = mkCanvas(63 * K, 88 * K); PrintCard.back(cv.getContext("2d"), s, P, cv.width, cv.height, txt);
@@ -5558,7 +5565,7 @@ const CardView = {
       <div class="tcv-slide" id="tcvSlide"><div class="tcv-shadow" id="tcvShadow"></div><div class="tcv-card" id="tcvCard">
         <div class="tcv-face tcv-front" id="tcvFront"></div><div class="tcv-face tcv-back" id="tcvBack"></div></div></div>
       <button class="tcv-nav next" type="button" id="tcvNext" aria-label="次のトレカ"><svg viewBox="0 0 24 24"><path d="m9 4 8 8-8 8"/></svg></button>
-      <div class="tcv-fix"><button type="button" id="tcvFix">プチ情報を直す</button><button type="button" id="tcvCrop">写真の位置</button></div>
+      <div class="tcv-fix"><button type="button" id="tcvSheet" hidden></button><button type="button" id="tcvFix">プチ情報を直す</button><button type="button" id="tcvCrop">写真の位置</button></div>
       <div class="tcv-hint" id="tcvHint">タップで裏返す ・ 指でかたむける ・ 外をタップでもどる</div>`;
     document.body.appendChild(d); this.el = d;
     const card = d.querySelector("#tcvCard");
@@ -5571,6 +5578,9 @@ const CardView = {
       this.noDragUntil = this.last + 350; if (this.front) { this.base = 0; return; } const proj = g.ry + clamp(g.v, -2.5, 2.5) * 0.55 * 150, b = Math.round(proj / 180) * 180; this.base = clamp(b, g.b0 - 180, g.b0 + 180); this.flipped(); };
     card.addEventListener("pointerup", up); card.addEventListener("pointercancel", up);
     d.addEventListener("click", e => { if (performance.now() < this.noDragUntil) return; if (e.target.closest(".tcv-card,.tcv-nav,.tcv-top,.tcv-fix")) return; this.close(); });
+    d.querySelector("#tcvSheet").onclick = async () => { const s = this.items[this.i]; if (!s || this.front || !backSheetOK(s)) return; const st = findStamp(s.id) || s;
+      st.backView = backSheetOn(st) ? "stamp" : "sheet"; s.backView = st.backView; this._bks = null; this.paintBack(s, this.seq);
+      toast(backSheetOn(st) ? "裏面を台紙ごとにしました" : "裏面をスタンプだけにしました"); try { await Store.saveStamp(st); } catch (_) {} };
     d.querySelector("#tcvCrop").onclick = () => { const s = this.items[this.i]; if (!s || this.front) return; const items = this.items; this.close(true); CardGrid.close(true);
       BackCrop.open(findStamp(s.id) || s, () => { CardView.open(s.id, { items }); CardView.base = 180; }); };
     d.querySelector("#tcvFix").onclick = () => { const s = this.items[this.i]; if (!s || this.front || !Trivia.can(s)) return; const items = this.items; this.close(true); CardGrid.close(true);
@@ -5611,7 +5621,8 @@ const CardView = {
     if (!g && idle > 7000 && Math.round(this.base / 180) % 2 !== 0) { this.base -= 180; this.last = t; }   // しばらくさわらないと表にもどる
     const cs = this.items[this.i], bk = !this.front && !!cs && !cs.other && !cs._pub && Math.round(this.base / 180) % 2 !== 0;
     if (bk !== this._bk || cs !== this._bks) { this._bk = bk; this._bks = cs; this.el.classList.toggle("bk", bk);   // 裏を見ているときだけ「直す」「写真の位置」
-      if (cs) { this.el.querySelector("#tcvFix").hidden = !Trivia.can(cs); this.el.querySelector("#tcvCrop").hidden = !((cs.scenes && cs.scenes.length) || cs.hasPhoto || cs.sheet); } }
+      if (cs) { this.el.querySelector("#tcvFix").hidden = !Trivia.can(cs); this.el.querySelector("#tcvCrop").hidden = !((cs.scenes && cs.scenes.length) || cs.hasPhoto || cs.sheet);
+        const sb = this.el.querySelector("#tcvSheet"); sb.hidden = !backSheetOK(cs); sb.textContent = backSheetOn(cs) ? "スタンプだけに" : "台紙ごとに"; } }
     const wob = g ? 0 : Math.min(1, idle / 1200);
     const ty = g ? g.ry : this.base + Math.sin(t / 1700) * 6 * wob, tx = g ? g.rx : Math.sin(t / 2300 + 1) * 3.5 * wob;
     const k = g ? 0.32 : 0.075, damp = g ? 0.62 : 0.8;
