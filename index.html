@@ -13,6 +13,7 @@
 <link rel="icon" href="icon-192.png">
 <link rel="manifest" href="manifest.webmanifest">
 <style>html{box-sizing:border-box}:root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;font:14px system-ui,sans-serif;background:#ECEDEF}img{max-width:100%}[hidden]{display:none!important}</style>
+<script src="vendor/page-flip.js"></script>
 <script src="vendor/supabase.js"></script>
 <script src="cloud.js"></script>
 </head>
@@ -876,6 +877,35 @@ html.tcv-on #toast{z-index:95}
 .rotres{flex-wrap:wrap}
 .rotres .rotlbl{flex:1;text-align:center;white-space:nowrap}
 .rothint{margin:0;font-size:11.5px}
+
+/* 10/11 ジャーナルを読む画面（紙がしなってめくれる・ズーム・革の表紙） */
+.book-area{position:relative;touch-action:none;overflow:hidden;-webkit-user-select:none;user-select:none}
+.book{perspective:none;touch-action:none;transform-origin:0 0}
+.pfholder{width:100%;height:100%}
+.pfp{overflow:hidden;color:var(--page-ink);background-color:#FBF8F1}
+.pfp.washi::before{content:"";position:absolute;left:0;top:0;bottom:0;width:22px;background:linear-gradient(90deg,rgba(60,50,30,.13),rgba(60,50,30,0));pointer-events:none;z-index:1}
+.pfp .leaf{position:absolute;inset:0}
+.tn-cover{background:#4A3020;border-radius:3px 9px 9px 3px}
+.tn-lth{position:absolute;inset:0;--lc:color-mix(in srgb,var(--c) 42%,#6B4429);background-color:var(--lc);
+  background-image:radial-gradient(120% 90% at 28% 18%,rgba(255,236,210,.18),transparent 55%),radial-gradient(150% 120% at 55% 50%,transparent 52%,rgba(0,0,0,.42) 100%),linear-gradient(90deg,rgba(0,0,0,.42),rgba(0,0,0,.1) 4%,transparent 9%,transparent 97%,rgba(0,0,0,.25)),url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='turbulence' baseFrequency='.09' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 .93 0 0 0 0 .82 0 0 0 .22 -.09'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"),url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 .55 -.2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"),url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='520' height='520'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.012' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 .7 -.27'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-size:auto,auto,auto,240px 240px,180px 180px,520px 520px;display:flex;flex-direction:column;align-items:center;justify-content:center;border-radius:inherit}
+.tn-stitch{position:absolute;inset:10px 10px 10px 16px;border:1.6px dashed rgba(255,226,182,.42);border-radius:7px;pointer-events:none;filter:drop-shadow(0 1px 0 rgba(0,0,0,.35))}
+.tn-emb{display:flex;flex-direction:column;align-items:center;gap:14px;text-align:center;padding:0 30% 0 12%;width:100%;box-sizing:border-box}
+.tn-emb .kick{font:600 10px/1 var(--f-mono);letter-spacing:.4em;margin-right:-.4em;color:rgba(20,10,4,.58);text-shadow:0 1px 0 rgba(255,232,200,.25)}
+.tn-emb .ctitle{font-family:"Shippori Mincho","Hiragino Mincho ProN","Yu Mincho",serif;font-weight:700;font-size:25px;line-height:1.5;letter-spacing:.08em;color:rgba(26,13,5,.66);text-shadow:0 1px 0 rgba(255,228,190,.34),0 -1px 1px rgba(0,0,0,.45);word-break:break-all}
+.tn-emb .cmeta{font:600 9.5px/1.9 var(--f-mono);letter-spacing:.18em;color:rgba(20,10,4,.56);text-shadow:0 1px 0 rgba(255,232,200,.22)}
+.tn-cover .hint{position:absolute;left:8%;right:30%;bottom:24px;text-align:center;font-size:11px;line-height:1.5;color:rgba(255,236,205,.75)}
+.tn-band{position:absolute;pointer-events:none;z-index:30}
+.tn-band i{position:absolute;top:-8px;bottom:-8px;left:72%;width:8px;margin-left:-4px;border-radius:4px;background:linear-gradient(90deg,#0E0A08,#3A2F28 30%,#6A5A4E 48%,#2C241F 68%,#0B0807);box-shadow:3px 0 5px rgba(0,0,0,.5),-1px 0 2px rgba(0,0,0,.35);transform-origin:50% 50%}
+.tn-band i::before,.tn-band i::after{content:"";position:absolute;left:-2px;right:-2px;height:6px;border-radius:3px;background:#1A1411}
+.tn-band i::before{top:0} .tn-band i::after{bottom:0}
+.tn-band.untie i{animation:tnUntie .62s cubic-bezier(.33,.6,.3,1) forwards}
+@keyframes tnUntie{0%{transform:none;opacity:1}28%{transform:translateX(6px) scaleX(1.35) scaleY(1.02)}55%{transform:translateX(26px) rotate(7deg) scaleY(.97);opacity:.9}100%{transform:translateX(74px) rotate(17deg) scaleY(.9);opacity:0}}
+.tn-band.retie i{animation:tnRetie .5s cubic-bezier(.3,1.5,.5,1)}
+@keyframes tnRetie{0%{transform:translateX(56px) rotate(12deg);opacity:0}100%{transform:none;opacity:1}}
+.book.wig{animation:tnWig .85s ease-in-out}
+@keyframes tnWig{0%,100%{rotate:0deg;scale:1}12%{rotate:-1.4deg;scale:1.008}26%{rotate:1.25deg}40%{rotate:-.9deg}54%{rotate:.55deg}68%{rotate:-.28deg}84%{rotate:.1deg}}
+.bk-zr{position:absolute;right:12px;top:8px;z-index:40;box-shadow:0 2px 8px rgba(0,0,0,.18)}
 </style>
 
 <div id="app">
@@ -1238,92 +1268,172 @@ function show(v) {
 }
 document.querySelectorAll(".tabs button").forEach(b => b.addEventListener("click", () => { if (MapV.pick) return; show(b.dataset.v); }));
 
-/* ================= BOOK (flip) ================= */
+/* ================= BOOK（スタンプジャーナルを読む：紙がしなってめくれる・2本指でズーム・革の表紙とゴムひも） ================= */
+// めくりは page-flip（MIT）の紙の折れ曲がり計算を使い、指の動きはこちらで受けてわたす（ズームと両立させるため）
 const Book = {
-  idx: 0, pages: [], busy: false, els: {},
-  build() { const b = Books.curBook; this.pages = b ? b.pages : []; this.idx = clamp(this.idx, 0, this.pages.length); $("#scrub").max = this.pages.length; this.render(); this.layout(); },
-  layout() {
-    const area = $("#bookArea"), bk = $("#book"); const aw = area.clientWidth - 32, ah = area.clientHeight - 6;
-    if (aw <= 0 || ah <= 0) return; let w = Math.min(aw, 460), h = w / 0.70; if (h > ah) { h = ah; w = h * 0.70; }
-    bk.style.width = w + "px"; bk.style.height = h + "px";
+  idx: 0, pages: [], pf: null, els: [], key: "", sz: null, tied: true, untying: false, Z: { z: 1, tx: 0, ty: 0 }, last: 0, nextWig: 0,
+  get busy() { return this.untying || !!(this.pf && this.pf.getState() !== "read"); },
+  set busy(v) {},
+  build() { const b = Books.curBook; this.pages = b ? b.pages : []; this.idx = clamp(this.idx, 0, this.pages.length); const sc = $("#scrub"); if (sc) sc.max = this.pages.length; this.render(); },
+  size() {
+    const area = $("#bookArea"); if (!area || !area.offsetParent) return null; const aw = area.clientWidth - 32, ah = area.clientHeight - 10;
+    if (aw <= 40 || ah <= 40) return null; let w = Math.min(aw, 460), h = w / 0.70; if (h > ah) { h = ah; w = h * 0.70; }
+    w = Math.floor(w); h = Math.floor(h); return { w, h, land: aw >= w * 2 + 24 };
   },
-  leafHTML(i) {
+  layout() { const s = this.size(); if (!s) return; if (!this.pf || !this.sz || s.w !== this.sz.w || s.h !== this.sz.h || s.land !== this.sz.land) this.render(true); },
+  pageHTML(i) {
     const n = this.pages.length, b = Books.curBook || { title: "", color: "#1F3570" };
     if (i === 0) {
       const ds = this.pages.map(p => p.created).filter(Boolean).sort((p, q) => p - q); const f = t => { const d = new Date(t); return d.getFullYear() + "." + pad2(d.getMonth() + 1); };
       const nSt = new Set(this.pages.flatMap(p => p.items.filter(it => it.sid).map(it => it.sid))).size;
-      return `<div class="face cover-face cloth" style="--c:${bookColor(b.color)}"><div class="leaf cover chic"><div class="cframe">
-        <div class="kick">STAMP BOOK</div><div class="ctitle">${esc(b.title)}</div><div class="rule"></div>
-        <div class="cmeta">${n} PAGES · ${nSt} STAMPS${ds.length ? `<br>${f(ds[0])} – ${f(ds[ds.length - 1])}` : ""}</div></div>
-        <div class="hint">${n ? "左へスワイプしてめくる" : "「＋ ページ」から最初のページを作りましょう"}</div></div></div><div class="face back endpaper" style="--c:${bookColor(b.color)}"></div><div class="shade"></div>`;
+      return `<div class="pfp tn-cover" data-density="hard"><div class="tn-lth" style="--c:${bookColor(b.color)}"><span class="tn-stitch"></span>
+        <div class="tn-emb"><div class="kick">STAMP JOURNAL</div><div class="ctitle">${esc(b.title)}</div><div class="cmeta">${n} PAGES · ${nSt} STAMPS${ds.length ? `<br>${f(ds[0])} – ${f(ds[ds.length - 1])}` : ""}</div></div>
+        <div class="hint">${n ? "タップすると、ひもがほどけて開きます" : "タップして開き、最初のページを作りましょう"}</div></div></div>`;
     }
-    if (i > n) return `<div class="face washi"><div class="leaf" style="align-items:center;justify-content:center;text-align:center;gap:14px"><div style="color:var(--page-muted);font-family:var(--f-hand);font-size:17px;line-height:1.9">つづきのページを<br>作りましょう。</div><button class="btn primary" type="button" data-newpg="1">＋ ページを作る</button></div></div>`;
-    const p = this.pages[i - 1]; const u = Books.thumbNow(p, 900);
-    return `<div class="face washi"><div class="leaf pageleaf">${u ? `<img src="${u}" alt="${esc(p.title || "ページ")}" data-pg="${p.id}" draggable="false">` : `<span class="spin"></span>`}<div class="pcap">${esc(p.title || "タイトルなし")}<small> · ${i}/${n}</small></div></div></div><div class="face back washi"></div><div class="shade"></div>`;
+    if (i > n) return `<div class="pfp washi pf-end" data-density="soft"><div class="leaf" style="align-items:center;justify-content:center;text-align:center;gap:14px"><div style="color:var(--page-muted);font-family:var(--f-hand);font-size:17px;line-height:1.9">つづきのページを<br>作りましょう。</div><button class="btn primary" type="button" data-newpg="1">＋ ページを作る</button></div></div>`;
+    return `<div class="pfp washi" data-density="soft"><div class="leaf pageleaf">${this.leafInner(i)}</div></div>`;
   },
-  mk(i, z) { const d = document.createElement("div"); d.className = "pg"; d.style.zIndex = z; d.innerHTML = this.leafHTML(i); d.dataset.i = i; return d; },
-  render() {
-    const bk = $("#book"); bk.innerHTML = "";
-    this.under = this.mk(this.idx + 1, 1); bk.appendChild(this.under);
-    this.cur = this.mk(this.idx, 2); bk.appendChild(this.cur);
-    this.prevEl = null; this.sync();
+  leafInner(i) {
+    const n = this.pages.length, p = this.pages[i - 1], u = Books.thumbNow(p, 900);
+    return `${u ? `<img src="${u}" alt="${esc(p.title || "ページ")}" data-pg="${p.id}" draggable="false">` : `<span class="spin"></span>`}<div class="pcap">${esc(p.title || "タイトルなし")}<small> · ${i}/${n}</small></div>`;
+  },
+  destroy() {
+    if (!this.pf) return; const pf = this.pf; this.pf = null;
+    try { const ui = pf.getUI(); if (ui && ui.onResize) window.removeEventListener("resize", ui.onResize); pf.destroy(); } catch (e) {}
+  },
+  render(force) {
+    const bk = $("#book"); if (!bk) return; const s = this.size();
+    const n = this.pages.length, key = [Books.cur, this.pages.map(p => p.id).join(","), s && s.w, s && s.h, s && s.land].join("|");
+    if (this.pf && !force && key === this.key) { this.fillThumbs(); this.sync(); return; }
+    if (!s || !window.St) { this.sz = null; this.sync(); return; }
+    this.destroy(); this.key = key; this.sz = s; this.resetZ();
+    bk.innerHTML = `<div class="pfholder"></div><div class="tn-band" hidden><i></i></div>`;
+    bk.style.width = (s.land ? s.w * 2 : s.w) + "px"; bk.style.height = s.h + "px";
+    const holder = bk.firstElementChild; this.els = [];
+    for (let i = 0; i <= n + 1; i++) { const t = document.createElement("div"); t.innerHTML = this.pageHTML(i); this.els.push(t.firstElementChild); }
+    const start = this.idx;
+    const pf = new St.PageFlip(holder, { width: s.w, height: s.h, size: "fixed", autoSize: true, usePortrait: true, showCover: true, drawShadow: true, maxShadowOpacity: 0.5,
+      flippingTime: 780, useMouseEvents: false, mobileScrollSupport: false, showPageCorners: false, disableFlipByClick: true, startPage: start, startZIndex: 1 });
+    pf.loadFromHTML(this.els); this.pf = pf;
+    pf.on("flip", e => { this.idx = clamp(+e.data || 0, 0, this.pages.length); if (this.idx === 0 && !this.tied) this.tie(true); this.sync(); });
+    this.idx = clamp(pf.getCurrentPageIndex(), 0, n); this.tied = this.idx === 0; this.sync();
+  },
+  fillThumbs() {
+    for (let i = 1; i <= this.pages.length; i++) { const el = this.els[i]; if (!el) continue; const lf = el.querySelector(".pageleaf"); if (lf && !lf.querySelector("img") && Books.thumbNow(this.pages[i - 1], 900)) lf.innerHTML = this.leafInner(i); }
+  },
+  band() { return $("#book .tn-band"); },
+  placeBand() {
+    const band = this.band(); if (!band || !this.pf) return; const show = this.idx === 0 && (this.tied || this.untying); band.hidden = !show; if (!show) return;
+    const r = this.pf.getBoundsRect(); Object.assign(band.style, { left: r.left + r.pageWidth + "px", top: r.top + "px", width: r.pageWidth + "px", height: r.height + "px" });
   },
   sync() {
-    $("#scrub").value = this.idx; const n = this.pages.length;
-    $("#where").textContent = this.idx ? `${this.idx} / ${n}` : "表紙";
-    $("#prevPg").disabled = this.idx === 0; $("#nextPg").disabled = this.idx >= n; Books.renderPgActs();
+    const n = this.pages.length, sc = $("#scrub"); if (sc) { sc.max = n; sc.value = this.idx; }
+    const land = this.pf && this.pf.getOrientation && this.pf.getOrientation() === "landscape";
+    $("#where").textContent = this.idx ? (land && this.idx < n ? `${this.idx}–${this.idx + 1} / ${n}` : `${this.idx} / ${n}`) : "表紙";
+    $("#prevPg").disabled = this.idx === 0; $("#nextPg").disabled = !!this.pf && this.idx >= this.lastIdx() - (land ? 1 : 0);
+    Books.renderPgActs(); this.placeBand();
   },
-  setA(el, a) { el.style.transform = `rotateY(${a}deg)`; const sh = el.querySelector(".shade"); if (sh) sh.style.opacity = (Math.sin(-a / 180 * Math.PI) * 0.8).toFixed(3); },
-  anim(el, from, to, dur, done) {
-    const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches; const t0 = performance.now();
-    const step = now => { const t = reduce ? 1 : clamp((now - t0) / dur, 0, 1); const e = t < .5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2; this.setA(el, from + (to - from) * e); if (t < 1) requestAnimationFrame(step); else done && done(); };
-    requestAnimationFrame(step);
+  lastIdx() { return this.pf ? Math.max(0, this.pf.getPageCount() - 1) : this.pages.length; },
+  // 表紙のゴムひもを、ふわっとほどいてから開く
+  open() {
+    if (!this.pf || this.untying || this.busy) return; if (!this.tied || this.idx !== 0) { this.pf.flipNext("bottom"); return; }
+    const band = this.band(), reduce = matchMedia("(prefers-reduced-motion: reduce)").matches; this.untying = true; this.poke();
+    if (band) { band.classList.remove("retie"); band.classList.add("untie"); }
+    setTimeout(() => { this.tied = false; this.untying = false; if (this.pf) this.pf.flipNext("bottom"); setTimeout(() => { const b = this.band(); if (b) { b.classList.remove("untie"); this.placeBand(); } }, 500); }, reduce ? 0 : 430);
   },
-  commitNext() {
-    const bk = $("#book"); this.cur.remove(); this.idx++;
-    this.cur = this.under; this.cur.style.zIndex = 2; this.under = this.mk(this.idx + 1, 1); bk.insertBefore(this.under, this.cur); this.sync();
+  tie(anim) { this.tied = true; const band = this.band(); this.placeBand(); if (band && anim && !matchMedia("(prefers-reduced-motion: reduce)").matches) { band.classList.remove("untie", "retie"); void band.offsetWidth; band.classList.add("retie"); } },
+  next() { if (!this.pf || this.busy) return; if (this.idx === 0 && this.tied) return this.open(); this.pf.flipNext("bottom"); },
+  prev() { if (!this.pf || this.busy || this.idx === 0) return; this.pf.flipPrev("bottom"); },
+  goto(i) { i = clamp(i, 0, this.pages.length); if (!this.pf) { this.idx = i; return; } this.pf.turnToPage(i); this.idx = clamp(this.pf.getCurrentPageIndex(), 0, this.pages.length); this.tied = this.idx === 0; this.sync(); },
+  poke() { this.last = performance.now(); this.nextWig = 0; },
+  // ズーム
+  applyZ() {
+    const bk = $("#book"), Z = this.Z; if (!bk) return; const W = bk.offsetWidth, H = bk.offsetHeight;
+    Z.z = clamp(Z.z, 1, 4); if (Z.z < 1.03) { Z.z = 1; Z.tx = Z.ty = 0; }
+    Z.tx = clamp(Z.tx, W * (1 - Z.z), 0); Z.ty = clamp(Z.ty, H * (1 - Z.z), 0);
+    bk.style.transform = Z.z === 1 ? "" : `translate(${Z.tx}px,${Z.ty}px) scale(${Z.z})`; const zr = $("#bkZr"); if (zr) zr.hidden = Z.z === 1;
   },
-  commitPrev() {
-    this.under.remove(); this.idx--;
-    this.under = this.cur; this.under.style.zIndex = 1; this.cur = this.prevEl; this.cur.style.zIndex = 2; this.prevEl = null; this.sync();
-  },
-  next(fromA = 0) { if (this.busy || this.idx >= this.pages.length) return; this.busy = true; const dur = 560 * (1 + fromA / 180); this.anim(this.cur, fromA, -180, Math.max(220, dur), () => { this.commitNext(); this.busy = false; }); },
-  prev(fromA = -180) {
-    if (this.busy || this.idx === 0) return; this.busy = true;
-    if (!this.prevEl) { this.prevEl = this.mk(this.idx - 1, 3); this.setA(this.prevEl, -180); $("#book").appendChild(this.prevEl); }
-    this.anim(this.prevEl, fromA, 0, Math.max(220, 560 * (-fromA / 180)), () => { this.commitPrev(); this.busy = false; });
-  },
-  goto(i) { this.idx = clamp(i, 0, this.pages.length); this.render(); }
+  resetZ() { this.Z = { z: 1, tx: 0, ty: 0 }; this.applyZ(); },
+  zoomAt(cx, cy, nz) { const bk = $("#book"), r = bk.getBoundingClientRect(), Z = this.Z, bx = r.left - Z.tx, by = r.top - Z.ty, lx = (cx - r.left) / Z.z, ly = (cy - r.top) / Z.z; nz = clamp(nz, 1, 4); Z.tx = cx - bx - lx * nz; Z.ty = cy - by - ly * nz; Z.z = nz; this.applyZ(); }
 };
 (function bookInput() {
-  const bk = $("#book"); let sx = 0, sy = 0, dir = 0, active = false, moved = false, w = 1, a = 0, lastX = 0, lastT = 0, vx = 0;
-  bk.addEventListener("pointerdown", e => { if (Book.busy) return; active = true; moved = false; dir = 0; sx = lastX = e.clientX; sy = e.clientY; w = bk.clientWidth; lastT = performance.now(); vx = 0; bk.setPointerCapture(e.pointerId); });
-  bk.addEventListener("pointermove", e => {
-    if (!active) return; const dx = e.clientX - sx; const now = performance.now(); vx = (e.clientX - lastX) / Math.max(1, now - lastT); lastX = e.clientX; lastT = now;
-    if (!dir && Math.abs(dx) > 6 && Math.abs(dx) > Math.abs(e.clientY - sy)) {
-      dir = dx < 0 ? 1 : -1; moved = true;
-      if (dir === 1 && Book.idx >= Book.pages.length) dir = 0;
-      if (dir === -1) { if (Book.idx === 0) dir = 0; else { Book.prevEl = Book.mk(Book.idx - 1, 3); Book.setA(Book.prevEl, -180); bk.appendChild(Book.prevEl); } }
+  const area = $("#bookArea"), bk = $("#book"), B = Book; const P = new Map(); let g = null;
+  if (!$("#bkZr")) area.insertAdjacentHTML("beforeend", `<button class="btn small bk-zr" type="button" id="bkZr" hidden>全体を表示</button>`);
+  $("#bkZr").onclick = () => B.resetZ();
+  const dist = () => B.pf.getUI().getDistElement().getBoundingClientRect();
+  const mid = () => { const [a, b] = [...P.values()]; return { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2, d: Math.hypot(a.x - b.x, a.y - b.y) || 1 }; };
+  area.addEventListener("pointerdown", e => {
+    if (!B.pf || (e.button && e.button > 0) || e.target.closest("button,a,input,select")) return;
+    B.poke(); try { area.setPointerCapture(e.pointerId); } catch (_) {}
+    P.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if (P.size === 2) {
+      if (g && g.fold) { B.pf.userStop(g.p || g.s); }
+      const m = mid(), r = bk.getBoundingClientRect(); g = { pinch: true, d: m.d, z0: B.Z.z, lx: (m.x - r.left) / B.Z.z, ly: (m.y - r.top) / B.Z.z, bx: r.left - B.Z.tx, by: r.top - B.Z.ty }; return;
     }
-    if (dir === 1) { a = -180 * clamp(-dx / (w * 1.1), 0, 1); Book.setA(Book.cur, a); }
-    if (dir === -1 && Book.prevEl) { a = -180 * (1 - clamp(dx / (w * 1.1), 0, 1)); Book.setA(Book.prevEl, a); }
+    if (P.size > 2) return;
+    const now = performance.now();
+    g = { id: e.pointerId, x: e.clientX, y: e.clientY, lx: e.clientX, lt: now, t: now, vx: 0, pan: B.Z.z > 1, tx0: B.Z.tx, ty0: B.Z.ty, dir: 0, fold: false, moved: false };
+  });
+  area.addEventListener("pointermove", e => {
+    if (!P.has(e.pointerId)) return; P.set(e.pointerId, { x: e.clientX, y: e.clientY }); if (!g) return;
+    if (g.pinch) { if (P.size < 2) return; const m = mid(), nz = clamp(g.z0 * m.d / g.d, 1, 4); B.Z.z = nz; B.Z.tx = m.x - g.bx - g.lx * nz; B.Z.ty = m.y - g.by - g.ly * nz; B.applyZ(); return; }
+    if (e.pointerId !== g.id) return;
+    const dx = e.clientX - g.x, dy = e.clientY - g.y, now = performance.now(); g.vx = (e.clientX - g.lx) / Math.max(1, now - g.lt); g.lx = e.clientX; g.lt = now;
+    if (g.pan) { if (Math.hypot(dx, dy) > 4) g.moved = true; B.Z.tx = g.tx0 + dx; B.Z.ty = g.ty0 + dy; B.applyZ(); return; }
+    if (!g.dir) {
+      if (Math.hypot(dx, dy) < 8) return; g.moved = true;
+      if (Math.abs(dx) < Math.abs(dy) * 0.8) { g.dir = 2; return; }
+      g.dir = dx < 0 ? 1 : -1;
+      if (B.idx === 0 && B.tied) { g.dir = 2; if (dx < 0) B.open(); return; }
+      if (B.busy || (g.dir === -1 && B.idx === 0) || (g.dir === 1 && B.idx >= B.lastIdx())) { g.dir = 2; return; }
+      const r = B.pf.getBoundsRect(), d = dist(), port = B.pf.getOrientation() === "portrait", ly = g.y - d.top;
+      const sx = g.dir === 1 ? r.left + r.width - 2 : port ? r.left + r.pageWidth + 2 : r.left + 2, sy = ly >= r.top + r.height / 2 ? r.top + r.height - 2 : r.top + 2;
+      g.s = { x: sx, y: sy }; g.r = r; g.port = port; g.fold = true; B.pf.startUserTouch(g.s);
+    }
+    if (g.fold) { g.p = { x: g.s.x + dx, y: clamp(g.s.y + dy * 0.5, g.r.top - g.r.height * 0.2, g.r.top + g.r.height * 1.2) }; B.pf.userMove(g.p, true); }
   });
   const end = e => {
-    if (!active) return; active = false;
-    if (dir === 1) { if (a < -60 || vx < -0.35) Book.next(a); else { Book.busy = true; Book.anim(Book.cur, a, 0, 260, () => Book.busy = false); } }
-    else if (dir === -1 && Book.prevEl) { if (a > -120 || vx > 0.35) Book.prev(a); else { const p = Book.prevEl; Book.busy = true; Book.anim(p, a, -180, 260, () => { p.remove(); Book.prevEl = null; Book.busy = false; }); } }
-    else if (!moved) {
-      const t = document.elementFromPoint(e.clientX, e.clientY); const r = bk.getBoundingClientRect(); const fx = (e.clientX - r.left) / r.width;
-      const np = t && t.closest("[data-newpg]"); if (np) return Books.newPageSheet();
-      if (fx > 0.78) Book.next(); else if (fx < 0.22) Book.prev();
-      else { const pg = t && t.closest("[data-pg]"); if (pg) Books.viewPage(pg.dataset.pg); }
+    if (!P.has(e.pointerId)) return; P.delete(e.pointerId); if (!g) return;
+    if (g.pinch) {
+      if (P.size === 1) { const [id, p] = [...P.entries()][0]; g = { id, x: p.x, y: p.y, lx: p.x, lt: performance.now(), t: 0, vx: 0, pan: B.Z.z > 1, tx0: B.Z.tx, ty0: B.Z.ty, dir: 2, moved: true }; }
+      else if (!P.size) g = null; B.applyZ(); return;
     }
-    a = 0;
+    if (e.pointerId !== g.id) return; const G = g; g = null;
+    if (G.fold) {
+      // 勢いよくはらったら、指を離した位置からそのままめくり切る
+      const fling = G.dir === 1 ? G.vx < -0.45 : G.vx > 0.45, r = G.r;
+      if (fling && G.p) {
+        const tx = G.dir === 1 ? r.left + r.pageWidth * (G.port ? 0.55 : 0.45) : r.left + r.width - r.pageWidth * 0.35, x0 = G.p.x, y0 = G.p.y, t0 = performance.now();
+        const step = now => { if (!B.pf) return; const t = clamp((now - t0) / 120, 0, 1); const p = { x: x0 + (tx - x0) * t, y: y0 }; B.pf.userMove(p, true); if (t < 1) requestAnimationFrame(step); else B.pf.userStop(p); };
+        requestAnimationFrame(step);
+      } else B.pf.userStop(G.p || G.s);
+      return;
+    }
+    if (G.moved || performance.now() - G.t > 450) return;
+    // タップ
+    if (B.Z.z > 1) { if (B.lastTap && performance.now() - B.lastTap < 320) { B.lastTap = 0; B.resetZ(); } else B.lastTap = performance.now(); return; }
+    if (B.idx === 0 && B.tied) return B.open();
+    const r = bk.getBoundingClientRect(), fx = (e.clientX - r.left) / r.width;
+    const t = document.elementFromPoint(e.clientX, e.clientY);
+    if (fx > 0.8) return B.next(); if (fx < 0.2) return B.prev();
+    const pg = t && t.closest("[data-pg]"); if (pg) Books.viewPage(pg.dataset.pg);
   };
-  bk.addEventListener("pointerup", end); bk.addEventListener("pointercancel", end);
-  $("#prevPg").onclick = () => Book.prev(); $("#nextPg").onclick = () => Book.next();
-  $("#scrub").oninput = e => Book.goto(+e.target.value);
-  addEventListener("keydown", e => { if (view !== "board" || Books.mode !== "book" || !$("#sheetWrap").hidden) return; if (e.key === "ArrowRight") Book.next(); if (e.key === "ArrowLeft") Book.prev(); });
+  area.addEventListener("pointerup", end); area.addEventListener("pointercancel", end);
+  area.addEventListener("wheel", e => { if (!e.ctrlKey || !B.pf) return; e.preventDefault(); B.zoomAt(e.clientX, e.clientY, B.Z.z * Math.exp(-e.deltaY * 0.01)); }, { passive: false });
+  area.addEventListener("gesturestart", e => e.preventDefault());
+  bk.addEventListener("click", e => { if (e.target.closest("[data-newpg]")) Books.newPageSheet(); });
+  $("#prevPg").onclick = () => B.prev(); $("#nextPg").onclick = () => B.next();
+  $("#scrub").oninput = e => B.goto(+e.target.value);
+  addEventListener("keydown", e => { if (view !== "board" || Books.mode !== "book" || !$("#sheetWrap").hidden) return; if (e.key === "ArrowRight") B.next(); if (e.key === "ArrowLeft") B.prev(); });
+  let rt = 0; addEventListener("resize", () => { clearTimeout(rt); rt = setTimeout(() => { if (view === "board" && Books.mode === "book") B.layout(); }, 160); });
+  // しばらく触らないと、閉じた手帳がプルプルっと揺れる
+  setInterval(() => {
+    if (view !== "board" || Books.mode !== "book" || !B.pf || !B.tied || B.idx !== 0 || B.Z.z > 1 || document.hidden || g) return;
+    if (matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    const now = performance.now(); if (!B.last) B.last = now; if (now - B.last < 4000) return;
+    if (B.nextWig && now < B.nextWig) return; B.nextWig = now + 5200;
+    bk.classList.remove("wig"); void bk.offsetWidth; bk.classList.add("wig"); setTimeout(() => bk.classList.remove("wig"), 900);
+  }, 700);
 })();
 
 /* ================= color / shape detection ================= */
