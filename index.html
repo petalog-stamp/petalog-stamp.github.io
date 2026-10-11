@@ -2102,11 +2102,11 @@ const MapV = {
     if (this.pubLoading || Store.mode !== "cloud") { this.render(); return; }
     this.pubLoading = true; this.render();
     try { this.pubs = await Store.pubList(); } catch { this.pubs = []; toast("みんなの記録を読み込めませんでした"); }
-    this.pubLoading = false; this.render();
+    this.pubLoading = false; this.render(); Spots.load();
   },
   setMode(m) { this.mode = m; $("#mapMe").setAttribute("aria-pressed", m === "me"); $("#mapAll").setAttribute("aria-pressed", m === "all"); if (m === "all" && !this.pubs) this.loadPubs(); else this.render(); },
   onShow() {
-    this.cols = this.colors();
+    this.cols = this.colors(); Spots.load();
     if (!this.init()) return;
     this.map.invalidateSize({ animate: false });
     if (!this.shown) { this.shown = true; this.fit(); this.startHere(); }
@@ -4272,6 +4272,7 @@ async function updateExisting(t) {
   await commitSave(c, merged);
 }
 async function commitSave(c, d) {
+  const fixLoc = locFixOf(c, d);
   if (c.mode === "add" && !(+d.no > 0 && Numbers.vacant().includes(+d.no))) d.no = Numbers.next();   // 新しい番号（空き番号を選んだときはその番号）
   const btn = $("#saveBtn"); if (btn) { btn.disabled = true; btn.innerHTML = `<span class="spin"></span> 保存中`; }
   try {
@@ -4292,7 +4293,7 @@ async function commitSave(c, d) {
   if (first) { await Books.load(); Fall.setFilter("all"); }
   const mode = c.mode, q = c.queue, adj = c.adj;
   closeSheet(); refreshAll(); Others.rank = null;
-  const reg = d.type !== "goshuin" && (mode === "add" || mode === "edit" || mode === "update") ? Zukan.register(d, c.design).catch(() => null) : null;
+  const reg = d.type !== "goshuin" && (mode === "add" || mode === "edit" || mode === "update") ? Zukan.register(d, c.design, false, fixLoc).catch(() => null) : null;
   const packed = mode === "add" && d.type !== "goshuin" && !(q && q.i + 1 < q.boxes.length);
   if (packed) Pack.play(d, { reg }).then(() => { if (ms) Party.show(ms); else { const r = rallyOf(rallyKeyOf(d)); if (r) toast(`${r.r.name} ${r.st.n}駅 をゲット！`); } });
   else if (ms) setTimeout(() => Party.show(ms), 420);
@@ -5507,7 +5508,7 @@ const YahooLS = {
 
 /* ---------- 地図: 同じ場所のスタンプをまとめる（30m以内、または同じ場所名で300m以内） ---------- */
 let _pg = { sig: "", groups: [] };
-function pinGroups() { return groupNear(list(), _pg, s => s.id); }
+function pinGroups() { return groupNear(designPos(list(), null, true), _pg, s => s.id); }
 let _pbg = { sig: "", groups: [] };
 function pubGroups(P) { return groupNear(designPos(P.filter(p => p.lat != null && p.by !== Store.uid && !p.miss && p.reviewed !== "hide"), P), _pbg, p => p._id); }
 function groupNear(src, cache, idOf) {
@@ -6283,13 +6284,14 @@ const Zukan = {
       if (x.pref) c.d.pref = x.pref; this.render(c); toast("みんなの図鑑の内容を入れました"); });
   },
   // 登録・編集したあとで図鑑に入れる（公開するスタンプだけ）。→ { design, first, members, isNew }
-  async register(d, design, quiet) {
+  async register(d, design, quiet, fix) {
     if (!this.ok() || d.type === "goshuin" || !d.cut) return null;
     if (!d.share) { if (d.design) this.leave(d.id); return null; }
     let dh = ""; try { dh = await this.dh(d.cut); } catch (_) { return null; }
     let thumb = ""; try { thumb = await thumbOf(d.cut); } catch (_) {}
-    const r = await PetalogCloud.zukan("register", { stamp_id: d.id, design: design || d.design || null, lr: locRank(d.locSrc), dh, name: d.name || "", place: d.place || "", pref: d.pref || "", cat: catNorm(d.cat), lat: d.lat, lng: d.lng, size_mm: d.sizeMm || null, digital: isDigi(d), thumb, t: this.t(d) });
+    const r = await PetalogCloud.zukan("register", { stamp_id: d.id, design: design || d.design || null, lr: locRank(d.locSrc), fix: !!fix, dh, name: d.name || "", place: d.place || "", pref: d.pref || "", cat: catNorm(d.cat), lat: d.lat, lng: d.lng, size_mm: d.sizeMm || null, digital: isDigi(d), thumb, t: this.t(d) });
     if (!r || !r.design) return null;
+    if (r.spot) { Spots.put(r.design, r.spot); if (MapV.map) MapV.draw(); }   // みんなの地図のピンの場所（自分で直したときはすぐ反映）
     const cur = findStamp(d.id) || d, changed = cur.design !== r.design || !!cur.first !== !!r.first;
     cur.design = r.design; d.design = r.design; if (r.first) { cur.first = true; d.first = true; } else { delete cur.first; delete d.first; }
     if (changed) { try { await Store.saveStamp(cur); if (cur.share && thumb) await Store.pubPut(pubView(cur), thumb, Profile.nick); } catch (_) {} if (!quiet) Grid.render(); }   // 「ぜんぶ」のスタンプを降らせ直さないよう、トレカ一覧だけ描き直す
@@ -6885,11 +6887,33 @@ function locRank(src) {
   src = String(src || ""); if (/スタンプ台の写真/.test(src)) return 3;
   if (/写真の位置情報|現在地/.test(src)) return 2; if (/地図|Google|検索|ピン/.test(src)) return 1; return 0;
 }
-function designPos(L, all) {
-  const by = new Map(); for (const p of all || L) if (p.design && p.lat != null && !p.miss) { let a = by.get(p.design); if (!a) by.set(p.design, a = []); a.push(p); }
+// 同じデザイン（図鑑）のピンは1本に。場所は図鑑の「正しい場所」（あとから誰かが直したら、そこへ動く）
+// ※ 自分の記録に入っている場所は変えない。地図に出すピンの位置だけ合わせる（3km以上はなれていたら別の場所としてそのまま）
+function designPos(L, all, mine) {
+  const by = new Map(); if (!mine) for (const p of all || L) if (p.design && p.lat != null && !p.miss) { const k = +p.design; let a = by.get(k); if (!a) by.set(k, a = []); a.push(p); }
   const med = arr => { const s = arr.slice().sort((x, y) => x - y); return s[s.length >> 1]; }, rep = new Map();
   for (const [k, a] of by) { const top = Math.max(...a.map(p => +p.lr || 0)), b = a.filter(p => (+p.lr || 0) === top); rep.set(k, { lat: med(b.map(p => +p.lat)), lng: med(b.map(p => +p.lng)) }); }
-  return L.map(p => { const r = p.design && rep.get(p.design); return r && kmBetween(+p.lat, +p.lng, r.lat, r.lng) < 3 ? { ...p, lat: r.lat, lng: r.lng } : p; });
+  return L.map(p => { const r = p.design && p.lat != null && (Spots.of(p.design) || rep.get(+p.design)); return r && kmBetween(+p.lat, +p.lng, r.lat, r.lng) < 3 ? { ...p, lat: r.lat, lng: r.lng } : p; });
+}
+const Spots = {
+  m: new Map(), t: 0, busy: null,
+  of(id) { return id != null ? this.m.get(+id) || null : null; },
+  put(id, sp) { if (id != null && sp && sp.lat != null && sp.lng != null && isFinite(+sp.lat) && isFinite(+sp.lng)) this.m.set(+id, { lat: +sp.lat, lng: +sp.lng }); },
+  want() { const w = new Set(); for (const x of stamps) if (x.design && x.lat != null) w.add(+x.design); for (const p of MapV.pubs || []) if (p.design) w.add(+p.design); return [...w]; },
+  load() {
+    if (Store.mode !== "cloud" || !Store.designSpots || this.busy) return this.busy;
+    const ids = this.want(); if (!ids.length || (!ids.some(i => !this.m.has(i)) && Date.now() - this.t < 300000)) return null;
+    return this.busy = (async () => {
+      try { const was = JSON.stringify([...this.m]); (await Store.designSpots(ids)).forEach(x => this.put(x.id, x)); this.t = Date.now(); if (JSON.stringify([...this.m]) !== was && MapV.map) MapV.draw(); } catch (_) {}
+      this.busy = null;
+    })();
+  },
+};
+// 自分で場所を直したか（スタンプ台の写真を入れた／登録ずみの記録でピンを動かした）→ 図鑑の場所も新しいものにする
+function locFixOf(c, d) {
+  if (!c || d.lat == null || d.lng == null) return false;
+  const o = c.mode === "add" ? null : c.orig; if (o && +o.lat === +d.lat && +o.lng === +d.lng) return false;
+  return /スタンプ台の写真/.test(d.locSrc || "") || (c.mode === "edit" && d.locSrc === "地図でピン");
 }
 function wireStandPhoto() {
   const c = sheetCtx, b = $("#standBtn"); if (!c || !b) return;

@@ -273,6 +273,12 @@
     },
     // 本部（運営）だけ: 報告の確認
     async hqAdmin() { if (!attached) return false; try { const { data } = await sb.rpc("hq_is_admin"); return !!data; } catch { return false; } },
+    // みんなの図鑑の「正しい場所」（地図のピンを出す位置）
+    async designSpots(ids) {
+      if (!attached || !ids.length) return []; const out = [];
+      for (let i = 0; i < ids.length; i += 500) { const { data, error } = await sb.rpc("design_spots", { p_ids: ids.slice(i, i + 500) }); if (error) fail(error); out.push(...(data || [])); }
+      return out;
+    },
     async hqReview(ids, verdict) { const { data, error } = await sb.rpc("hq_review", { p_ids: ids, p_verdict: verdict }); if (error) fail(error); return data; },
     async pubDel(sid) { try { await sb.from("shares").delete().eq("user_id", uid).eq("stamp_id", sid); } catch {} },
   };

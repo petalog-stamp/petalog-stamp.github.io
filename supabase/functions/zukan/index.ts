@@ -34,6 +34,10 @@ const sameName = (x: unknown, y: unknown) => { const p = normKey(x), q = normKey
    register: 登録したスタンプを図鑑に入れる。まだなければ新しく作り、その人が第一発見者になる
    leave:    スタンプを消したときに図鑑からぬける
    ※ 同じ施設に図柄の似た別スタンプがあるので、画像の指紋だけでは同じと決めない（場所・名前も見る。最後は本人が選ぶ） */
+function kmBetween(a: number, b: number, c: number, d: number): number {
+  const R = 6371, t = Math.PI / 180, x = Math.sin((c - a) * t / 2), y = Math.sin((d - b) * t / 2);
+  return 2 * R * Math.asin(Math.sqrt(x * x + Math.cos(a * t) * Math.cos(c * t) * y * y));
+}
 const num = (v: unknown) => { const n = Number(v); return isFinite(n) ? n : null; };
 type DRow = { id: number; name: string; place: string; pref: string; cat: string; lat: number | null; lng: number | null; size_mm: number | null; digital: boolean; thumb: string | null; members: number; first_by: string | null; ham: number; near: boolean };
 async function designFind(dh: string, lat: number | null, lng: number | null, digital: boolean, nearDeg: number, far: number, nearMax: number, limit = 6): Promise<DRow[]> {
@@ -78,6 +82,7 @@ async function designs(uid: string, task: string, body: Record<string, unknown>)
   if (!sid) return json({ error: "bad_request" }, 400);
   const name = clip(a.name, 80).trim(), place = clip(a.place, 80).trim(), pref = clip(a.pref, 10).trim(), cat = clip(a.cat, 20).trim();
   const lr = Math.max(0, Math.min(3, Math.round(num(a.lr) ?? 0)));   // 場所の確かさ（3=スタンプ台の写真のGPS）
+  const fix = a.fix === true;   // 本人が場所を直した（スタンプ台の写真を入れた／登録ずみの記録でピンを動かした）
   const size = num(a.size_mm), t = num(a.t) ?? Date.now(), thumb = /^data:image\/(png|jpeg|webp);base64,/.test(String(a.thumb ?? "")) && String(a.thumb).length < 60000 ? String(a.thumb) : null;
   // 前にこのスタンプで入っていたら、まずそこからぬける（名前や絵を直したとき）
   const { data: was } = await admin.from("design_members").select("design_id").eq("user_id", uid).eq("stamp_id", sid);
@@ -100,17 +105,21 @@ async function designs(uid: string, task: string, body: Record<string, unknown>)
   }
   let isNew = false;
   if (pick == null) {
-    const { data: d, error } = await admin.from("designs").insert({ dh, lat, lng, loc_rank: lat != null ? lr : null, name, place, pref, cat, size_mm: size, digital, thumb, first_by: uid, first_stamp: sid, first_t: t }).select("id").single();
+    const { data: d, error } = await admin.from("designs").insert({ dh, lat, lng, loc_rank: lat != null ? (fix ? 3 : lr) : null, name, place, pref, cat, size_mm: size, digital, thumb, first_by: uid, first_stamp: sid, first_t: t }).select("id").single();
     if (error || !d) { console.error("design insert", error?.message); return json({ error: "server" }, 500); }
     pick = d.id; isNew = true;
   } else {
     // 足りない情報をうめる（大きさ・ジャンル・小さな絵・より確かな場所）
-    const { data: d } = await admin.from("designs").select("size_mm, cat, thumb, lat, loc_rank").eq("id", pick).maybeSingle();
+    const { data: d } = await admin.from("designs").select("size_mm, cat, thumb, lat, lng, loc_rank").eq("id", pick).maybeSingle();
     const up: Record<string, unknown> = {};
     if (d && d.size_mm == null && size != null) up.size_mm = size;
     if (d && !d.cat && cat) up.cat = cat;
     if (d && !d.thumb && thumb) up.thumb = thumb;
-    if (d && lat != null && (d.lat == null || lr > (d.loc_rank ?? 0))) { up.lat = lat; up.lng = lng; up.loc_rank = lr; }   // より確かな場所が来たら、図鑑の場所をそこに
+    // 図鑑の場所（みんなの地図のピン）: まだない／より確かな場所が来た／本人が近く（3km以内）で直した → 新しい場所に
+    // 本人が直した場所は、あとから検索などで登録した人の場所では上書きされない（確かさ3あつかい）
+    const far = d && d.lat != null && d.lng != null && lat != null && lng != null ? kmBetween(lat, lng, d.lat, d.lng) : 0;
+    const cur = d?.loc_rank ?? 0, better = lr > cur && (far < 3 || (lr === 3 && cur <= 1));   // 3km以上はなれた場所は、別の場所の同じ絵柄のことがあるので動かさない（検索だけで決まった場所を写真のGPSで直すときはOK）
+    if (d && lat != null && (d.lat == null || better || (fix && far < 3))) { up.lat = lat; up.lng = lng; up.loc_rank = fix ? 3 : lr; if (fix) up.loc_fixed_at = new Date().toISOString(); }
     if (Object.keys(up).length) await admin.from("designs").update(up).eq("id", pick);
   }
   for (const r of was ?? []) if (r.design_id !== pick) {
@@ -121,7 +130,9 @@ async function designs(uid: string, task: string, body: Record<string, unknown>)
   const { data: j, error: je } = await admin.rpc("design_join", { p_design: pick, p_user: uid, p_stamp: sid, p_t: Math.round(t) });
   if (je) { console.error("design_join", je.message); return json({ error: "server" }, 500); }
   const row = Array.isArray(j) ? j[0] : j;
-  return json({ ok: true, result: { design: pick, first: row?.first_by === uid, members: row?.members ?? 1, isNew } });
+  const { data: sp } = await admin.from("designs").select("lat, lng").eq("id", pick).maybeSingle();
+  const spot = sp && sp.lat != null && sp.lng != null ? { lat: sp.lat, lng: sp.lng } : null;
+  return json({ ok: true, result: { design: pick, first: row?.first_by === uid, members: row?.members ?? 1, isNew, spot } });
 }
 
 Deno.serve(async (req) => {
