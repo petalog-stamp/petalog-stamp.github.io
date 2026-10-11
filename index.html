@@ -6412,7 +6412,7 @@ const HQ = {
   async settings() {
     if (Store.mode !== "cloud" || !Store.hqAdmin) return; if (this.admin == null) this.admin = await Store.hqAdmin(); if (!this.admin || !$("#sheet") || (sheetCtx && sheetCtx.mode !== "settings")) return;
     const head = $("#sheet .sheet-head"); if (!head || $("#hqSec")) return;
-    head.insertAdjacentHTML("afterend", `<div class="sec" id="hqSec"><h4>本部</h4><button class="btn small" type="button" id="hqOpen">「ちがうよ」報告の一覧</button><p class="cap" style="margin:6px 0 0">本部のアカウントにだけ出ています。</p></div>`);
+    head.insertAdjacentHTML("afterend", `<div class="sec" id="hqSec"><h4>本部</h4><div class="row2"><a class="btn small primary" href="admin.html" target="_blank" rel="noopener">統計を見る</a><button class="btn small" type="button" id="hqOpen">「ちがうよ」報告の一覧</button></div><p class="cap" style="margin:6px 0 0">本部のアカウントにだけ出ています。</p></div>`);
     $("#hqOpen").onclick = () => this.open();
   },
   groups() {
@@ -6786,6 +6786,85 @@ const YearSum = {
 YearSum.btn = function () { if (!$("#sheet") || (sheetCtx && sheetCtx.mode !== "settings") || $("#yrSec")) return; const y = new Date().getFullYear(); const head = $("#sheet .sheet-head"); if (!head) return;
   head.insertAdjacentHTML("afterend", `<div class="sec" id="yrSec"><button class="btn" type="button" id="yrOpen">✨ ${y}年のぺたろぐ（まとめ画像）</button></div>`); $("#yrOpen").onclick = () => YearSum.open(y); };
 
+/* ================= 本部の統計のための記録（Track） =================
+   使った機能の名前と、小さな情報（種類・数など）だけを送る。写真・メモ・名前・場所の中身は送らない。
+   ログインしていない人は、端末ごとのランダムな番号で数える。数秒ごとにまとめて送り、送れないときは端末に取っておく */
+const Track = {
+  q: [], did: null, sid: null, last: 0, busy: false, errs: 0, lastView: "",
+  pf() { const u = navigator.userAgent; return isIOS ? "ios" : /Android/i.test(u) ? "android" : /Mac/i.test(u) ? "mac" : /Win/i.test(u) ? "win" : "other"; },
+  init() {
+    try { this.did = lsGet("petalog.did"); if (!this.did || !/^[A-Za-z0-9_-]{6,40}$/.test(this.did)) { this.did = "d" + Math.random().toString(36).slice(2, 12) + Date.now().toString(36); lsSet("petalog.did", this.did); } } catch (_) { this.did = null; }
+    if (!this.did) return;
+    try { this.q = JSON.parse(lsGet("petalog.tq") || "[]").slice(-300); } catch (_) { this.q = []; }
+    const first = !lsGet("petalog.seen"); lsSet("petalog.seen", "1");
+    const sp = new URLSearchParams(location.search), utm = ["utm_source", "utm_medium", "utm_campaign"].map(k => (sp.get(k) || "").slice(0, 40)).filter(Boolean).join("/");
+    let ref = ""; try { if (document.referrer) { const r = new URL(document.referrer); if (r.host !== location.host) ref = r.host; } } catch (_) {}
+    const sa = !!((window.matchMedia && matchMedia("(display-mode: standalone)").matches) || navigator.standalone);
+    this.ev("open", { pf: this.pf(), sa, w: innerWidth < 600 ? "s" : innerWidth < 1100 ? "m" : "l", login: Store.mode === "cloud" ? 1 : 0, n: stamps.length, ...(first ? { first: 1 } : {}), ...(ref ? { ref } : {}), ...(utm ? { utm } : {}), ...(/[?&]walk=/.test(location.search) ? { from: "shortcut" } : {}) });
+    setInterval(() => this.flush(), 20000); setTimeout(() => this.flush(), 4000);
+    document.addEventListener("visibilitychange", () => { if (document.hidden) { this.ev("hide"); this.flush(true); } });
+    addEventListener("pagehide", () => this.flush(true));
+    addEventListener("error", e => { if (this.errs++ < 5) this.ev("js_error", { m: String(e && e.message || "").slice(0, 90) }); });
+    this.hooks();
+  },
+  session() { const now = Date.now(); if (!this.sid || now - this.last > 30 * 60e3) this.sid = Math.random().toString(36).slice(2, 12); this.last = now; return this.sid; },
+  ev(name, p) {
+    if (!this.did || !/^[a-z0-9_]{2,32}$/.test(name)) return;
+    const row = { did: this.did, sid: this.session(), ev: name, at: new Date().toISOString(), p: p && Object.keys(p).length ? p : null };
+    this.q.push(row); if (this.q.length > 300) this.q.splice(0, this.q.length - 300); this.save(); if (this.q.length >= 25) this.flush();
+  },
+  save() { try { lsSet("petalog.tq", JSON.stringify(this.q)); } catch (_) {} },
+  async flush(keep) {
+    if (this.busy || !this.q.length || !window.PetalogCloud || !PetalogCloud.track) return; this.busy = true; const rows = this.q.slice(0, 50);
+    this.q.splice(0, rows.length); this.save();   // 先に外しておく（ページを閉じる直前に送ったぶんが、次に開いたとき二重に送られないように）
+    let ok = false; try { ok = await PetalogCloud.track(rows, keep); } catch (_) {} finally { this.busy = false; }
+    if (!ok && !keep) { this.q.unshift(...rows); if (this.q.length > 300) this.q.length = 300; this.save(); }
+  },
+  // それぞれの機能に「使った」しるしを付ける（元の動きは変えない）
+  hooks() {
+    const T = this, on = (obj, key, f) => { const o = obj && obj[key]; if (typeof o !== "function" || o._tk) return; const w = function (...a) { try { f.apply(this, a); } catch (_) {} return o.apply(this, a); }; w._tk = 1; obj[key] = w; };
+    const after = (obj, key, f) => { const o = obj && obj[key]; if (typeof o !== "function" || o._tk) return; const w = function (...a) { const r = o.apply(this, a); Promise.resolve(r).then(v => { try { f.call(this, v, ...a); } catch (_) {} }, () => {}); return r; }; w._tk = 1; obj[key] = w; };
+    const G = window;
+    on(G, "show", v => { if (v !== T.lastView) { T.lastView = v; T.ev("view", { v }); } });
+    after(G, "commitSave", (_, c, d) => { if (!c || !d) return; const m = c.mode;
+      if (m === "add") T.ev("stamp_add", { type: d.type || "stamp", cat: catNorm(d.cat), dg: isDigi(d) ? 1 : 0, ov: d.overlap ? 1 : 0, zk: c.design ? 1 : 0, ai: c.ai ? 1 : 0, sz: d.sizeMm ? 1 : 0, ph: d.hasPhoto ? 1 : 0, pub: d.share ? 1 : 0, loc: d.lat != null ? 1 : 0, q: c.queue ? 1 : 0 });
+      else T.ev(m === "update" ? "stamp_visit" : "stamp_edit", { type: d.type || "stamp" }); });
+    on(G, "deleteStamps", L => T.ev("stamp_del", { n: (L || []).length }));
+    on(G, "runAI", () => T.ev("ai_identify"));
+    on(G, "openExport", o => T.ev("export", { k: o && o.page ? "page" : "card" }));
+    on(G, "openSettings", () => T.ev("settings"));
+    on(G, "openStation", () => T.ev("station"));
+    on(G, "openPub", () => T.ev("pub_open"));
+    on(G, "openRecrop", (s, f) => T.ev(f ? "retake" : "recrop"));
+    on(G, "openTurn", () => T.ev("turn"));
+    on(Trivia, "once", (s, x) => T.ev(x && x.fix ? "trivia_fix" : "trivia_gen"));
+    on(CardView, "open", (id, o) => T.ev("card_view", { front: o && o.front ? 1 : 0 }));
+    on(PrintCard, "open", () => T.ev("print_open"));
+    on(PrintCard, "save", k => T.ev("print_save", { k: k || "img" }));
+    on(Pack, "play", s => T.ev("pack", { k: s && s.overlap ? "ovl" : s && isDigi(s) ? "digi" : "std" }));
+    after(Zukan, "register", (r, d, design, quiet) => { if (!quiet && r) T.ev("zukan_reg", { adopt: design ? 1 : 0, first: r.first ? 1 : 0, isNew: r.isNew ? 1 : 0, members: r.members || 1 }); });
+    on(Zukan, "render", c => { if (c && c.zkKey && c._tkKey !== c.zkKey) { c._tkKey = c.zkKey; T.ev("zukan_match", { hit: (c.zkList || []).length }); } });
+    on(Books, "openBook", () => T.ev("journal_open"));
+    on(Books, "editPage", () => T.ev("page_edit"));
+    on(Books, "newPageSheet", () => T.ev("page_new"));
+    on(Board, "add", () => T.ev("page_stamp"));
+    on(Book, "next", () => T.ev("page_flip"));
+    on(Book, "open", () => T.ev("cover_open"));
+    on(Walk, "start", () => T.ev("walk_start"));
+    after(Walk, "stop", () => { const w = Walk.list && Walk.list[0]; T.ev("walk_stop", w ? { min: Math.round((w.end - w.start) / 60000), km: Math.round((w.walkM || 0) / 100) / 10, st: (w.stamps || []).length } : null); });
+    on(Walk, "pocket", () => T.ev("pocket"));
+    on(Walk, "askSteps", () => T.ev("steps_iphone"));
+    on(Walk, "toPage", () => T.ev("walk_page"));
+    on(YearSum, "open", y => T.ev("year_sum", { y }));
+    on(MapV, "setMode", m => T.ev("map_mode", { m }));
+    on(Store, "pubReport", o => T.ev("report", { type: o && o.type === "wrong" ? "wrong" : "ended" }));
+    on(HQ, "open", () => T.ev("hq"));
+    on(Rally, "renderLine", function () { if (this.cur && this._tkLine !== this.cur) { this._tkLine = this.cur; T.ev("rally_line", { id: String(this.cur).slice(0, 40) }); } });
+    if (typeof Others !== "undefined") on(Others, "show", () => T.ev("others"));
+    if (typeof setCols === "function") on(G, "setCols", n => T.ev("grid_cols", { n }));
+  }
+};
+
 /* ================= boot ================= */
 addEventListener("resize", () => { Book.layout(); if (view === "fall") { Fall.dirty = true; Fall.stop(); Fall.start(); } if (view === "map") MapV.draw(); });
 document.addEventListener("visibilitychange", () => { if (document.hidden) Fall.stop(); else if (view === "fall") Fall.start(); });
@@ -6802,7 +6881,7 @@ document.addEventListener("contextmenu", e => { if (!e.target.closest("input,tex
   ready = true; Book.idx = 0; MapV.shown = false;
   refreshAll(); show(view);
   if (window.PetalogCloud) PetalogCloud.afterBoot();
-  setTimeout(() => Privacy.firstSync(), 2500); loadSheets(); setTimeout(trimOld, 6000); setTimeout(() => Zukan.backfill(), 9000); Walk.init(); setTimeout(() => Numbers.ensure(), 1500);
+  setTimeout(() => Privacy.firstSync(), 2500); loadSheets(); setTimeout(trimOld, 6000); setTimeout(() => Zukan.backfill(), 9000); Walk.init(); Track.init(); setTimeout(() => Numbers.ensure(), 1500);
   if (!lsGet("petalog.pinchHint")) { lsSet("petalog.pinchHint", "1"); setTimeout(() => toast("トレカ一覧は、2本指でつまむと並べる列の数（1〜5列）を変えられます", 4200), 4000); }
   (async () => { let n = 0; for (const s of stamps) { if (await fillStats(s)) n++; } if (n) Grid.render(); })();
 })();

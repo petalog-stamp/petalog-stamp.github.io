@@ -408,10 +408,12 @@
         if (mode === "in") {
           const { error } = await sb.auth.signInWithPassword({ email, password });
           if (error) throw error;
+          if (typeof Track !== "undefined") { Track.ev("login"); Track.flush(true); }
         } else {
           const { data, error } = await sb.auth.signUp({ email, password, options: { emailRedirectTo: location.origin + location.pathname } });
           if (error) throw error;
           if (data && data.user && Array.isArray(data.user.identities) && data.user.identities.length === 0) throw { message: "already registered" };
+          if (typeof Track !== "undefined") { Track.ev("signup", { confirm: data && data.session ? 0 : 1 }); Track.flush(true); }
           if (!data.session) { $("#auMsg").textContent = "確認メールを送りました。メールのリンクを開いてから、ここでログインしてください。"; setMode("in"); $("#auEmail").value = email; return; }
         }
         ls.set(LS_SKIP, "");
@@ -553,6 +555,16 @@
     isOffline() { return offline || noNet(); },
     email() { return user ? user.email : ""; },
     aiAvailable() { return attached; },
+    // 本部の統計用の記録（使った機能の名前と小さな情報だけ。写真・メモ・場所の中身は送らない）
+    async track(rows, keep) {
+      if (!rows || !rows.length || noNet()) return false;
+      let token = null; try { const { data } = await sb.auth.getSession(); token = data && data.session && data.session.access_token; } catch {}
+      const h = { "content-type": "application/json", apikey: CFG.key, Prefer: "return=minimal" }; if (token) h.Authorization = "Bearer " + token;
+      const r = await fetch(CFG.url + "/rest/v1/events", { method: "POST", headers: h, body: JSON.stringify(rows), keepalive: !!keep });
+      return r.ok || r.status === 400;   // 400（形がおかしい）はもう送り直さない
+    },
+    // 本部だけ: 統計ページの集計
+    async hqDashboard(days) { const { data, error } = await sb.rpc("hq_dashboard", { p_days: days }); if (error) fail(error); return data; },
     // 歩いた記録（スタンプ集めの開始〜終了・経路）
     async listWalks() { const { data, error } = await sb.from("walks").select("id,data").eq("user_id", uid).order("id"); if (error) fail(error); return (data || []).map((r) => ({ ...(r.data || {}), id: r.id })); },
     async saveWalk(w) { const { id, ...data } = w; const { error } = await sb.from("walks").upsert({ user_id: uid, id, data, updated_at: new Date().toISOString() }); if (error) fail(error); },

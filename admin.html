@@ -1,0 +1,265 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex,nofollow">
+<title>ぺたろぐ 本部</title>
+<link rel="icon" href="icon-192.png">
+<link rel="stylesheet" href="vendor/leaflet.css">
+<style>
+:root{color-scheme:light;
+  --page:#f9f9f7;--surface:#fcfcfb;--card:#ffffff;--ink:#0b0b0b;--ink2:#52514e;--muted:#898781;--grid:#e1e0d9;--base:#c3c2b7;--ring:rgba(11,11,11,.10);
+  --s1:#2a78d6;--s2:#eb6834;--s3:#1baf7a;--s4:#eda100;--s5:#e87ba4;--s6:#008300;--s7:#6250d6;--s8:#e34948;
+  --q100:#cde2fb;--q250:#86b6ef;--q400:#3987e5;--q550:#1c5cab;--q700:#0d366b;--good:#006300;--bad:#d03b3b;--accent:#C8412E}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){color-scheme:dark;
+  --page:#0d0d0d;--surface:#1a1a19;--card:#1a1a19;--ink:#f0efec;--ink2:#c3c2b7;--muted:#898781;--grid:#2c2c2a;--base:#383835;--ring:rgba(255,255,255,.10);
+  --s1:#3987e5;--s2:#d95926;--s3:#199e70;--s4:#c98500;--s5:#d55181;--s6:#008300;--s7:#9085e9;--s8:#e66767;--good:#0ca30c;--bad:#e66767}}
+:root[data-theme="dark"]{color-scheme:dark;
+  --page:#0d0d0d;--surface:#1a1a19;--card:#1a1a19;--ink:#f0efec;--ink2:#c3c2b7;--muted:#898781;--grid:#2c2c2a;--base:#383835;--ring:rgba(255,255,255,.10);
+  --s1:#3987e5;--s2:#d95926;--s3:#199e70;--s4:#c98500;--s5:#d55181;--s6:#008300;--s7:#9085e9;--s8:#e66767;--good:#0ca30c;--bad:#e66767}
+*{box-sizing:border-box}
+body{margin:0;background:var(--page);color:var(--ink);font:14px/1.6 system-ui,-apple-system,"Hiragino Sans","Segoe UI",sans-serif;-webkit-text-size-adjust:100%}
+header{position:sticky;top:0;z-index:1000;background:color-mix(in srgb,var(--page) 88%,transparent);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);border-bottom:1px solid var(--grid)}
+.hd{max-width:1180px;margin:0 auto;padding:10px 16px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.hd h1{font-size:17px;margin:0;display:flex;align-items:center;gap:8px}.hd h1 i{width:10px;height:10px;border-radius:50%;background:var(--accent)}
+.hd .sp{flex:1}
+.seg{display:inline-flex;border-radius:999px;box-shadow:inset 0 0 0 1px var(--ring);overflow:hidden}
+.seg button{border:0;background:none;color:var(--ink2);padding:6px 12px;font:inherit;font-size:13px;cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--page);font-weight:700}
+.btn{border:0;border-radius:999px;padding:7px 12px;font:inherit;font-size:13px;background:var(--card);color:var(--ink);box-shadow:inset 0 0 0 1px var(--ring);cursor:pointer}
+main{max-width:1180px;margin:0 auto;padding:12px 16px 60px}
+.note{color:var(--ink2);font-size:12.5px;margin:4px 0 14px}
+h2{font-size:15px;margin:28px 0 8px;display:flex;align-items:baseline;gap:8px}h2 small{font-weight:400;color:var(--muted);font-size:12px}
+.grid{display:grid;gap:12px}
+.g4{grid-template-columns:repeat(auto-fill,minmax(160px,1fr))}
+.g2{grid-template-columns:repeat(auto-fit,minmax(min(100%,460px),1fr))}
+.card{background:var(--card);border-radius:14px;box-shadow:inset 0 0 0 1px var(--ring);padding:14px;min-width:0}
+.card h3{font-size:13px;margin:0 0 8px;color:var(--ink2);font-weight:600}
+.tile b{display:block;font-size:26px;line-height:1.15;font-weight:700}
+.tile span{font-size:12px;color:var(--muted)}
+.tile .dl{font-size:12px;margin-top:2px}.up{color:var(--good)}.down{color:var(--bad)}
+.chart{position:relative;width:100%}
+.chart svg{display:block;width:100%;overflow:visible}
+.legend{display:flex;flex-wrap:wrap;gap:12px;font-size:12px;color:var(--ink2);margin-bottom:6px}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px;vertical-align:-1px}
+.tip{position:fixed;z-index:2000;pointer-events:none;background:var(--ink);color:var(--page);font-size:12px;line-height:1.5;padding:6px 9px;border-radius:8px;white-space:nowrap;box-shadow:0 4px 14px rgba(0,0,0,.2)}
+.tip[hidden]{display:none}
+table{border-collapse:collapse;width:100%;font-size:12.5px}
+th,td{padding:5px 6px;text-align:right;white-space:nowrap}th{color:var(--muted);font-weight:600;border-bottom:1px solid var(--grid)}
+td:first-child,th:first-child{text-align:left}
+td.bar{width:45%;text-align:left}
+.hb{height:12px;border-radius:0 4px 4px 0;background:var(--s1);min-width:2px}
+.scroll{overflow-x:auto}
+.heat td{padding:0;text-align:center;font-size:10.5px;min-width:22px;height:22px;border:1px solid var(--card)}
+#map{height:420px;border-radius:12px;overflow:hidden}
+.kv{display:grid;grid-template-columns:1fr auto;gap:4px 12px;font-size:13px}.kv span{color:var(--ink2)}.kv b{text-align:right}
+.exit p{margin:2px 0 10px;color:var(--ink2);font-size:12.5px}
+.gate{max-width:520px;margin:60px auto;padding:0 16px;text-align:center}
+.gate a{color:var(--s1)}
+.muted{color:var(--muted)}
+.dl-row{display:flex;gap:8px;flex-wrap:wrap}
+@media (max-width:600px){.tile b{font-size:22px}#map{height:320px}}
+</style>
+</head>
+<body>
+<header><div class="hd"><h1><i></i>ぺたろぐ 本部の統計</h1><span class="sp"></span>
+  <div class="seg" id="range" role="group" aria-label="期間"><button data-d="30" aria-pressed="false">30日</button><button data-d="90" aria-pressed="true">90日</button><button data-d="365" aria-pressed="false">1年</button><button data-d="3650" aria-pressed="false">全部</button></div>
+  <button class="btn" id="reload">更新</button></div></header>
+<main id="main"><div class="gate"><p>読み込み中…</p></div></main>
+<div class="tip" id="tip" hidden></div>
+<script src="vendor/supabase.js"></script>
+<script src="vendor/leaflet.js"></script>
+<script>
+"use strict";
+/* ぺたろぐ 本部の統計ページ（本部のアカウントだけが見られる。データはサーバー側で本部か確かめてから集計して返す） */
+const CFG = { url: "https://xwhmmgqmiefnhcdpbuoz.supabase.co", key: "sb_publishable_ms34cIpwJimlU2tbgklmsw_t0vqQXSb" };
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const nf = n => (+n || 0).toLocaleString("ja-JP");
+const pct = (a, b) => b ? Math.round(a / b * 1000) / 10 + "%" : "—";
+const css = v => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+const SER = ["--s1", "--s2", "--s3", "--s4", "--s5", "--s6", "--s7", "--s8"];
+const EV = { open: "アプリを開いた", hide: "アプリを閉じた", view: "タブを移動", signup: "新規登録", login: "ログイン", stamp_add: "スタンプ登録", stamp_edit: "スタンプ編集", stamp_visit: "再訪の更新", stamp_del: "スタンプ削除",
+  ai_identify: "AIで調べる", trivia_gen: "プチ情報を作る", trivia_fix: "プチ情報を直す", card_view: "トレカを見る", print_open: "印刷用を開く", print_save: "印刷用を保存", export: "画像で保存", pack: "開封演出",
+  zukan_match: "図鑑さがし", zukan_reg: "図鑑に登録", journal_open: "ジャーナルを開く", cover_open: "表紙を開く", page_flip: "ページをめくる", page_new: "新しいページ", page_edit: "ページを編集", page_stamp: "ページにスタンプ",
+  walk_start: "スタンプ集め開始", walk_stop: "スタンプ集め終了", pocket: "おさんぽモード", steps_iphone: "iPhoneの歩数", walk_page: "歩いた地図のページ", year_sum: "年のまとめ", map_mode: "地図の切り替え",
+  report: "報告（終わってた/ちがうよ）", hq: "本部の一覧", rally_line: "特集の路線", others: "みんなのコレクション", grid_cols: "列の数を変える", settings: "設定", station: "駅を開く", pub_open: "みんなの記録を開く",
+  recrop: "切り抜きを直す", retake: "写真を撮り直す", turn: "向きを直す", js_error: "エラー" };
+let sb = null, DATA = null, DAYS = 90;
+try { sb = supabase.createClient(CFG.url, CFG.key, { auth: { persistSession: true, autoRefreshToken: true, storageKey: "petalog-auth", flowType: "implicit" } }); } catch (e) {}
+
+/* ---------- ツールチップ ---------- */
+const tip = $("#tip");
+function showTip(html, x, y) { tip.innerHTML = html; tip.hidden = false; const w = tip.offsetWidth, h = tip.offsetHeight; tip.style.left = Math.min(innerWidth - w - 8, Math.max(8, x + 14)) + "px"; tip.style.top = Math.max(8, y - h - 12) + "px"; }
+function hideTip() { tip.hidden = true; }
+document.addEventListener("pointermove", e => { const t = e.target.closest && e.target.closest("[data-tip]"); if (t) showTip(t.dataset.tip, e.clientX, e.clientY); else if (!e.target.closest || !e.target.closest(".lc")) hideTip(); });
+
+/* ---------- グラフ（SVG） ---------- */
+const NS = "http://www.w3.org/2000/svg";
+function niceMax(v) { if (v <= 4) return Math.max(1, Math.ceil(v)); const p = Math.pow(10, Math.floor(Math.log10(v))), m = v / p; return (m <= 1 ? 1 : m <= 2 ? 2 : m <= 5 ? 5 : 10) * p; }
+const md = d => { const [, m, dd] = String(d).split("-"); return `${+m}/${+dd}`; };
+function frame(el, H) { const W = Math.max(280, el.clientWidth || 600); el.innerHTML = ""; const s = document.createElementNS(NS, "svg"); s.setAttribute("viewBox", `0 0 ${W} ${H}`); s.setAttribute("height", H); el.appendChild(s); return { s, W, H }; }
+function add(s, tag, at) { const e = document.createElementNS(NS, tag); for (const k in at) e.setAttribute(k, at[k]); s.appendChild(e); return e; }
+function axes(s, W, H, L, B, max, x, fmt) {
+  const T = 10, R = 12, ih = H - T - B, step = max / 4;
+  for (let i = 0; i <= 4; i++) { const y = T + ih - ih * i / 4; add(s, "line", { x1: L, x2: W - R, y1: y, y2: y, stroke: css(i ? "--grid" : "--base"), "stroke-width": 1 }); const t = add(s, "text", { x: L - 6, y: y + 4, "text-anchor": "end", "font-size": 11, fill: css("--muted") }); t.textContent = fmt ? fmt(step * i) : nf(Math.round(step * i)); }
+  const n = x.length, every = Math.max(1, Math.ceil(n / Math.max(2, Math.floor((W - L - R) / 64))));
+  x.forEach((d, i) => { if (i % every && i !== n - 1) return; const xx = L + (n === 1 ? (W - L - R) / 2 : (W - L - R) * i / (n - 1)); const t = add(s, "text", { x: xx, y: H - B + 16, "text-anchor": "middle", "font-size": 11, fill: css("--muted") }); t.textContent = md(d); });
+  return { T, R, ih };
+}
+// 折れ線（2本以上なら凡例＋右はしに名前）。ホバーで縦線と全部の値
+function lineChart(el, x, series, o = {}) {
+  const H = o.h || 220, { s, W } = frame(el, H), L = 44, B = 24; const max = niceMax(Math.max(1, ...series.flatMap(z => z.v)) * 1.05);
+  const { T, R, ih } = axes(s, W, H, L, B, max, x, o.fmt); const n = x.length, X = i => L + (n === 1 ? (W - L - R) / 2 : (W - L - R) * i / (n - 1)), Y = v => T + ih - ih * v / max;
+  series.forEach((z, k) => { const col = css(z.c || SER[k]); const d = z.v.map((v, i) => `${i ? "L" : "M"}${X(i).toFixed(1)},${Y(v).toFixed(1)}`).join("");
+    if (o.area && k === 0) add(s, "path", { d: d + `L${X(n - 1)},${Y(0)}L${X(0)},${Y(0)}Z`, fill: col, "fill-opacity": .12 });
+    add(s, "path", { d, fill: "none", stroke: col, "stroke-width": 2, "stroke-linejoin": "round", "stroke-linecap": "round" }); });
+  if (series.length > 1) { el.insertAdjacentHTML("afterbegin", `<div class="legend">${series.map((z, k) => `<span><i style="background:${css(z.c || SER[k])}"></i>${esc(z.name)}</span>`).join("")}</div>`); }
+  const cross = add(s, "line", { y1: T, y2: T + ih, stroke: css("--muted"), "stroke-width": 1, "stroke-dasharray": "3 3", opacity: 0 }); const dots = series.map((z, k) => add(s, "circle", { r: 4, fill: css(z.c || SER[k]), stroke: css("--card"), "stroke-width": 2, opacity: 0 }));
+  const hit = add(s, "rect", { x: L, y: T, width: W - L - R, height: ih, fill: "transparent", class: "lc" });
+  const mv = e => { const r = s.getBoundingClientRect(), px = (e.clientX - r.left) * W / r.width, i = Math.max(0, Math.min(n - 1, Math.round((px - L) / ((W - L - R) / Math.max(1, n - 1))))); cross.setAttribute("x1", X(i)); cross.setAttribute("x2", X(i)); cross.setAttribute("opacity", 1);
+    dots.forEach((c, k) => { c.setAttribute("cx", X(i)); c.setAttribute("cy", Y(series[k].v[i])); c.setAttribute("opacity", 1); });
+    showTip(`<b>${esc(x[i])}</b><br>${series.map((z, k) => `<span style="color:${css(z.c || SER[k])}">●</span> ${esc(z.name)}：${o.fmt ? o.fmt(z.v[i]) : nf(z.v[i])}`).join("<br>")}`, e.clientX, e.clientY); };
+  hit.addEventListener("pointermove", mv); hit.addEventListener("pointerleave", () => { cross.setAttribute("opacity", 0); dots.forEach(c => c.setAttribute("opacity", 0)); hideTip(); });
+}
+function barChart(el, x, v, o = {}) {
+  const H = o.h || 200, { s, W } = frame(el, H), L = 44, B = 24, max = niceMax(Math.max(1, ...v) * 1.05); const { T, R, ih } = axes(s, W, H, L, B, max, x);
+  const n = x.length, bw = Math.max(2, (W - L - R) / Math.max(1, n) - 2), col = css(o.c || "--s1");
+  v.forEach((val, i) => { const cx = L + (n === 1 ? (W - L - R) / 2 : (W - L - R) * i / (n - 1)), h = ih * val / max; if (!val) return;
+    const r = Math.min(4, bw / 2, h); const x0 = cx - bw / 2, y0 = T + ih - h;
+    add(s, "path", { d: `M${x0},${T + ih}V${y0 + r}Q${x0},${y0} ${x0 + r},${y0}H${x0 + bw - r}Q${x0 + bw},${y0} ${x0 + bw},${y0 + r}V${T + ih}Z`, fill: col, "data-tip": `<b>${esc(x[i])}</b><br>${esc(o.name || "")} ${nf(val)}` }); });
+}
+// 横棒（ランキング・内訳）
+function hbars(el, rows, o = {}) {
+  const max = Math.max(1, ...rows.map(r => r.v)); const col = o.c || "--s1";
+  el.innerHTML = rows.length ? `<table><tbody>${rows.map(r => `<tr data-tip="${esc(r.l)}：${nf(r.v)}${r.sub ? "（" + esc(r.sub) + "）" : ""}"><td>${esc(r.l)}</td><td class="bar"><div class="hb" style="width:${(r.v / max * 100).toFixed(1)}%;background:var(${col})"></div></td><td>${nf(r.v)}</td>${o.sub ? `<td class="muted">${esc(r.sub || "")}</td>` : ""}</tr>`).join("")}</tbody></table>` : `<p class="muted">まだデータがありません</p>`;
+}
+// 1色の濃さ（ヒートマップ・コホート）
+function seq(t) { const st = ["#cde2fb", "#b7d3f6", "#9ec5f4", "#86b6ef", "#6da7ec", "#5598e7", "#3987e5", "#2a78d6", "#256abf", "#1c5cab", "#184f95", "#104281", "#0d366b"]; return st[Math.max(0, Math.min(st.length - 1, Math.round(t * (st.length - 1))))]; }
+function heatTable(el, rowsL, colsL, M, o = {}) {
+  const max = Math.max(1, ...M.flat().filter(v => v != null));
+  el.innerHTML = `<div class="scroll"><table class="heat"><thead><tr><th></th>${colsL.map(c => `<th style="text-align:center;font-size:10.5px">${esc(c)}</th>`).join("")}</tr></thead><tbody>${rowsL.map((r, i) => `<tr><th style="font-size:11px;padding-right:6px">${esc(r)}</th>${M[i].map((v, j) => v == null ? `<td></td>` : `<td data-tip="${esc(r)} ${esc(colsL[j])}：${o.fmt ? o.fmt(v, i, j) : nf(v)}" style="background:${v ? seq(v / max) : "transparent"};color:${v / max > .55 ? "#fff" : css("--ink2")}">${o.show ? (o.fmt ? o.fmt(v, i, j) : v || "") : ""}</td>`).join("")}</tr>`).join("")}</tbody></table></div>`;
+}
+function csv(name, rows) { const t = rows.map(r => r.map(v => /[",\n]/.test(String(v ?? "")) ? `"${String(v).replace(/"/g, '""')}"` : (v ?? "")).join(",")).join("\n"); const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob(["﻿" + t], { type: "text/csv" })); a.download = name + ".csv"; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 3000); }
+
+/* ---------- 画面 ---------- */
+async function load() {
+  if (!sb) { gate("サーバーに接続できませんでした。"); return; }
+  const { data: ss } = await sb.auth.getSession(); if (!ss || !ss.session) { gate(`本部のアカウントでログインしてください。<br><a href="./">ぺたろぐを開いてログイン</a>してから、このページを開き直すと見られます。`); return; }
+  $("#main").innerHTML = `<div class="gate"><p>集計しています…</p></div>`;
+  const { data, error } = await sb.rpc("hq_dashboard", { p_days: DAYS });
+  if (error) { gate(/not_admin/.test(error.message || "") ? "このページは本部のアカウントだけが見られます。" : "読み込めませんでした：" + esc(error.message || "")); return; }
+  DATA = data; render(data);
+}
+function gate(html) { $("#main").innerHTML = `<div class="gate"><p>${html}</p></div>`; }
+function render(D) {
+  const dl = D.daily || [], x = dl.map(r => r.d), last = dl[dl.length - 1] || {}, tt = D.totals || {}, back = k => (dl[Math.max(0, dl.length - 31)] || {})[k] || 0;
+  const sum = k => dl.reduce((a, r) => a + (+r[k] || 0), 0), ses = D.sessions || {};
+  const mauNow = last.mau || 0, mauPrev = back("mau"), grow = mauPrev ? (mauNow - mauPrev) / mauPrev * 100 : null;
+  const usersPrev = back("users"), uGrow = usersPrev ? ((last.users || 0) - usersPrev) / usersPrev * 100 : null;
+  const R = D.retention || {}, rr = k => R[k] && R[k].n ? pct(R[k].kept, R[k].n) : "—", rn = k => R[k] && R[k].n ? `（${nf(R[k].kept)} / ${nf(R[k].n)}人）` : "（まだ対象の人がいません）";
+  const aiN = sum("ai"), trN = sum("trivia"), yen = Math.round(aiN * 0.4 + trN * 1.5);
+  const delta = v => v == null ? "" : `<div class="dl ${v >= 0 ? "up" : "down"}">${v >= 0 ? "▲" : "▼"} ${Math.abs(v).toFixed(1)}%（30日前比）</div>`;
+  const tile = (v, l, extra = "") => `<div class="card tile"><b>${v}</b><span>${l}</span>${extra}</div>`;
+  $("#main").innerHTML = `
+  <p class="note">集計期間：${esc(D.from)} 〜 ${esc(D.today)}（日本時間）。使った機能の記録は ${tt.first_event ? esc(String(tt.first_event).slice(0, 10)) + " から" : "今日から"}集まりはじめています。それより前のアクティブ人数は、ログイン・スタンプの保存・AIの利用から数えています。</p>
+  <div class="grid g4">
+    ${tile(nf(tt.users), "登録者（アカウント）", delta(uGrow))}${tile(nf(sum("signups")), "期間内の新規登録")}
+    ${tile(nf(last.dau || 0), "今日のアクティブ（DAU）")}${tile(nf(last.wau || 0), "7日間のアクティブ（WAU）")}
+    ${tile(nf(mauNow), "30日間のアクティブ（MAU）", delta(grow))}${tile(mauNow ? Math.round((last.dau || 0) / mauNow * 100) + "%" : "—", "DAU / MAU（よく使われ度）")}
+    ${tile(nf(tt.devices), "訪れた端末（ログインなし含む）", `<div class="dl muted">ログインした端末 ${nf(tt.devices_linked)}</div>`)}${tile(ses.median_min != null ? ses.median_min + "分" : "—", "1回あたりの利用（中央値）", `<div class="dl muted">平均 ${ses.avg_events ?? "—"} 操作 · ${nf(ses.count || 0)} 回</div>`)}
+    ${tile(nf(tt.stamps), "登録されたスタンプ（全員）")}${tile(nf(sum("stamps")), "期間内のスタンプ登録")}
+    ${tile(nf(tt.designs), "みんなの図鑑のデザイン数", `<div class="dl muted">3人以上が登録 ${nf(tt.designs_3plus)}</div>`)}${tile("約" + nf(yen) + "円", "期間内のAI代の目安", `<div class="dl muted">調べる ${nf(aiN)} · プチ情報 ${nf(trN)}</div>`)}
+  </div>
+
+  <h2>登録者とアクティブ <small>線にふれると日ごとの数</small></h2>
+  <div class="grid g2"><div class="card"><h3>登録者数（累計）</h3><div class="chart" id="cUsers"></div></div>
+    <div class="card"><h3>アクティブな人（DAU・WAU・MAU）</h3><div class="chart" id="cAct"></div></div>
+    <div class="card"><h3>新規登録（日ごと）</h3><div class="chart" id="cSign"></div></div>
+    <div class="card"><h3>訪れた人（ログインなし含む・日ごと）</h3><div class="chart" id="cVis"></div></div></div>
+
+  <h2>使われ方</h2>
+  <div class="grid g2"><div class="card"><h3>スタンプ登録（日ごと）</h3><div class="chart" id="cStamps"></div></div>
+    <div class="card"><h3>利用回数（セッション・日ごと）</h3><div class="chart" id="cSes"></div></div></div>
+  <div class="card" style="margin-top:12px"><h3>機能ごとの利用（期間内）<small class="muted"> 回数 ／ 使った人</small></h3><div id="cFeat"></div></div>
+
+  <h2>続けて使われているか（リテンション）</h2>
+  <div class="grid g4">${tile(rr("d1"), "翌日も使った（D1）" + rn("d1"))}${tile(rr("d7"), "2週目も使った（D7）" + rn("d7"))}${tile(rr("d30"), "2か月目も使った（D30）" + rn("d30"))}</div>
+  <div class="card" style="margin-top:12px"><h3>週ごとの登録者グループ（コホート）：その後の各週に使った割合</h3><div id="cCoh"></div></div>
+
+  <h2>時間帯 <small>曜日 × 時刻（日本時間）</small></h2>
+  <div class="card"><div class="seg" id="hrSeg" style="margin-bottom:8px"><button data-k="hours" aria-pressed="true">アプリを使った時間</button><button data-k="hours_stamps" aria-pressed="false">スタンプを登録した時間</button></div><div id="cHours"></div></div>
+
+  <h2>場所</h2>
+  <div class="grid g2"><div class="card"><h3>スタンプが押された場所（全員・ヒートマップ）</h3><div id="map"></div></div>
+    <div class="card"><h3>都道府県ランキング</h3><div id="cPref"></div></div></div>
+
+  <h2>中身</h2>
+  <div class="grid g2"><div class="card"><h3>ジャンル</h3><div id="cCat"></div></div>
+    <div class="card"><h3>1人あたりのスタンプ数</h3><div id="cPer"></div></div>
+    <div class="card"><h3>みんなの図鑑で多く登録されているスタンプ</h3><div id="cTop"></div></div>
+    <div class="card"><h3>データの資産</h3><div class="kv">
+      <span>スタンプ（全員）</span><b>${nf(tt.stamps)}</b><span>位置つき</span><b>${nf(tt.stamps_located)}</b><span>写真つき</span><b>${nf(tt.stamps_photo)}</b>
+      <span>重ね押し / デジスタ / 御朱印</span><b>${nf(tt.stamps_overlap)} / ${nf(tt.stamps_digital)} / ${nf(tt.goshuin)}</b><span>みんなの地図に公開</span><b>${nf(tt.shares)}</b>
+      <span>図鑑のデザイン（第一発見者 ${nf(tt.first_finders)}人）</span><b>${nf(tt.designs)}</b><span>AIのプチ情報（使い回し ${nf(tt.trivia_reuse)}回）</span><b>${nf(tt.trivia)}</b>
+      <span>ジャーナルのページ</span><b>${nf(tt.pages)}</b><span>歩いた記録 / 距離</span><b>${nf(tt.walks)}回 / ${tt.walk_km}km</b><span>報告（終わってた・ちがうよ）</span><b>${nf(tt.reports)}</b></div></div></div>
+
+  <h2>流入と端末</h2>
+  <div class="grid g2"><div class="card"><h3>どこから来たか（最初の訪問）</h3><div id="cRef"></div></div>
+    <div class="card"><h3>端末とホーム画面アプリ</h3><div id="cPf"></div></div>
+    <div class="card"><h3>はじめての人の流れ（期間内）</h3><div id="cFun"></div></div></div>
+
+  <h2>売却を考えるときの指標 <small>買い手がまず見る数字</small></h2>
+  <div class="card exit"><div class="kv">
+    <span>MAU と 30日前比</span><b>${nf(mauNow)}${grow == null ? "" : `（${grow >= 0 ? "+" : ""}${grow.toFixed(1)}%）`}</b>
+    <span>登録者 と 30日前比</span><b>${nf(tt.users)}${uGrow == null ? "" : `（${uGrow >= 0 ? "+" : ""}${uGrow.toFixed(1)}%）`}</b>
+    <span>DAU / MAU</span><b>${mauNow ? Math.round((last.dau || 0) / mauNow * 100) + "%" : "—"}</b>
+    <span>D30 リテンション</span><b>${R.d30 && R.d30.n ? pct(R.d30.kept, R.d30.n) : "—"}</b>
+    <span>アクティブ1人あたりのスタンプ（期間内）</span><b>${mauNow ? (sum("stamps") / mauNow).toFixed(1) : "—"}</b>
+    <span>位置つきスタンプ・図鑑のデザイン</span><b>${nf(tt.stamps_located)} ・ ${nf(tt.designs)}</b>
+    <span>MAU 1人あたりのAI代（期間）</span><b>${mauNow ? "約" + Math.round(yen / mauNow) + "円" : "—"}</b></div>
+    <p style="margin-top:12px">買い手は、①毎月使う人（MAU）が増えているか、②続けて使われているか（リテンション）、③ほかにない資産（位置つきスタンプ・図鑑・写真）があるか、④1人あたりの費用、を見ます。下のボタンで日ごとの数字を表にして保存できるので、毎月1回保存しておくと、あとで「伸びてきた記録」として出せます。</p>
+    <div class="dl-row"><button class="btn" id="csvDaily">日ごとの数字（CSV）</button><button class="btn" id="csvFeat">機能ごとの利用（CSV）</button><button class="btn" id="csvCoh">コホート（CSV）</button></div></div>`;
+
+  lineChart($("#cUsers"), x, [{ name: "登録者", v: dl.map(r => r.users), c: "--s1" }], { area: true });
+  lineChart($("#cAct"), x, [{ name: "MAU", v: dl.map(r => r.mau) }, { name: "WAU", v: dl.map(r => r.wau) }, { name: "DAU", v: dl.map(r => r.dau) }]);
+  barChart($("#cSign"), x, dl.map(r => r.signups), { name: "新規登録" });
+  lineChart($("#cVis"), x, [{ name: "訪れた人", v: dl.map(r => r.visitors) }, { name: "はじめての端末", v: dl.map(r => r.new_devices) }]);
+  barChart($("#cStamps"), x, dl.map(r => r.stamps), { name: "スタンプ登録", c: "--s3" });
+  const sm = new Map((ses.daily || []).map(r => [r.d, r.n])); barChart($("#cSes"), x, x.map(d => sm.get(d) || 0), { name: "利用回数", c: "--s7" });
+  const feats = (D.features || []).filter(f => f.ev !== "hide");
+  $("#cFeat").innerHTML = feats.length ? `<div class="scroll"><table><thead><tr><th>機能</th><th></th><th>回数</th><th>使った人</th><th>アクティブ中の割合</th></tr></thead><tbody>${(() => { const mx = Math.max(1, ...feats.map(f => f.n)); return feats.map(f => `<tr><td>${esc(EV[f.ev] || f.ev)}</td><td class="bar"><div class="hb" style="width:${(f.n / mx * 100).toFixed(1)}%"></div></td><td>${nf(f.n)}</td><td>${nf(f.users)}</td><td>${pct(f.users, Math.max(1, (D.features.find(z => z.ev === "open") || {}).users || f.users))}</td></tr>`).join(""); })()}</tbody></table></div>` : `<p class="muted">使った機能の記録は、このページを作った今日から集まりはじめます。数日たつと、ここにどの機能がよく使われているかが並びます。</p>`;
+  const coh = D.cohorts || []; heatTable($("#cCoh"), coh.map(c => `${md(c.w)}週 (${c.size}人)`), Array.from({ length: Math.max(1, ...coh.map(c => (c.r || []).length)) }, (_, k) => k ? `${k}週後` : "登録週"), coh.map(c => Array.from({ length: Math.max(1, ...coh.map(z => (z.r || []).length)) }, (_, k) => (c.r || [])[k] == null ? null : c.size ? (c.r[k] / c.size) : 0)), { show: true, fmt: v => Math.round(v * 100) + "%" });
+  const hours = k => { const M = Array.from({ length: 7 }, () => new Array(24).fill(0)); (D[k] || []).forEach(r => { M[(r.dow + 6) % 7][r.h] = r.n; }); heatTable($("#cHours"), ["月", "火", "水", "木", "金", "土", "日"], Array.from({ length: 24 }, (_, h) => String(h)), M, { fmt: v => nf(v) + "回" }); };
+  hours("hours"); $("#hrSeg").onclick = e => { const b = e.target.closest("[data-k]"); if (!b) return; $("#hrSeg").querySelectorAll("button").forEach(z => z.setAttribute("aria-pressed", z === b)); hours(b.dataset.k); };
+  hbars($("#cPref"), (D.prefs || []).slice(0, 15).map(p => ({ l: p.p, v: p.n, sub: p.users + "人" })), { sub: true });
+  hbars($("#cCat"), (D.cats || []).map(c => ({ l: c.c, v: c.n })), { c: "--s2" });
+  hbars($("#cPer"), (D.per_user || []).map(c => ({ l: c.b + "まい", v: c.n })), { c: "--s7" });
+  $("#cTop").innerHTML = (D.top_designs || []).length ? `<table><tbody>${D.top_designs.map(t => `<tr><td>${t.thumb ? `<img src="${t.thumb}" alt="" style="width:30px;height:30px;object-fit:contain;vertical-align:middle;margin-right:6px">` : ""}${esc(t.name || "（名前なし）")} <span class="muted">${esc(t.pref || "")}</span></td><td>${nf(t.members)}人</td></tr>`).join("")}</tbody></table>` : `<p class="muted">まだありません</p>`;
+  hbars($("#cRef"), (D.refs || []).map(r => ({ l: r.ref, v: r.n })), { c: "--s3" });
+  const pfN = { ios: "iPhone/iPad", android: "Android", mac: "Mac", win: "Windows", other: "その他", 不明: "不明" };
+  hbars($("#cPf"), (D.platforms || []).map(p => ({ l: `${pfN[p.pf] || p.pf}${p.sa ? "（ホーム画面アプリ）" : "（ブラウザ）"}`, v: p.n })), { c: "--s4" });
+  const F = D.funnel || {}; hbars($("#cFun"), [{ l: "はじめて開いた端末", v: F.devices || 0 }, { l: "ログインした端末", v: F.linked || 0 }, { l: "新規登録", v: F.signups || 0 }, { l: "スタンプを1まい以上", v: F.stamp1 || 0 }, { l: "スタンプを5まい以上", v: F.stamp5 || 0 }, { l: "この7日も使った", v: F.active7 || 0 }], { c: "--s1" });
+  drawMap(D.geo || []);
+  $("#csvDaily").onclick = () => csv("petalog-daily-" + D.today, [["日付", "新規登録", "登録者累計", "DAU", "WAU", "MAU", "訪れた人", "はじめての端末", "スタンプ登録", "公開", "図鑑の新デザイン", "AI調べる", "プチ情報", "歩いた記録", "操作数"], ...dl.map(r => [r.d, r.signups, r.users, r.dau, r.wau, r.mau, r.visitors, r.new_devices, r.stamps, r.shares, r.designs, r.ai, r.trivia, r.walks, r.events])]);
+  $("#csvFeat").onclick = () => csv("petalog-features-" + D.today, [["機能", "記録名", "回数", "使った人"], ...(D.features || []).map(f => [EV[f.ev] || f.ev, f.ev, f.n, f.users])]);
+  $("#csvCoh").onclick = () => csv("petalog-cohorts-" + D.today, [["登録週", "人数", ...Array.from({ length: 12 }, (_, k) => k + "週後")], ...(D.cohorts || []).map(c => [c.w, c.size, ...(c.r || [])])]);
+}
+let MAP = null;
+function drawMap(geo) {
+  const el = $("#map"); if (!el || !window.L) return; if (MAP) { MAP.remove(); MAP = null; }
+  MAP = L.map(el, { zoomControl: true, attributionControl: true }).setView([36.2, 137.6], 5);
+  L.tileLayer("https://cyberjapandata.gsi.go.jp/xyz/pale/{z}/{x}/{y}.png", { maxZoom: 17, attribution: '<a href="https://maps.gsi.go.jp/development/ichiran.html" target="_blank" rel="noopener">地理院タイル</a>' }).addTo(MAP);
+  const max = Math.max(1, ...geo.map(g => g[2]));
+  geo.forEach(([la, ln, n]) => { const t = Math.sqrt(n / max); L.circleMarker([la, ln], { radius: 5 + t * 16, stroke: false, fillColor: seq(0.35 + t * 0.65), fillOpacity: 0.55 }).bindTooltip(`${n}まい`).addTo(MAP); });
+  if (geo.length) { const b = L.latLngBounds(geo.map(g => [g[0], g[1]])); MAP.fitBounds(b.pad(0.3), { maxZoom: 11 }); }
+}
+$("#range").onclick = e => { const b = e.target.closest("[data-d]"); if (!b) return; DAYS = +b.dataset.d; $("#range").querySelectorAll("button").forEach(z => z.setAttribute("aria-pressed", z === b)); load(); };
+$("#reload").onclick = () => load();
+let rt = 0; addEventListener("resize", () => { clearTimeout(rt); rt = setTimeout(() => DATA && render(DATA), 200); });
+matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => DATA && render(DATA));
+load();
+</script>
+</body>
+</html>
