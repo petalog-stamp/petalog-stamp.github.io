@@ -989,6 +989,19 @@ html.tcv-on #toast{z-index:95}
 .pk-tap{position:absolute;bottom:calc(28px + env(safe-area-inset-bottom));left:0;right:0;text-align:center;color:rgba(255,255,255,.7);font-size:12.5px;letter-spacing:.1em;transition:opacity .3s}
 .pk.s-open .pk-tap{opacity:0}
 @media (prefers-reduced-motion: reduce){.pk *,.pk{animation:none!important;transition:none!important}}
+
+/* 10/11 みんなの地図の凡例（左上） */
+.map-legend{position:absolute;left:10px;top:10px;z-index:4;background:rgba(255,255,255,.94);border-radius:12px;box-shadow:0 2px 10px rgba(20,30,60,.18);font-size:11px;color:var(--ink);max-width:230px;-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px)}
+.map-legend .lg-hd{display:flex;align-items:center;gap:6px;width:100%;background:none;border:0;padding:7px 10px 5px;font:inherit;color:inherit;cursor:pointer}
+.map-legend .lg-hd b{font-size:11.5px}.map-legend .lg-hd span{margin-left:auto;transition:transform .2s;color:var(--muted)}
+.map-legend.min .lg-hd span{transform:rotate(-90deg)}.map-legend.min .lg-bd{display:none}
+.map-legend .lg-bd{display:flex;flex-direction:column;gap:5px;padding:0 10px 9px}
+.map-legend .lg-bd span{display:flex;align-items:center;gap:7px;white-space:nowrap}
+.map-legend i{width:15px;height:15px;border-radius:50%;flex:none;box-sizing:border-box;background:#fff}
+.map-legend .lg3{border:3px solid #C8412E}.map-legend .lg2{border:2.6px dashed #D98A1C}.map-legend .lg1{border:2.6px dotted #5F7FB8}
+.map-legend .lge{border:3px solid #8E949E;background:#C9CDD4}.map-legend .lgf{border:3px solid #C8412E;opacity:.35}
+.hq-g .hq-t{display:flex;gap:10px;align-items:center}.hq-g .hq-t img{width:46px;height:46px;object-fit:contain;mix-blend-mode:multiply;background:#F6F3EC;border-radius:8px}
+.hq-g .hq-t span{display:flex;flex-direction:column}.hq-g .hq-t small{color:var(--muted);font-size:11.5px}
 </style>
 
 <div id="app">
@@ -1972,19 +1985,24 @@ const MapV = {
     };
     // stamp pins
     this.pinHits = []; const pinR = 17;
-    const drawPin = (lat, lng, url, ring, hit, n = 1) => {
+    const drawPin = (lat, lng, url, ring, hit, n = 1, st = null) => {
       const [wx, wy] = W(lat, lng); const px = X(wx), py = Y(wy); if (px < -30 || py < -40 || px > Wd + 30 || py > Hd + 60) return;
+      const tr = st ? st.trust : 3, rc = st && st.ended ? "#8E949E" : tr >= 3 ? ring : tr === 2 ? "#D98A1C" : "#5F7FB8";
+      x.save(); if (st && st.faded) x.globalAlpha = 0.35;
       x.save(); x.shadowColor = "rgba(0,0,0,.28)"; x.shadowBlur = 6; x.shadowOffsetY = 2;
-      x.beginPath(); x.moveTo(px, py); x.lineTo(px - 7, py - 12); x.lineTo(px + 7, py - 12); x.closePath(); x.fillStyle = ring; x.fill();
-      x.beginPath(); x.arc(px, py - 12 - pinR, pinR + 2.5, 0, 7); x.fillStyle = ring; x.fill(); x.restore();
+      x.beginPath(); x.moveTo(px, py); x.lineTo(px - 7, py - 12); x.lineTo(px + 7, py - 12); x.closePath(); x.fillStyle = rc; x.fill();
+      if (tr >= 3 || (st && st.ended)) { x.beginPath(); x.arc(px, py - 12 - pinR, pinR + 2.5, 0, 7); x.fillStyle = rc; x.fill(); x.restore(); }
+      else { x.beginPath(); x.arc(px, py - 12 - pinR, pinR + 1.6, 0, 7); x.fillStyle = "#FFFFFF"; x.fill(); x.restore(); x.save(); x.beginPath(); x.arc(px, py - 12 - pinR, pinR + 1.6, 0, 7); x.lineWidth = 3.2; x.strokeStyle = rc; x.lineCap = "round"; x.setLineDash(tr === 2 ? [6.5, 3.5] : [1.2, 4.2]); x.stroke(); x.restore(); }
       x.beginPath(); x.arc(px, py - 12 - pinR, pinR, 0, 7); x.fillStyle = "#FFFFFF"; x.fill();
       const im = imgFor(url); if (im && im.complete && im.naturalWidth) { x.save(); x.beginPath(); x.arc(px, py - 12 - pinR, pinR - 1, 0, 7); x.clip(); const s = (pinR - 2) * 2, ar = im.naturalWidth / im.naturalHeight; const iw = ar >= 1 ? s : s * ar, ih = ar >= 1 ? s / ar : s; x.globalCompositeOperation = "multiply"; if (n > 1) x.globalAlpha = .3; x.drawImage(im, px - iw / 2, py - 12 - pinR - ih / 2, iw, ih); x.restore(); }
       else if (im && !im._hooked) { im._hooked = true; im.addEventListener("load", () => this.draw(), { once: true }); }
       if (n > 1) { const t = n > 99 ? "99+" : String(n); x.save(); x.font = `800 ${t.length > 2 ? 12 : t.length > 1 ? 15 : 17}px 'Zen Kaku Gothic New','Hiragino Sans',sans-serif`; x.textAlign = "center"; x.textBaseline = "middle"; x.lineJoin = "round"; x.lineWidth = 3.5; x.strokeStyle = "rgba(255,255,255,.92)"; x.strokeText(t, px, py - 12 - pinR + 1); x.fillStyle = ring; x.fillText(t, px, py - 12 - pinR + 1); x.restore(); }
+      if (st && st.ended) { x.save(); x.font = "800 10px 'Zen Kaku Gothic New','Hiragino Sans',sans-serif"; const tw = x.measureText("終了").width + 10; x.fillStyle = "#5A6070"; x.beginPath(); x.roundRect ? x.roundRect(px - tw / 2, py - 12 - 9, tw, 14, 7) : x.rect(px - tw / 2, py - 12 - 9, tw, 14); x.fill(); x.fillStyle = "#fff"; x.textAlign = "center"; x.textBaseline = "middle"; x.fillText("終了", px, py - 12 - 2); x.restore(); }
+      x.restore();
       boxes.push([px - pinR - 3, py - 12 - pinR * 2 - 3, px + pinR + 3, py]); this.pinHits.push({ px, py: py - 12 - pinR, ...hit });
     };
     if (!this.pick) {
-      if (this.mode === "all" && this.pubs) pubGroups(this.pubs).forEach(g => drawPin(g.lat, g.lng, g.top.thumb, C.shu, g.n > 1 ? { pgrp: g.ids } : { pub: g.top._id }, g.n));
+      if (this.mode === "all" && this.pubs) pubGroups(this.pubs).forEach(g => drawPin(g.lat, g.lng, g.top.thumb, C.shu, g.n > 1 ? { pgrp: g.ids } : { pub: g.top._id }, g.n, Trust.of(g, this.pubs)));
       pinGroups().forEach(g => drawPin(g.lat, g.lng, g.top.cut, C.ai, g.n > 1 ? { grp: g.ids } : { id: g.top.id }, g.n));
     }
     if (this.me) { const [wx, wy] = W(this.me.lat, this.me.lng); const px = X(wx), py = Y(wy); x.beginPath(); x.arc(px, py, 14, 0, 7); x.fillStyle = "rgba(10,132,255,.18)"; x.fill(); x.beginPath(); x.arc(px, py, 7, 0, 7); x.fillStyle = "#0A84FF"; x.fill(); x.lineWidth = 2.5; x.strokeStyle = "#fff"; x.stroke(); }
@@ -2012,7 +2030,7 @@ const MapV = {
   },
   render() {
     const vis = this.visited(); $("#prefStat").innerHTML = `制覇 <b>${vis.size}</b> / 47`;
-    $("#mapSeg").hidden = Store.mode !== "cloud";
+    $("#mapSeg").hidden = Store.mode !== "cloud"; Trust.legend(this.mode === "all" && Store.mode === "cloud");
     this.foot(); this.draw();
   },
   fit() {
@@ -2981,18 +2999,19 @@ const Rally = {
 /* ================= みんなの情報: 置き場所タグ・なかった報告・最終確認 ================= */
 const SPOT_PLACE = ["改札内", "改札外", "駅事務室・窓口の前", "窓口で申し出", "観光案内所", "券売機のそば", "出入口付近", "社務所・受付"];
 const SPOT_TIME = ["始発〜終電", "〜17時", "〜18時", "〜20時", "日中のみ", "土日のみ", "期間限定"];
-const MISS_REASONS = ["見当たらなかった", "撤去されていた", "窓口が閉まっていた", "デジタルのみだった"];
+const MISS_REASONS = ["終わってた", "見当たらなかった", "窓口が閉まっていた", "デジタルのみだった"];
 const ymLabel = d => d ? d.slice(0, 4) + "年" + (+d.slice(5, 7)) + "月" + (d.length >= 10 ? (+d.slice(8, 10)) + "日" : "") : "";
 function communityFor(key, name, lat, lng, stn) {
   const near = p => p.lat == null || lat == null || kmBetween(p.lat, p.lng, lat, lng) < 0.8;
   const all = (MapV.pubs || []).filter(p => (key && p.rk === key) || (stn && p.rk && p.rk.split("|")[1] === stn && near(p)) || (name && norm(p.name) === norm(name) && p.lat != null && lat != null && kmBetween(p.lat, p.lng, lat, lng) < 0.6));
-  const recs = all.filter(p => !p.miss), miss = all.filter(p => p.miss);
+  const recs = all.filter(p => !p.miss && p.reviewed !== "hide"), miss = all.filter(p => p.miss && p.type !== "wrong" && p.reviewed !== "ok"), wrongs = all.filter(p => p.miss && p.type === "wrong" && p.reviewed !== "ok");
   const withLoc = recs.filter(p => p.lat != null);
   const avg = withLoc.length ? { lat: withLoc.reduce((s, p) => s + +p.lat, 0) / withLoc.length, lng: withLoc.reduce((s, p) => s + +p.lng, 0) / withLoc.length } : null;
   const last = recs.map(p => p.date || "").sort().pop() || "", lastMiss = miss.map(p => p.date || "").sort().pop() || "";
   const tc = new Map(); recs.forEach(p => (p.spotTags || []).forEach(t => tc.set(t, (tc.get(t) || 0) + 1)));
   const rc = new Map(); miss.forEach(p => p.reason && rc.set(p.reason, (rc.get(p.reason) || 0) + 1));
-  return { n: new Set(recs.map(p => p.by)).size, avg, last, miss: miss.length, lastMiss, warn: !!lastMiss && (!last || lastMiss >= last),
+  const endBy = new Set(miss.filter(p => ENDED_R.includes(p.reason) && (p.date || "") >= last).map(p => p.by)).size, wrongN = new Set(wrongs.map(p => p.by)).size;
+  return { endBy, wrongN, n: new Set(recs.map(p => p.by)).size, avg, last, miss: miss.length, lastMiss, warn: !!lastMiss && (!last || lastMiss >= last),
     tags: [...tc.entries()].sort((a, b) => b[1] - a[1]), reasons: [...rc.entries()].sort((a, b) => b[1] - a[1]),
     spots: recs.filter(p => p.spot).sort((a, b) => (b.date || "").localeCompare(a.date || "")).map(p => ({ t: p.spot, who: p.nick || "だれか", date: p.date })) };
 }
@@ -3000,7 +3019,10 @@ function freshHTML(cm, compact) {
   if (!cm.n && !cm.miss) return compact ? "" : `<p class="cap">まだ誰も確かめていません。行ったら記録して、置き場所を残してください。</p>`;
   let h = "";
   if (cm.n) h += `<div class="fresh ok">✓ 最終確認 ${esc(ymLabel(cm.last))} · ${cm.n}人が記録</div>`;
-  if (cm.miss) h += `<div class="fresh ${cm.warn ? "ng" : "old"}">✕ 「なかった」報告 ${cm.miss}件（最新 ${esc(ymLabel(cm.lastMiss))}${cm.reasons.length ? "・" + esc(cm.reasons[0][0]) : ""}）${cm.warn ? "<br>いまは置かれていないかもしれません" : ""}</div>`;
+  if (cm.miss && cm.endBy < 3) h += `<div class="fresh ${cm.warn ? "ng" : "old"}">✕ 「なかった」報告 ${cm.miss}件（最新 ${esc(ymLabel(cm.lastMiss))}${cm.reasons.length ? "・" + esc(cm.reasons[0][0]) : ""}）${cm.warn ? "<br>いまは置かれていないかもしれません" : ""}</div>`;
+  if (cm.endBy >= 3) h += `<div class="fresh ng">⏹ 終わったようです（最後に登録された日のあと、${cm.endBy}人が「終わってた」）。また押せたら登録すると「復活」します</div>`;
+  else if (cm.endBy) h += `<div class="fresh old">「終わってた」${cm.endBy}人（最後に登録された日のあと。3人で「終了」の表示）</div>`;
+  if (cm.wrongN) h += `<div class="fresh old">「ちがうよ」報告 ${cm.wrongN}件（本部が確認します）</div>`;
   if (cm.tags.length && !compact) h += `<div class="tagsum">${cm.tags.slice(0, 8).map(([t, n]) => `<span>${esc(t)} <b>×${n}</b></span>`).join("")}</div>`;
   return h;
 }
@@ -3036,12 +3058,12 @@ async function openStation(r, st) {
       </div>
       <div class="sec"><h4>みんなの情報</h4>${Store.mode !== "cloud" ? `<p class="cap">${window.PetalogCloud ? "みんなの情報は、ログインすると読めます（右上の設定から）。" : "みんなの情報は、クラウド保存の版で読めます。"}</p>` : !MapV.pubs ? `<p class="cap"><span class="spin"></span> 読み込み中…</p>` : freshHTML(cm) +
         (cm.spots.length ? `<ul class="spots">${cm.spots.slice(0, 12).map(x => `<li>「${esc(x.t)}」<small>${esc(x.who)} · ${esc(fmtDate(x.date))}</small></li>`).join("")}</ul>${cm.spots.length >= 2 ? `<button class="btn small" type="button" id="sumBtn">メモをまとめる</button><div id="sumOut" class="cap"></div>` : ""}` : "")}
-        <div class="row2" style="margin-top:8px"><button class="btn small" type="button" id="missOpen">ここになかった</button></div>${missPanelHTML()}</div>
+        <div class="row2" style="margin-top:8px"><button class="btn small" type="button" id="missOpen">行ったけど終わってた</button><button class="btn small ghost" type="button" id="wrongOpen">ちがうよ</button></div>${missPanelHTML()}${wrongPanelHTML()}</div>
       <div class="acts"><a class="btn" href="${gmapsDir((cm.avg || st).lat, (cm.avg || st).lng)}" target="_blank" rel="noopener">道案内（Googleマップ）</a><button class="btn" type="button" id="stMap">地図で見る</button></div>
       <div class="acts" style="margin-top:8px"><a class="btn ghost" href="https://www.google.com/search?q=${encodeURIComponent(st.n + "駅 " + r.name + " 駅スタンプ")}" target="_blank" rel="noopener">ネットで調べる</a><button class="btn primary" type="button" id="stAdd">このスタンプを追加</button></div>`);
     $("#stMap").onclick = () => { closeSheet(); show("map"); MapV.go(st.lat, st.lng, 16); };
     $("#stAdd").onclick = () => { closeSheet(); openStamp("add", null, { name: st.n + "駅", place: st.n + "駅", cat: "駅", pref: prefAt(st.lat, st.lng) || "", lat: +st.lat.toFixed(6), lng: +st.lng.toFixed(6), locSrc: "駅の位置", rally: key }); };
-    wireMiss({ rk: key, name: st.n + "駅", lat: st.lat, lng: st.lng }, () => { draw(); if (Rally.cur) Rally.render(); });
+    wireMiss({ rk: key, name: st.n + "駅", lat: st.lat, lng: st.lng }, () => { draw(); if (Rally.cur) Rally.render(); }); wireWrong({ rk: key, name: st.n + "駅", lat: st.lat, lng: st.lng }, () => { draw(); if (Rally.cur) Rally.render(); });
     const sb = $("#sumBtn"); if (sb) sb.onclick = async () => { sb.disabled = true; $("#sumOut").innerHTML = `<span class="spin"></span> まとめ中…`;
       try { const j = await aiCall("summary", { station: st.n, line: r.name, tags: cm.tags, spots: cm.spots.slice(0, 20).map(x => x.t) }, `駅スタンプの置き場所について、複数の人が書いたメモとタグがあります。共通点をもとに「どこに・何時まであるか」を1〜2文の日本語でまとめてください。食い違う点があれば「〜という情報もあります」と添えます。書かれていないことは足さないでください。
 駅: ${st.n}駅（${r.name}）
@@ -3063,9 +3085,9 @@ function openPub(id) {
     openSheet(`<div class="sheet-head"><h2>みんなの記録</h2><button class="btn small ghost" type="button" data-close>閉じる</button></div>
       <div class="hero washi"><div class="hi"><img src="${p.thumb || ""}" alt=""></div><div><span class="datestamp" style="display:inline-block">${esc(fmtDate(p.date))}</span><h3>${esc(p.name)}</h3><div class="meta">${p.place ? `<span>${esc(p.place)}</span>` : ""}${p.pref ? `<span>${esc(p.pref)}</span>` : ""}${p.cat ? `<span class="chip" style="color:${gcol(p.cat)}">${esc(p.cat)}</span>` : ""}${p.sizeMm ? `<span>⌀ ${fmtCm(p.sizeMm)}</span>` : ""}</div><div class="meta" style="margin-top:8px">記録した人: ${esc(p.nick || "だれか")}</div></div></div>
       <div class="sec"><h4>置き場所</h4>${freshHTML(cm)}${p.spot ? `<p style="font-size:14px;margin:8px 0 0">「${esc(p.spot)}」</p>` : ""}${cm.spots.filter(x => x.t !== p.spot).length ? `<ul class="spots">${cm.spots.filter(x => x.t !== p.spot).slice(0, 8).map(x => `<li>「${esc(x.t)}」<small>${esc(x.who)} · ${esc(fmtDate(x.date))}</small></li>`).join("")}</ul>` : ""}
-        <div class="row2" style="margin-top:8px"><button class="btn small" type="button" id="missOpen">ここになかった</button></div>${missPanelHTML()}</div>
+        <div class="row2" style="margin-top:8px"><button class="btn small" type="button" id="missOpen">行ったけど終わってた</button><button class="btn small ghost" type="button" id="wrongOpen">ちがうよ</button></div>${missPanelHTML()}${wrongPanelHTML()}</div>
       ${p.lat != null ? `<div class="acts"><a class="btn primary" href="${gmapsDir((cm.avg || p).lat, (cm.avg || p).lng)}" target="_blank" rel="noopener">道案内（Googleマップ）</a></div>` : ""}`);
-    wireMiss({ rk: p.rk || "", name: p.name, lat: p.lat, lng: p.lng }, draw);
+    wireMiss({ rk: p.rk || "", name: p.name, lat: p.lat, lng: p.lng }, draw); wireWrong({ rk: p.rk || "", name: p.name, lat: p.lat, lng: p.lng }, draw);
   };
   draw();
 }
@@ -4266,7 +4288,7 @@ function openSettings() {
   const ks = $("#keySave"); if (ks) ks.onclick = () => { const v = $("#keyIn").value.trim(); if (!/^sk-ant-/.test(v)) { toast("sk-ant- で始まるキーを入れてください"); return; } lsSet("petalog.apikey", v); toast("APIキーを保存しました"); openSettings(); };
   const kd = $("#keyDel"); if (kd) kd.onclick = () => { try { localStorage.removeItem("petalog.apikey"); } catch {} toast("APIキーを消しました"); openSettings(); };
   if (window.PetalogCloud) PetalogCloud.wireSettings();
-  Privacy.wire(); YahooLS.wire();
+  Privacy.wire(); YahooLS.wire(); HQ.settings();
 }
 $("#setBtn").onclick = openSettings;
 async function exportBackup() {
@@ -5434,7 +5456,7 @@ const YahooLS = {
 let _pg = { sig: "", groups: [] };
 function pinGroups() { return groupNear(list(), _pg, s => s.id); }
 let _pbg = { sig: "", groups: [] };
-function pubGroups(P) { return groupNear(P.filter(p => p.lat != null && p.by !== Store.uid && !p.miss), _pbg, p => p._id); }
+function pubGroups(P) { return groupNear(P.filter(p => p.lat != null && p.by !== Store.uid && !p.miss && p.reviewed !== "hide"), _pbg, p => p._id); }
 function groupNear(src, cache, idOf) {
   const L = src.filter(s => s.lat != null && s.lng != null && !isNaN(s.lat) && !isNaN(s.lng));
   const sig = L.length + ":" + L.map(s => idOf(s) + "," + s.lat + "," + s.lng + "," + (s.date || "") + "," + (s.cut || s.thumb || "").length + "," + (s.place || "")).join("|");
@@ -6211,7 +6233,7 @@ const Zukan = {
     if (!r || !r.design) return null;
     const cur = findStamp(d.id) || d, changed = cur.design !== r.design || !!cur.first !== !!r.first;
     cur.design = r.design; d.design = r.design; if (r.first) { cur.first = true; d.first = true; } else { delete cur.first; delete d.first; }
-    if (changed) { try { await Store.saveStamp(cur); } catch (_) {} refreshAll(); }
+    if (changed) { try { await Store.saveStamp(cur); if (cur.share && thumb) await Store.pubPut(pubView(cur), thumb, Profile.nick); } catch (_) {} refreshAll(); }
     return r;
   },
   leave(id) { if (!this.ok()) return; PetalogCloud.zukan("leave", { stamp_id: id }).catch(() => {}); const s = findStamp(id); if (s && (s.design || s.first)) { delete s.design; delete s.first; } },
@@ -6289,6 +6311,86 @@ function Sparks(cv, kind) {
   raf = requestAnimationFrame(tick); addEventListener("resize", size);
   return { burst(n, gold) { add(n, gold); if (!raf) raf = requestAnimationFrame(tick); }, ring() { ringT = performance.now(); }, stop() { run = false; P.length = 0; cancelAnimationFrame(raf); removeEventListener("resize", size); } };
 }
+
+/* ---------- みんなの地図の「確かさ」と報告 ----------
+   同じスタンプ（図鑑の番号、なければ名前＋近さ）を登録した人数でピンの見た目を変える: 1人＝点線、2人＝色ちがいの点線、3人以上＝実線。
+   「行ったけど終わってた」: 最後に登録された日より後に、別々の3人が押したら「終了」。そのあと誰かが登録すれば「復活」。
+   「ちがうよ」: 2人以上の報告がたまったピンは、本部が確認するまで薄く表示する */
+const ENDED_R = ["終わってた", "撤去されていた"];
+const WRONG_R = ["場所がちがう", "名前がちがう", "絵（スタンプ）がちがう", "いたずら・うその記録"];
+const Trust = {
+  same(a, b) { if (a.design && b.design) return a.design === b.design; return !!a.name && !!b.name && norm(a.name) === norm(b.name); },
+  near(a, b, m) { return a.lat != null && b.lat != null && kmBetween(+a.lat, +a.lng, +b.lat, +b.lng) * 1000 < m; },
+  of(g, P) {
+    const ids = new Set(g.ids), recs = P.filter(p => !p.miss && p.reviewed !== "hide"), mine = recs.filter(p => ids.has(p._id)); if (!mine.length) return null;
+    let trust = 0, last = "";
+    for (const r of mine) { const same = recs.filter(q => this.same(q, r) && this.near(q, r, 600)); trust = Math.max(trust, new Set(same.map(q => q.by)).size); same.forEach(q => { if ((q.date || "") > last) last = q.date || ""; }); }
+    const reps = P.filter(p => p.miss && p.reviewed !== "ok" && this.near(p, g, 400) && mine.some(r => (r.rk && p.rk === r.rk) || (p.name && this.same(p, r))));
+    const endBy = new Set(reps.filter(p => p.type !== "wrong" && ENDED_R.includes(p.reason) && (p.date || "") >= last).map(p => p.by)).size;
+    const wrong = new Set(reps.filter(p => p.type === "wrong").map(p => p.by)).size;
+    return { trust: Math.min(3, Math.max(1, trust)), ended: endBy >= 3, faded: wrong >= 2, endBy, wrong };
+  },
+  legend(on) {
+    const w = $("#mapWrap"); if (!w) return; let el = $("#mapLegend");
+    if (!el) { el = document.createElement("div"); el.id = "mapLegend"; el.className = "map-legend"; w.appendChild(el);
+      el.innerHTML = `<button type="button" class="lg-hd" aria-expanded="true"><b>みんなのピン</b><span>▾</span></button><div class="lg-bd">
+        <span><i class="lg3"></i>3人以上が登録（確か）</span><span><i class="lg2"></i>2人が登録</span><span><i class="lg1"></i>1人だけ（まだ未確認）</span>
+        <span><i class="lge"></i>終わったかも（3人が報告）</span><span><i class="lgf"></i>「ちがうよ」報告・確認中</span></div>`;
+      el.querySelector(".lg-hd").onclick = () => { const c = el.classList.toggle("min"); el.querySelector(".lg-hd").setAttribute("aria-expanded", String(!c)); lsSet("petalog.lgMin", c ? "1" : ""); };
+      if (lsGet("petalog.lgMin")) el.classList.add("min"); }
+    el.hidden = !on;
+  }
+};
+function wrongPanelHTML() {
+  return `<div class="misspanel" id="wrongPanel" hidden><b>どこがちがいますか？</b><div class="chipsel" id="wrongReason">${WRONG_R.map((r, i) => `<button type="button" data-wr="${r}" aria-pressed="${i === 0}">${r}</button>`).join("")}</div>
+    <input id="wrongNote" class="search" maxlength="80" placeholder="ひとこと（任意）例: 本当は1つとなりの駅のスタンプです"><div class="row2"><button class="btn small shu" type="button" id="wrongSend">本部に知らせる</button><button class="btn small ghost" type="button" id="wrongCancel">やめる</button></div>
+    <p class="cap" style="margin:0">本部（運営）が確認します。報告が2件たまると、確認が終わるまで地図のピンを薄く表示します。</p></div>`;
+}
+function wireWrong(target, after) {
+  const open = $("#wrongOpen"); if (!open) return;
+  open.onclick = () => { if (Store.mode !== "cloud") { toast("報告するにはログインしてください（右上の設定から）"); return; } $("#wrongPanel").hidden = false; open.hidden = true; const mp = $("#missPanel"); if (mp) mp.hidden = true; };
+  $("#wrongCancel").onclick = () => { $("#wrongPanel").hidden = true; open.hidden = false; };
+  $("#wrongReason").onclick = e => { const b = e.target.closest("[data-wr]"); if (!b) return; $("#wrongReason").querySelectorAll("[data-wr]").forEach(x => x.setAttribute("aria-pressed", x === b)); };
+  $("#wrongSend").onclick = async () => {
+    const reason = ($("#wrongReason [aria-pressed=true]") || {}).dataset?.wr || WRONG_R[0];
+    const b = $("#wrongSend"); b.disabled = true; b.innerHTML = `<span class="spin"></span> 送信中`;
+    try { await Store.pubReport({ ...target, type: "wrong", reason, note: $("#wrongNote").value.trim() }); MapV.pubs = null; await MapV.loadPubs(); toast("本部に知らせました。ありがとうございます"); after && after(); }
+    catch { b.disabled = false; b.textContent = "本部に知らせる"; toast("送れませんでした。もう一度どうぞ"); }
+  };
+}
+
+/* ---------- 本部（運営）だけの画面: 「ちがうよ」報告の一覧 ---------- */
+const HQ = {
+  admin: null,
+  async settings() {
+    if (Store.mode !== "cloud" || !Store.hqAdmin) return; if (this.admin == null) this.admin = await Store.hqAdmin(); if (!this.admin || !$("#sheet") || (sheetCtx && sheetCtx.mode !== "settings")) return;
+    const head = $("#sheet .sheet-head"); if (!head || $("#hqSec")) return;
+    head.insertAdjacentHTML("afterend", `<div class="sec" id="hqSec"><h4>本部</h4><button class="btn small" type="button" id="hqOpen">「ちがうよ」報告の一覧</button><p class="cap" style="margin:6px 0 0">本部のアカウントにだけ出ています。</p></div>`);
+    $("#hqOpen").onclick = () => this.open();
+  },
+  groups() {
+    const P = MapV.pubs || [], recs = P.filter(p => !p.miss && p.reviewed !== "hide"), out = [];
+    for (const r of P.filter(p => p.miss && p.type === "wrong" && p.reviewed !== "ok")) {
+      let g = out.find(g => Trust.near(g.c, r, 400) && ((r.rk && g.rk === r.rk) || (r.name && Trust.same(g.c, r)))); if (!g) out.push(g = { c: r, rk: r.rk, reps: [], recs: [] }); g.reps.push(r);
+    }
+    for (const g of out) g.recs = recs.filter(p => Trust.near(p, g.c, 600) && ((g.rk && p.rk === g.rk) || Trust.same(p, g.c)));
+    return out.sort((a, b) => b.reps.length - a.reps.length);
+  },
+  async open() {
+    sheetCtx = { mode: "hq" }; const ctx = sheetCtx;
+    if (!MapV.pubs) { openSheet(`<div class="sheet-head"><h2>「ちがうよ」報告</h2><button class="btn small ghost" type="button" data-close>閉じる</button></div><p class="cap"><span class="spin"></span> 読み込み中…</p>`); await MapV.loadPubs(); if (sheetCtx !== ctx) return; }
+    const G = this.groups();
+    openSheet(`<div class="sheet-head"><h2>「ちがうよ」報告</h2><button class="btn small ghost" type="button" data-close>閉じる</button></div>
+      ${G.length ? G.map((g, i) => `<div class="sec hq-g"><div class="hq-t">${g.recs[0] && g.recs[0].thumb ? `<img src="${g.recs[0].thumb}" alt="">` : ""}<span><b>${esc(g.c.name || "（名前なし）")}</b><small>${esc([g.recs[0] && g.recs[0].place, g.recs[0] && g.recs[0].pref].filter(Boolean).join(" · "))} · 記録 ${g.recs.length}件</small></span></div>
+        <ul class="spots">${g.reps.map(r => `<li>${esc(r.reason || "")}${r.spot ? `「${esc(r.spot)}」` : ""}<small>${esc(r.nick || "だれか")} · ${esc(fmtDate(r.date))}</small></li>`).join("")}</ul>
+        <div class="row2">${g.c.lat != null ? `<button class="btn small" type="button" data-hqmap="${i}">地図で見る</button>` : ""}<button class="btn small" type="button" data-hqok="${i}">問題なし</button><button class="btn small shu" type="button" data-hqhide="${i}">地図から外す</button></div></div>`).join("")
+        : `<p class="cap">いま確認待ちの報告はありません。</p>`}`);
+    const run = async (i, verdict) => { const g = G[i]; try { await Store.hqReview(g.reps.map(r => r._id), "ok"); if (verdict === "hide" && g.recs.length) await Store.hqReview(g.recs.map(r => r._id), "hide"); toast(verdict === "hide" ? "地図から外しました" : "問題なしにしました"); MapV.pubs = null; await MapV.loadPubs(); this.open(); } catch (_) { toast("できませんでした。もう一度どうぞ"); } };
+    $("#sheet").onclick = e => { const a = e.target.closest("[data-hqok],[data-hqhide],[data-hqmap]"); if (!a) return;
+      if (a.dataset.hqmap != null) { const g = G[+a.dataset.hqmap]; closeSheet(); show("map"); MapV.setMode("all"); MapV.go(+g.c.lat, +g.c.lng, 16); return; }
+      a.disabled = true; run(+(a.dataset.hqok ?? a.dataset.hqhide), a.dataset.hqhide != null ? "hide" : "ok"); };
+  }
+};
 
 /* ================= boot ================= */
 addEventListener("resize", () => { Book.layout(); if (view === "fall") { Fall.dirty = true; Fall.stop(); Fall.start(); } if (view === "map") MapV.draw(); });

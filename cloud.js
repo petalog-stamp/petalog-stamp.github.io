@@ -241,7 +241,7 @@
       return idx.map((r) => keep[r.id]).filter(Boolean).map((r) => ({
         _id: r.id, sid: r.stamp_id, by: r.user_id, nick: r.nick, name: r.name, place: r.place, pref: r.pref, cat: r.cat,
         date: r.date, lat: r.lat, lng: r.lng, sizeMm: r.size_mm, thumb: r.thumb, rk: r.rk, spot: r.spot, spotTags: r.spot_tags || [],
-        type: r.type, miss: r.kind === "miss", reason: r.reason, t: Date.parse(r.updated_at) || 0,
+        type: r.type, miss: r.kind === "miss", reason: r.reason, t: Date.parse(r.updated_at) || 0, ct: Date.parse(r.created_at) || 0, design: r.design || null, reviewed: r.reviewed || null,
       }));
     },
     async pubPut(s, thumb, nick) {
@@ -265,12 +265,15 @@
     async photoOf(u, key) { if (noNet()) return null; const b = await download("photos", `${u}/${safeKey(key)}`); return b ? toDataUrl(b) : null; },
     async pubReport(o) {
       const { error } = await sb.from("shares").insert({
-        user_id: uid, stamp_id: null, kind: "miss", type: "report", nick: clip(typeof Profile !== "undefined" ? Profile.nick : "", 20),
+        user_id: uid, stamp_id: null, kind: "miss", type: o.type === "wrong" ? "wrong" : "report", nick: clip(typeof Profile !== "undefined" ? Profile.nick : "", 20),
         rk: clip(o.rk, 120), name: clip(o.name, 120), lat: num(o.lat), lng: num(o.lng),
         date: typeof todayStr === "function" ? todayStr() : new Date().toISOString().slice(0, 10), reason: clip(o.reason, 40), spot: clip(o.note, 120),
       });
       if (error) fail(error);
     },
+    // 本部（運営）だけ: 報告の確認
+    async hqAdmin() { if (!attached) return false; try { const { data } = await sb.rpc("hq_is_admin"); return !!data; } catch { return false; } },
+    async hqReview(ids, verdict) { const { data, error } = await sb.rpc("hq_review", { p_ids: ids, p_verdict: verdict }); if (error) fail(error); return data; },
     async pubDel(sid) { try { await sb.from("shares").delete().eq("user_id", uid).eq("stamp_id", sid); } catch {} },
   };
 
@@ -282,6 +285,7 @@
       rk: s.type === "goshuin" ? "" : clip(typeof rallyKeyOf === "function" ? rallyKeyOf(s) : "", 120),
       spot: clip(s.spot, 120), spot_tags: (s.spotTags || []).slice(0, 12).map((t) => clip(t, 30)),
       thumb: thumb && thumb.length < 115000 ? thumb : "",
+      design: num(s.design),
     };
   }
 
