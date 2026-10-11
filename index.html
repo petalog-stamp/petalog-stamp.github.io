@@ -863,6 +863,19 @@ html.tcv-on #toast{z-index:95}
 .slots.c4{gap:7px}.slots.c4 .st{font-size:10.5px}.slots.c4 .gd{font-size:8px;letter-spacing:-.02em}.slots.c4 .slot{padding:4px 4px 5px}
 .slots.c5{gap:6px}.slots.c5 .st{font-size:9.5px}.slots.c5 .gd{display:none}.slots.c5 .code{font-size:8.5px;padding:0 3px}.slots.c5 .slot{padding:3px 3px 4px;border-radius:8px}
 .slots.c4 .art span,.slots.c5 .art span{font-size:10px}
+
+/* 10/11 回転ハンドル（枠の下の丸い矢印） */
+.res-wrap.rotok{padding-bottom:62px;touch-action:pan-y}
+.res-wrap.rotok canvas{transition:none}
+.rot-stem{position:absolute;left:50%;bottom:44px;width:2px;height:14px;margin-left:-1px;background:var(--ai);opacity:.55;border-radius:1px;pointer-events:none}
+.rot-h{position:absolute;left:50%;bottom:8px;width:40px;height:40px;margin-left:-20px;border-radius:50%;border:0;padding:0;background:var(--ai);color:#fff;box-shadow:0 2px 8px rgba(20,30,60,.28);display:grid;place-items:center;touch-action:none;cursor:grab}
+.rot-h svg{width:22px;height:22px}
+.res-wrap.rotting .rot-h{transform:scale(1.12);cursor:grabbing}
+.res-wrap.rotting canvas{outline:1.5px dashed var(--ai);outline-offset:3px}
+.rot-tip{position:absolute;top:8px;left:50%;transform:translateX(-50%);background:rgba(27,33,48,.86);color:#fff;font:600 12.5px/1 var(--f-mono,monospace);padding:5px 9px;border-radius:999px;pointer-events:none}
+.rotres{flex-wrap:wrap}
+.rotres .rotlbl{flex:1;text-align:center;white-space:nowrap}
+.rothint{margin:0;font-size:11.5px}
 </style>
 
 <div id="app">
@@ -3070,7 +3083,7 @@ function makeCut(src, box, paper, t, mode, opts = {}) {
     const sc = Math.min(1, maxS / Math.max(box.w, box.h));
     const W = Math.max(8, Math.round(box.w * sc)), H = Math.max(8, Math.round(box.h * sc));
     const c = mkCanvas(W, H), x = c.getContext("2d", { willReadFrequently: true }); x.drawImage(src, box.x, box.y, box.w, box.h, 0, 0, W, H);
-    const im = x.getImageData(0, 0, W, H), d = im.data, n = W * H; const D = new Float32Array(n);
+    const im = x.getImageData(0, 0, W, H), d = im.data, n = W * H; const D = new Float32Array(n); const flat = opts.flat ? flattenPaper(d, W, H, paper) : false;
     let r = 0, g = 0, b = 0, ws = 0;
     for (let i = 0; i < n; i++) { const v = Math.hypot(d[i*4] - paper[0], d[i*4+1] - paper[1], d[i*4+2] - paper[2]); D[i] = v; if (v > t * 1.25) { r += d[i*4] * v; g += d[i*4+1] * v; b += d[i*4+2] * v; ws += v; } }
     let em = null;
@@ -3099,7 +3112,7 @@ function makeCut(src, box, paper, t, mode, opts = {}) {
     const shape = Math.abs(W / H - 1) < 0.15 && cornerA / Math.max(1, cornerN) < 0.05 ? "circle" : "rect";
     const hex = "#" + ink.map(v => Math.round(v).toString(16).padStart(2, "0")).join("");
     const inkPx = ax1 >= 0 ? { w: (ax1 - ax0 + 1) / sc, h: (ay1 - ay0 + 1) / sc } : { w: box.w, h: box.h };
-    if (url.length < LIM || maxS === SZ[SZ.length - 1]) return { url, w: W, h: H, ink: hex, shape, multi, color, inkPx, colors, corner: cornerA / Math.max(1, cornerN), canvas: c, faint };
+    if (url.length < LIM || maxS === SZ[SZ.length - 1]) return { url, w: W, h: H, ink: hex, shape, multi, color, inkPx, colors, corner: cornerA / Math.max(1, cornerN), canvas: c, faint, flat };
   }
 }
 function makePhoto(src, sizes = [[1000, 0.8], [800, 0.74], [600, 0.66]]) {
@@ -3714,17 +3727,18 @@ function addStepHTML(c) {
   <div id="cropStep" hidden>
     <div class="multibar" id="multiBar" hidden></div>
     <div class="crop-wrap"><canvas id="cropCv"></canvas></div>
-    <div class="toolrow">${g ? `<span class="cap" style="margin:0">黄色い四隅をページの角に合わせてください</span>` : dg ? `<span class="cap" style="margin:0">青い枠をスタンプに合わせてください</span>` : `<div class="seg" role="group" aria-label="操作"><button type="button" data-tool="box" aria-pressed="true">範囲</button><button type="button" data-tool="corners" aria-pressed="false">四隅でゆがみ補正</button></div><label class="mini"><input type="checkbox" id="warpAuto" checked>ゆがみ自動補正</label>`}${g ? "" : `<span class="rotbtns"><button class="btn small" type="button" data-rot="-90" aria-label="左に90度回す">↺ 90°</button><button class="btn small" type="button" data-rot="90" aria-label="右に90度回す">↻ 90°</button></span>`}</div>
+    <div class="toolrow">${g ? `<span class="cap" style="margin:0">黄色い四隅をページの角に合わせてください</span>` : dg ? `<span class="cap" style="margin:0">青い枠をスタンプに合わせてください</span>` : `<div class="seg" role="group" aria-label="操作"><button type="button" data-tool="box" aria-pressed="true">範囲</button><button type="button" data-tool="corners" aria-pressed="false">四隅でゆがみ補正</button></div><label class="mini"><input type="checkbox" id="warpAuto" checked>ゆがみ自動補正</label>`}</div>
     <p class="cap" id="cropCap"></p>
     <div class="adjrow"><label>明るさ<input type="range" id="adjB" min="-60" max="60" value="0"></label><label>コントラスト<input type="range" id="adjC" min="-40" max="80" value="0"></label><label class="mini"><input type="checkbox" id="adjAuto" checked>自動補正</label></div>
     <div class="result">
-      <div class="res-wrap${g ? " gos" : dg ? " digi" : " washi"}"><canvas id="resCv"></canvas><div class="er-ring" id="erRing" hidden></div><button class="er-zr" type="button" id="erZoomReset" hidden>全体を表示</button></div>${g ? "" : `<div class="rotres"><span>角度</span><input type="range" id="rotFine" min="-45" max="45" step="0.5" value="0" aria-label="切り抜いたスタンプの角度"><output id="rotVal">0°</output><button class="btn small" type="button" id="rotZero">0°</button></div>`}
+      <div class="res-wrap${g ? " gos" : dg ? " digi" : " washi"}"><canvas id="resCv"></canvas><div class="er-ring" id="erRing" hidden></div><button class="er-zr" type="button" id="erZoomReset" hidden>全体を表示</button></div>${g ? "" : `<div class="rotres"><button class="btn small" type="button" data-r90="-90" aria-label="左に90度回す">↺ 90°</button><span class="rotlbl">角度 <output id="rotVal">0°</output></span><button class="btn small" type="button" data-r90="90" aria-label="右に90度回す">↻ 90°</button><button class="btn small ghost" type="button" id="rotZero">0°にもどす</button></div><p class="cap rothint">絵の下の丸い矢印を指でつまんで回せます（絵を2本指でひねってもOK）。</p>`}
       <div class="ctl-col">
         ${g ? `<label class="mini"><input type="checkbox" id="whiten" checked>紙を白く・影を消す</label>` : dg ? `<div class="seg" role="group" aria-label="背景"><button type="button" data-dm="auto" aria-pressed="${c.dmode === "auto"}">背景を抜く</button><button type="button" data-dm="circle" aria-pressed="${c.dmode === "circle"}">丸く切る</button><button type="button" data-dm="none" aria-pressed="${c.dmode === "none"}">四角のまま</button></div>
         <label id="dTolL"${c.dmode === "auto" ? "" : " hidden"}>背景の抜き具合<input type="range" id="dTol" min="8" max="120" value="${c.dtol}"></label>
         <div class="row2"><button class="btn small" type="button" id="eraseBtn" aria-pressed="false">消しゴム</button><button class="btn small" type="button" id="eraseUndo" disabled>1つ戻す</button></div>
         <label id="eraseSizeL" hidden>消しゴムの太さ<input type="range" id="eraseSize" min="3" max="30" value="10"><small class="er-tip">2本指で広げると拡大できます</small></label>` : `<label>切り抜きの強さ<input type="range" id="thr" min="-50" max="60" value="0"></label>
         <div class="seg" role="group" aria-label="色"><button type="button" data-cm="auto" aria-pressed="true">自動</button><button type="button" data-cm="mono" aria-pressed="false">1色</button><button type="button" data-cm="color" aria-pressed="false">元の色</button></div>
+        <label class="mini"><input type="checkbox" id="flatBg"${c.flat === false ? "" : " checked"}>影・明るさのむらをならす</label>
         <label class="mini"><input type="checkbox" id="ghost">裏写り・うすい影を消す</label>
         <div class="row2"><button class="btn small" type="button" id="eraseBtn" aria-pressed="false">消しゴム</button><button class="btn small" type="button" id="eraseUndo" disabled>1つ戻す</button></div>
         <label id="eraseSizeL" hidden>消しゴムの太さ<input type="range" id="eraseSize" min="3" max="30" value="10"><small class="er-tip">2本指で広げると拡大できます</small></label>`}
@@ -3751,7 +3765,7 @@ function openStamp(mode, s, preset, extra = {}) {
       ${d.spot ? `<div class="meta" style="margin-top:4px">置き場所: ${esc(d.spot)}</div>` : ""}${d.lat != null ? `<div class="meta" style="margin-top:6px"><a href="${gmapsDir(d.lat, d.lng)}" target="_blank" rel="noopener">ここへ行く（Googleマップ）</a></div>` : ""}${ro ? `<div class="meta" style="margin-top:6px">サンプルは編集できません。</div>` : d.priv ? `<div class="meta" style="margin-top:4px">🔒 非公開のトレカ</div>` : ""}</div></div>` : "";
   const title = mode === "add" ? (preset && preset.rally ? esc(preset.name) + " を追加" : "追加") : ro ? "サンプル" : "スタンプの記録";
   openSheet(`<div class="sheet-head"><h2>${title}</h2><span class="headbtns">${mode === "edit" && !ro ? `<button class="btn small danger" type="button" id="hDel"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/></svg>削除</button>` : ""}<button class="btn small ghost" type="button" data-close>閉じる</button></span></div>
-    ${mode === "add" ? `<div id="addStep">${addStepHTML(c)}</div>` : `<div id="heroConfirm"></div>` + hero + `<div class="heroacts"><button class="btn small" type="button" id="hExport">画像で保存</button>${ro || type === "goshuin" ? "" : `<button class="btn small" type="button" id="hBoard">スタンプジャーナルに貼る</button><button class="btn small" type="button" id="hRecut">切り抜きを直す</button><button class="btn small" type="button" id="hRetake">写真を撮り直す</button><button class="btn small" type="button" id="hPrint">印刷用をつくる</button>`}</div>`}
+    ${mode === "add" ? `<div id="addStep">${addStepHTML(c)}</div>` : `<div id="heroConfirm"></div>` + hero + `<div class="heroacts"><button class="btn small" type="button" id="hExport">画像で保存</button>${ro || type === "goshuin" ? "" : `<button class="btn small" type="button" id="hBoard">スタンプジャーナルに貼る</button><button class="btn small" type="button" id="hTurn">向きを直す</button><button class="btn small" type="button" id="hRecut">切り抜きを直す</button><button class="btn small" type="button" id="hRetake">写真を撮り直す</button><button class="btn small" type="button" id="hPrint">印刷用をつくる</button>`}</div>`}
     <div id="formArea"${mode === "add" ? " hidden" : ""}>${formHTML(d, ro)}
     ${ro ? "" : `<div class="acts">${mode === "edit" ? `<button class="btn ghost" type="button" id="delBtn">削除</button>${type === "goshuin" ? "" : `<button class="btn" type="button" id="toBoard">スタンプジャーナルに貼る</button>`}` : ""}<button class="btn primary" type="button" id="saveBtn">${mode === "add" ? "登録する" : "保存"}</button></div><div id="confirmArea"></div>`}</div>`);
   wireForm();
@@ -3761,7 +3775,7 @@ function openStamp(mode, s, preset, extra = {}) {
     loadEditPhotos();
     $("#hExport").onclick = () => openExport({ ids: [d.id] });
     const hb = $("#hBoard"); if (hb) hb.onclick = () => Books.addStamp(d.id);
-    const hr = $("#hRecut"); if (hr) hr.onclick = () => openRecrop(s); const hrt = $("#hRetake"); if (hrt) hrt.onclick = () => { const i = document.createElement("input"); i.type = "file"; i.accept = "image/*,application/pdf"; i.onchange = () => { if (i.files[0]) openRecrop(s, i.files[0]); }; i.click(); }; const hpr = $("#hPrint"); if (hpr) hpr.onclick = () => PrintCard.open(s);
+    const hr = $("#hRecut"); if (hr) hr.onclick = () => openRecrop(s); const htn = $("#hTurn"); if (htn) htn.onclick = () => openTurn(s); const hrt = $("#hRetake"); if (hrt) hrt.onclick = () => { const i = document.createElement("input"); i.type = "file"; i.accept = "image/*,application/pdf"; i.onchange = () => { if (i.files[0]) openRecrop(s, i.files[0]); }; i.click(); }; const hpr = $("#hPrint"); if (hpr) hpr.onclick = () => PrintCard.open(s);
     const hd = $("#hDel"); if (hd) hd.onclick = () => {
       $("#heroConfirm").innerHTML = `<div class="confirm"><span style="flex:1">この記録と写真を削除します。スタンプジャーナルのページからもはがれます。元には戻せません。</span><button class="btn small" type="button" id="hNo">やめる</button><button class="btn small shu" type="button" id="hYes">削除する</button></div>`;
       $("#hNo").onclick = () => $("#heroConfirm").innerHTML = "";
@@ -3789,7 +3803,7 @@ function wireAdd() {
   const thr = $("#thr"); if (thr) thr.oninput = e => { c.offset = +e.target.value; clearTimeout(c.rt); c.rt = setTimeout(recut, 120); };
   document.querySelectorAll("[data-dm]").forEach(b => b.onclick = () => { c.dmode = b.dataset.dm; document.querySelectorAll("[data-dm]").forEach(x => x.setAttribute("aria-pressed", x === b)); $("#dTolL").hidden = c.dmode !== "auto"; recut(); });
   const dtl = $("#dTol"); if (dtl) dtl.oninput = e => { c.dtol = +e.target.value; clearTimeout(c.rt); c.rt = setTimeout(recut, 120); };
-  const gh = $("#ghost"); if (gh) gh.onchange = e => { c.ghost = e.target.checked; c.ghostTouched = true; recut(); };
+  const gh = $("#ghost"); if (gh) gh.onchange = e => { c.ghost = e.target.checked; c.ghostTouched = true; recut(); }; const fbg = $("#flatBg"); if (fbg) fbg.onchange = e => { c.flat = e.target.checked; recut(); };
   const wh = $("#whiten"); if (wh) wh.onchange = e => { c.whiten = e.target.checked; refresh("quad"); };
   const wa = $("#warpAuto"); if (wa) wa.onchange = e => { c.warp.auto = e.target.checked; c.warp.manual = false; setTool("box"); refresh("box"); };
   document.querySelectorAll("[data-tool]").forEach(b => b.onclick = () => setTool(b.dataset.tool));
@@ -3864,7 +3878,7 @@ function rectify() {
 function refresh(level, first) {
   const c = sheetCtx; if (!c || !c.orig) return;
   if (level === "src") { prepareSrc(true); c.crop && c.crop.setSrc(c.src); }
-  if (level === "src" || level === "box") { detectWarp(); if (!first && c.erase.length) { c.erase = []; const eu = $("#eraseUndo"); if (eu) eu.disabled = true; } }
+  if (level === "src" || level === "box") { detectWarp(); if (!first && level === "box" && c.erase.length) { c.erase = []; const eu = $("#eraseUndo"); if (eu) eu.disabled = true; } }
   if (level === "quad" && !first && c.erase.length) { c.erase = []; const eu = $("#eraseUndo"); if (eu) eu.disabled = true; }
   rectify(); if (c.crop) { c.crop.quad = c.warp.quad; c.crop.box = c.box; c.crop.draw(); }
   recut(); if (c.crop && (c.type === "goshuin" || c.crop.tool !== "corners")) warpCaption();
@@ -3886,9 +3900,9 @@ function recut() {
   if (c.digital) { c.cut = makeDigitalCut(c.src, c.box, { tol: c.dtol, mode: c.dmode, erase: c.erase }); drawResult(); const cp = $("#cutCap"); if (cp) cp.textContent = `色そのままで切り抜き${c.cut.colors.length ? " · 色: " + c.cut.colors.join("・") : ""}${c.cut.multi ? "（多色）" : ""}`; return; }
   const t = clamp(c.an.t + c.offset, 12, 220);
   const src = c.rect || c.src, box = c.rect ? { x: 0, y: 0, w: c.rect.width, h: c.rect.height } : c.box;
-  c.cut = makeCut(src, box, c.an.paper, t, c.colorMode, { ghost: c.ghost, erase: c.erase });
+  c.cut = makeCut(src, box, c.an.paper, t, c.colorMode, { ghost: c.ghost, erase: c.erase, flat: c.flat !== false });
   drawResult();
-  const cp = $("#cutCap"); if (cp) cp.textContent = `${c.cut.shape === "circle" ? "丸型" : "角型"} · ${c.cut.color ? (c.cut.multi ? "多色（重ね押し）として元の色で" : "元の色で") : "インク1色で"}切り抜き${c.cut.colors && c.cut.colors.length ? " · 色: " + c.cut.colors.join("・") : ""}${!c.ghost && c.cut.faint > 0.3 ? " · うすい影が多めです（裏写りなら「裏写り・うすい影を消す」）" : ""}`;
+  const cp = $("#cutCap"); if (cp) cp.textContent = `${c.cut.shape === "circle" ? "丸型" : "角型"} · ${c.cut.color ? (c.cut.multi ? "多色（重ね押し）として元の色で" : "元の色で") : "インク1色で"}切り抜き${c.cut.colors && c.cut.colors.length ? " · 色: " + c.cut.colors.join("・") : ""}${!c.ghost && c.cut.faint > 0.3 ? " · うすい影が多めです（裏写りなら「裏写り・うすい影を消す」）。撮影のコツ：明るい場所で、自分やスマホの影が入らない向きから、真上から撮る（フラッシュなし）" : ""}`;
   if (c.stampPx) updateMeas();
 }
 function drawResult() {
@@ -4786,10 +4800,118 @@ function applyRotation() {
   newCrop(c); refresh("box", true);
 }
 function wireRotate() {
-  const c = sheetCtx; if (!c) return;
-  document.querySelectorAll("[data-rot]").forEach(b => b.onclick = () => { if (!c.orig0) return; c.rot = ((c.rot || 0) + +b.dataset.rot + 360) % 360; applyRotation(); });
-  const f = $("#rotFine"); if (f) { f.value = c.cutRot || 0; const o = $("#rotVal"); if (o) o.textContent = (c.cutRot || 0) + "°"; let t = 0; f.oninput = () => { c.cutRot = +f.value; if (o) o.textContent = c.cutRot + "°"; clearTimeout(t); t = setTimeout(drawResult, 40); }; }
-  const z = $("#rotZero"); if (z) z.onclick = () => { c.cutRot = 0; if (f) f.value = 0; const o = $("#rotVal"); if (o) o.textContent = "0°"; drawResult(); };
+  const c = sheetCtx; if (!c) return; const cv = $("#resCv"), wrap = cv && cv.parentElement, out = $("#rotVal");
+  const label = d => { if (out) out.textContent = fmtDeg(d); };
+  const set = d => { c.cutRot = normDeg(d); label(c.cutRot); drawResult(); };
+  label(c.cutRot || 0);
+  document.querySelectorAll("[data-r90]").forEach(b => b.onclick = () => set((c.cutRot || 0) + +b.dataset.r90));
+  const z = $("#rotZero"); if (z) z.onclick = () => set(0);
+  if (wrap && c.type !== "goshuin") RotUI(wrap, { get: () => c.cutRot || 0, busy: () => !!c.erasing,
+    start: () => { if (c.ez && c.ez.z > 1 && c.ezReset) c.ezReset(); },
+    preview: d => { label(d); const b = c.cut0 || c.cut; if (b && b.canvas) drawTurned(cv, b.canvas, d, Math.min(wrap.clientWidth || 260, 300), 260, 2); },
+    commit: set });
+}
+
+/* ---------- 切り抜いた絵を指で回す（枠の下の回転ハンドル・2本指でひねる） ----------
+   回すのは仕上がった絵そのもの。消しゴム・明るさ・コントラストはそのまま残る */
+const normDeg = d => { let v = Math.round((((d % 360) + 540) % 360 - 180) * 2) / 2; return v === -180 ? 180 : v; };
+const fmtDeg = d => (d > 0 ? "+" : "") + (Math.round(d * 2) / 2) + "°";
+function drawTurned(cv, src, deg, maxW, maxH, upTo) {
+  const r = deg * Math.PI / 180, co = Math.abs(Math.cos(r)), si = Math.abs(Math.sin(r));
+  const W = src.width * co + src.height * si, H = src.width * si + src.height * co;
+  const k = Math.min(maxW / W, maxH / H, upTo || 2), dpr = Math.min(2, devicePixelRatio || 1);
+  cv.width = Math.max(1, Math.round(W * k * dpr)); cv.height = Math.max(1, Math.round(H * k * dpr)); cv.style.width = W * k + "px"; cv.style.height = H * k + "px";
+  const x = cv.getContext("2d"); x.setTransform(1, 0, 0, 1, 0, 0); x.clearRect(0, 0, cv.width, cv.height);
+  x.translate(cv.width / 2, cv.height / 2); x.rotate(r); x.scale(k * dpr, k * dpr); x.drawImage(src, -src.width / 2, -src.height / 2); x.setTransform(1, 0, 0, 1, 0, 0);
+}
+const ROT_SVG = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19.4 13.5A7.5 7.5 0 1 1 17.3 6.7" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/><path d="M19.6 3.2v4.9h-4.9" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+function RotUI(wrap, opts) {
+  wrap._rot = opts; if (wrap._rotOn) return; wrap._rotOn = true; wrap.classList.add("rotok");
+  const h = document.createElement("button"); h.type = "button"; h.className = "rot-h"; h.setAttribute("aria-label", "指でつまんで回す"); h.innerHTML = ROT_SVG;
+  const stem = document.createElement("i"); stem.className = "rot-stem"; const tip = document.createElement("b"); tip.className = "rot-tip"; tip.hidden = true;
+  wrap.append(stem, h, tip);
+  const O = () => wrap._rot; let st = null;
+  const snap = d => { for (let k = -2; k <= 2; k++) if (Math.abs(d - k * 90) < 3) return k * 90; return d; };
+  const center = () => { const cv = wrap.querySelector("canvas"), r = (cv || wrap).getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 }; };
+  const begin = () => { const o = O(); if (o.start) o.start(); const cs = getComputedStyle(wrap), pad = cs.boxSizing === "border-box" ? 0 : parseFloat(cs.paddingTop) + parseFloat(cs.paddingBottom) + parseFloat(cs.borderTopWidth) + parseFloat(cs.borderBottomWidth); wrap.style.minHeight = (wrap.offsetHeight - pad) + "px"; wrap.classList.add("rotting"); const d = o.get(); st = { d0: d, cur: d }; tip.textContent = fmtDeg(d); tip.hidden = false; };
+  const move = raw => { if (!st) return; const d = normDeg(snap(raw)); if (d === st.cur) return; st.cur = d; tip.textContent = fmtDeg(d); O().preview(d); };
+  const end = () => { if (!st) return; const d = st.cur; st = null; tip.hidden = true; wrap.classList.remove("rotting"); wrap.style.minHeight = ""; O().commit(d); };
+  const ang = (p, c) => Math.atan2(p.y - c.y, p.x - c.x) * 180 / Math.PI;
+  let hp = null;
+  h.onpointerdown = e => { e.preventDefault(); e.stopPropagation(); try { h.setPointerCapture(e.pointerId); } catch (_) {} begin(); const c = center(); hp = { id: e.pointerId, c, a0: ang({ x: e.clientX, y: e.clientY }, c), last: 0, turns: 0 }; };
+  h.onpointermove = e => { if (!hp || e.pointerId !== hp.id) return; let a = ang({ x: e.clientX, y: e.clientY }, hp.c) - hp.a0; a -= 360 * Math.round((a - hp.last) / 360); hp.last = a; move(st.d0 + a); };
+  h.onpointerup = h.onpointercancel = e => { if (hp && e.pointerId === hp.id) { hp = null; end(); } };
+  h.onclick = e => e.preventDefault();
+  // 2本指でひねる
+  const P = new Map(); let tw = null;
+  const pair = () => { const [a, b] = [...P.values()]; return Math.atan2(b.y - a.y, b.x - a.x) * 180 / Math.PI; };
+  wrap.addEventListener("pointerdown", e => { if (e.target === h || hp || (O().busy && O().busy())) return; P.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if (P.size === 2 && !tw) { begin(); tw = { a0: pair(), last: 0 }; } });
+  wrap.addEventListener("pointermove", e => { if (!P.has(e.pointerId)) return; P.set(e.pointerId, { x: e.clientX, y: e.clientY }); if (!tw || P.size < 2) return; e.preventDefault();
+    let a = pair() - tw.a0; a -= 360 * Math.round((a - tw.last) / 360); tw.last = a; move(st.d0 + a); });
+  const up = e => { if (!P.delete(e.pointerId)) return; if (tw && P.size < 2) { tw = null; end(); } };
+  wrap.addEventListener("pointerup", up); wrap.addEventListener("pointercancel", up);
+}
+
+/* ---------- 登録したスタンプの「向きを直す」（切り抜きはそのまま、絵だけを回す） ---------- */
+async function openTurn(s) {
+  let im; try { im = await loadImg(s.cut); } catch { toast("絵を読み込めませんでした"); return; }
+  const base = mkCanvas(im.naturalWidth || im.width, im.naturalHeight || im.height); base.getContext("2d").drawImage(im, 0, 0);
+  openSheet(`<div class="sheet-head"><h2>向きを直す</h2><button class="btn small ghost" type="button" data-close>やめる</button></div>
+    <p class="cap" style="margin:0 0 10px">切り抜いた絵はそのままで、向きだけを変えます。絵の下の丸い矢印を指でつまんで回すか、絵を2本指でひねってください。</p>
+    <div class="result"><div class="res-wrap ${s.type === "digital" || s.digital ? "digi" : "washi"}"><canvas id="turnCv"></canvas></div>
+    <div class="rotres"><button class="btn small" type="button" data-r90="-90" aria-label="左に90度回す">↺ 90°</button><span class="rotlbl">角度 <output id="turnVal">0°</output></span><button class="btn small" type="button" data-r90="90" aria-label="右に90度回す">↻ 90°</button><button class="btn small ghost" type="button" id="turnZero">0°にもどす</button></div></div>
+    <div class="acts"><button class="btn" type="button" id="turnBack">やめる</button><button class="btn primary" type="button" id="turnSave">この向きにする</button></div>`);
+  const cv = $("#turnCv"), wrap = cv.parentElement, out = $("#turnVal"); let deg = 0;
+  const draw = d => { if (out) out.textContent = fmtDeg(d); drawTurned(cv, base, d, Math.min(wrap.clientWidth || 260, 300), 260, 2); };
+  const set = d => { deg = normDeg(d); draw(deg); };
+  draw(0);
+  RotUI(wrap, { get: () => deg, preview: draw, commit: set });
+  document.querySelectorAll("#sheet [data-r90]").forEach(b => b.onclick = () => set(deg + +b.dataset.r90));
+  $("#turnZero").onclick = () => set(0);
+  $("#turnBack").onclick = () => { const t = findStamp(s.id); if (t) openStamp("edit", t); else closeSheet(); };
+  $("#turnSave").onclick = async () => {
+    if (!deg) { const t = findStamp(s.id); if (t) openStamp("edit", t); else closeSheet(); return; }
+    const btn = $("#turnSave"); btn.disabled = true; btn.innerHTML = `<span class="spin"></span> 保存中`;
+    const r = rotCanvas(base, deg, true), t = trimCut({ canvas: r, url: "", w: r.width, h: r.height });
+    const url = t.url || r.toDataURL("image/png");
+    const d = { ...s, cut: url, cw: t.w, ch: t.h, cutRot: normDeg((s.cutRot || 0) + deg), trimmed: 1, recut: Date.now() };
+    delete d._sig; delete d._hay;
+    try { await Store.saveStamp(d); } catch { btn.disabled = false; btn.textContent = "もう一度保存"; toast("保存できませんでした。通信を確かめてもう一度どうぞ", 4000); return; }
+    stamps = stamps.map(x => x.id === d.id ? d : x); Books.thumbs.clear(); imgCache.delete(s.cut);
+    if (wantShare(d)) { try { await Store.pubPut(pubView(d), await thumbOf(d.cut), Profile.nick); MapV.pubs = null; } catch {} }
+    refreshAll(); openStamp("edit", d); toast("向きを直しました");
+  };
+}
+
+/* ---------- 写真のうっすらした影・明るさのむらをならす ----------
+   紙の部分だけから「その場所の紙の明るさ」を大まかに求め、紙の色にそろうように明るくする（暗くはしない）。
+   インクの色や形は、まわりの紙と同じ割合で明るくなるだけなので変わらない */
+function flattenPaper(d, W, H, paper) {
+  const pL = paper[0] + paper[1] + paper[2]; if (pL < 300) return false;
+  const pc = paper.map(v => v / pL), G = Math.max(8, Math.round(Math.max(W, H) / 16)), gw = Math.ceil(W / G), gh = Math.ceil(H / G), N = gw * gh;
+  let bg = new Float32Array(N * 3); const ok = new Uint8Array(N); let any = 0, dark = 0;
+  for (let by = 0; by < gh; by++) for (let bx = 0; bx < gw; bx++) {
+    const v = []; for (let y = by * G; y < Math.min(H, by * G + G); y += 2) for (let x = bx * G; x < Math.min(W, bx * G + G); x += 2) { const i = (y * W + x) * 4; v.push(d[i] + d[i + 1] + d[i + 2], i); }
+    const idx = []; for (let k = 0; k < v.length; k += 2) idx.push(k); idx.sort((a, b) => v[b] - v[a]);
+    const top = idx.slice(0, Math.max(1, idx.length * 0.2 | 0)); let r = 0, g = 0, b = 0; for (const k of top) { const i = v[k + 1]; r += d[i]; g += d[i + 1]; b += d[i + 2]; } r /= top.length; g /= top.length; b /= top.length;
+    const sm = r + g + b, o = by * gw + bx; if (!sm) continue; const ratio = sm / pL, cd = Math.abs(r / sm - pc[0]) + Math.abs(g / sm - pc[1]) + Math.abs(b / sm - pc[2]);
+    if (ratio > 0.45 && ratio < 1.2 && cd < 0.07) { bg[o * 3] = r; bg[o * 3 + 1] = g; bg[o * 3 + 2] = b; ok[o] = 1; any++; if (ratio < 0.93) dark++; }
+  }
+  if (!any || !dark) return false;
+  for (let pass = 0; pass < gw + gh; pass++) { let left = 0; const add = [];
+    for (let o = 0; o < N; o++) { if (ok[o]) continue; const bx = o % gw, by = o / gw | 0; let n = 0, r = 0, g = 0, b = 0;
+      for (let yy = -1; yy <= 1; yy++) for (let xx = -1; xx <= 1; xx++) { const X = bx + xx, Y = by + yy; if (X < 0 || Y < 0 || X >= gw || Y >= gh) continue; const q = Y * gw + X; if (!ok[q]) continue; n++; r += bg[q * 3]; g += bg[q * 3 + 1]; b += bg[q * 3 + 2]; }
+      if (n) add.push([o, r / n, g / n, b / n]); else left++; }
+    for (const [o, r, g, b] of add) { bg[o * 3] = r; bg[o * 3 + 1] = g; bg[o * 3 + 2] = b; ok[o] = 1; } if (!left) break; }
+  for (let pass = 0; pass < 1; pass++) { const nb = new Float32Array(bg.length);
+    for (let by = 0; by < gh; by++) for (let bx = 0; bx < gw; bx++) for (let ch = 0; ch < 3; ch++) { let sum = 0, n = 0; for (let yy = -1; yy <= 1; yy++) for (let xx = -1; xx <= 1; xx++) { const X = bx + xx, Y = by + yy; if (X < 0 || Y < 0 || X >= gw || Y >= gh) continue; sum += bg[(Y * gw + X) * 3 + ch]; n++; } nb[(by * gw + bx) * 3 + ch] = sum / n; }
+    bg = nb; }
+  const gain = new Float32Array(N * 3); for (let o = 0; o < N; o++) for (let ch = 0; ch < 3; ch++) gain[o * 3 + ch] = clamp(paper[ch] / Math.max(30, bg[o * 3 + ch]), 1, 1.8);
+  for (let y = 0; y < H; y++) { const fy = clamp(y / G - 0.5, 0, gh - 1), y0 = fy | 0, y1 = Math.min(gh - 1, y0 + 1), ay = fy - y0;
+    for (let x = 0; x < W; x++) { const fx = clamp(x / G - 0.5, 0, gw - 1), x0 = fx | 0, x1 = Math.min(gw - 1, x0 + 1), ax = fx - x0, i = (y * W + x) * 4;
+      for (let ch = 0; ch < 3; ch++) { const k = (gain[(y0 * gw + x0) * 3 + ch] * (1 - ax) + gain[(y0 * gw + x1) * 3 + ch] * ax) * (1 - ay) + (gain[(y1 * gw + x0) * 3 + ch] * (1 - ax) + gain[(y1 * gw + x1) * 3 + ch] * ax) * ay; if (k > 1.004) d[i + ch] = Math.min(255, d[i + ch] * k); } } }
+  return true;
 }
 
 /* ---------- トレカ一覧: 2本指で列の数を変える（1〜5列） ---------- */
