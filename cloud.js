@@ -553,6 +553,11 @@
     isOffline() { return offline || noNet(); },
     email() { return user ? user.email : ""; },
     aiAvailable() { return attached; },
+    // 歩いた記録（スタンプ集めの開始〜終了・経路）
+    async listWalks() { const { data, error } = await sb.from("walks").select("id,data").eq("user_id", uid).order("id"); if (error) fail(error); return (data || []).map((r) => ({ ...(r.data || {}), id: r.id })); },
+    async saveWalk(w) { const { id, ...data } = w; const { error } = await sb.from("walks").upsert({ user_id: uid, id, data, updated_at: new Date().toISOString() }); if (error) fail(error); },
+    async delWalk(id) { const { error } = await sb.from("walks").delete().eq("user_id", uid).eq("id", id); if (error) fail(error); },
+    async walk(task, args) { if (!attached) throw { code: "login_required" }; const j = await callFn("walk", { task, args }); return j.result; },
     // みんなのスタンプ図鑑（AIは使わない）: match / register / leave
     async zukan(task, args) {
       if (!attached) throw { code: "login_required" };

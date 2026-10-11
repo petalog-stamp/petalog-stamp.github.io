@@ -1008,6 +1008,39 @@ html.tcv-on #toast{z-index:95}
 .realfit.ok{color:#1E7A45;font-weight:700}
 .realfit.big{color:#A5501F}
 .tc-dim{height:calc(var(--u) * 2.24)}
+
+/* 10/11 歩いた記録 */
+.walk-btn{position:relative}
+.walk-btn i{position:absolute;right:5px;top:5px;width:8px;height:8px;border-radius:50%;background:#E5483A;box-shadow:0 0 0 2px var(--bg);display:none}
+.walk-btn.on{color:#C8412E}.walk-btn.on i{display:block;animation:wkBlink 1.4s ease-in-out infinite}
+@keyframes wkBlink{50%{opacity:.25}}
+.walk-bar{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(66px + env(safe-area-inset-bottom));z-index:40;display:flex;align-items:center;gap:8px;background:rgba(27,33,48,.92);color:#fff;border-radius:999px;padding:6px 6px 6px 14px;box-shadow:0 6px 20px rgba(0,0,0,.3);font-size:12.5px;white-space:nowrap;max-width:calc(100vw - 20px)}
+.walk-bar .wb-dot{width:8px;height:8px;border-radius:50%;background:#FF5A4A;animation:wkBlink 1.4s ease-in-out infinite;flex:none}
+.walk-bar .wb-t{overflow:hidden;text-overflow:ellipsis;font-variant-numeric:tabular-nums;cursor:pointer}
+.walk-bar button{border:0;border-radius:999px;padding:7px 11px;font:700 12px/1 var(--f-ui);background:rgba(255,255,255,.14);color:#fff;flex:none}
+.walk-bar #wbStop{background:#C8412E}
+.pocket{position:fixed;inset:0;z-index:9500;background:#000;color:#3A3A3A;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;touch-action:none;-webkit-user-select:none;user-select:none;text-align:center;padding:24px}
+.pocket .pk-clock{font:300 64px/1 var(--f-mono);color:#4A4A4A;letter-spacing:.04em}
+.pocket .pk-stat{font:500 15px/1.4 var(--f-mono);color:#5A5A5A}
+.pocket .pk-msg{font-size:13px;line-height:1.8;color:#444;margin:10px 0 30px}
+.pocket .pk-un{position:relative;border:1px solid #333;background:#0A0A0A;color:#777;border-radius:999px;padding:14px 26px;font:600 13px/1 var(--f-ui);overflow:hidden}
+.pocket .pk-un i{position:absolute;left:0;top:0;bottom:0;width:0;background:#2A2A2A}
+.pocket .pk-un.hold i{width:100%;transition:width 1.3s linear}
+.pocket .pk-un span{position:relative}
+.walk-start{display:flex;flex-direction:column;gap:8px;margin-bottom:6px}
+.walk-start .btn{font-size:16px;padding:14px}
+.walk-list{display:flex;flex-direction:column;gap:8px}
+.walk-list button{display:flex;flex-direction:column;align-items:flex-start;gap:3px;text-align:left;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:10px 12px;font:inherit;color:inherit}
+.walk-list button span{font-size:12px;color:var(--muted)}
+.walk-map canvas{width:100%;height:auto;border-radius:14px;box-shadow:inset 0 0 0 1px var(--line);display:block}
+.walk-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin:12px 0}
+.walk-stats span{display:flex;flex-direction:column;align-items:center;text-align:center;background:var(--card);border-radius:12px;padding:10px 4px;box-shadow:inset 0 0 0 1px var(--line)}
+.walk-stats b{font-size:16px}.walk-stats small{font-size:10.5px;color:var(--muted);line-height:1.4}
+.sc-steps{padding-left:1.3em;font-size:13.5px;line-height:1.8}.sc-steps li{margin-bottom:6px}
+.sc-steps code,.sc-url code{font:500 12px var(--f-mono);background:var(--ai-soft);padding:1px 5px;border-radius:5px;word-break:break-all}
+.sc-url{display:flex;gap:8px;align-items:center;margin:6px 0}
+.year-img{display:flex;justify-content:center;min-height:200px;align-items:center}
+.year-img img{width:100%;max-width:420px;border-radius:14px;box-shadow:0 8px 24px rgba(0,0,0,.25)}
 </style>
 
 <div id="app">
@@ -4295,7 +4328,7 @@ function openSettings() {
   const ks = $("#keySave"); if (ks) ks.onclick = () => { const v = $("#keyIn").value.trim(); if (!/^sk-ant-/.test(v)) { toast("sk-ant- で始まるキーを入れてください"); return; } lsSet("petalog.apikey", v); toast("APIキーを保存しました"); openSettings(); };
   const kd = $("#keyDel"); if (kd) kd.onclick = () => { try { localStorage.removeItem("petalog.apikey"); } catch {} toast("APIキーを消しました"); openSettings(); };
   if (window.PetalogCloud) PetalogCloud.wireSettings();
-  Privacy.wire(); YahooLS.wire(); HQ.settings();
+  Privacy.wire(); YahooLS.wire(); YearSum.btn(); HQ.settings();
 }
 $("#setBtn").onclick = openSettings;
 async function exportBackup() {
@@ -6413,6 +6446,345 @@ function realFitNote() {
   else { el.textContent = `${lim}cmをこえるので、トレカには縮小して入れます（実寸で入るのは${lim}cmまで）`; el.className = "cap realfit big"; }
 }
 
+/* ================= 歩いた記録（スタンプ集め 開始／終了・おさんぽモード） =================
+   ・アプリを開いている間は GPS で経路を記録（数秒ごとに端末へ保存。落ちても消えない）
+   ・おさんぽモード: 画面を消さない（Wake Lock）＋真っ黒の省電力画面＋誤タッチ防止。ポケットに入れたまま記録できる
+   ・画面を閉じていた区間は、前の地点→（その間に登録したスタンプの場所）→次の地点を徒歩ルートでつなぐ（直線ではつながない）
+   ・歩数: iPhone は「ショートカット」から（サーバー経由）。ないときは歩いた距離から見積もる */
+const WALK_SC = "ぺたろぐ歩数";   // 配る iPhone ショートカットの名前
+function saveImage(cv, name) {
+  return new Promise(res => cv.toBlob(b => {
+    if (!b) { toast("画像を作れませんでした"); return res(); } const f = new File([b], name + ".jpg", { type: "image/jpeg" });
+    let can = false; try { can = !!(navigator.share && navigator.canShare && navigator.canShare({ files: [f] })); } catch (_) {}
+    if (can) { navigator.share({ files: [f] }).then(() => toast("保存しました")).catch(() => {}); return res(); }
+    const a = document.createElement("a"); a.href = URL.createObjectURL(b); a.download = f.name; document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 4000); res();
+  }, "image/jpeg", 0.92));
+}
+const fmtDur = ms => { const m = Math.max(0, Math.round(ms / 60000)), h = Math.floor(m / 60); return h ? `${h}時間${m % 60}分` : `${m}分`; };
+const fmtM = m => m >= 1000 ? (m / 1000).toFixed(m >= 10000 ? 1 : 2) + "km" : Math.round(m) + "m";
+const mDist = (a, b) => kmBetween(a[0], a[1], b[0], b[1]) * 1000;
+const Walk = {
+  K: "petalog.walkCur", cur: null, wid: null, list: null, wake: null, pocketOn: false, saveT: 0, tm: 0, filling: false,
+  // ---- 保存 ----
+  async loadList(force) {
+    if (this.list && !force) return this.list;
+    try { this.list = Store.mode === "cloud" && window.PetalogCloud ? await PetalogCloud.listWalks() : (((await Store.getMeta("walks")) || {}).walks || []); } catch (_) { this.list = this.list || []; }
+    this.list.sort((a, b) => b.start - a.start); return this.list;
+  },
+  async put(w) {
+    const L = await this.loadList(); const i = L.findIndex(x => x.id === w.id); if (i >= 0) L[i] = w; else L.unshift(w); L.sort((a, b) => b.start - a.start);
+    if (Store.mode === "cloud" && window.PetalogCloud) await PetalogCloud.saveWalk(w); else await Store.putMeta("walks", { walks: L });
+  },
+  async remove(id) {
+    const L = await this.loadList(); this.list = L.filter(x => x.id !== id);
+    if (Store.mode === "cloud" && window.PetalogCloud) await PetalogCloud.delWalk(id); else await Store.putMeta("walks", { walks: this.list });
+  },
+  keep(now) { if (!this.cur) return; clearTimeout(this.saveT); const go = () => lsSet(this.K, JSON.stringify(this.cur)); if (now) go(); else this.saveT = setTimeout(go, 1500); },
+  // ---- はじめ／おわり ----
+  init() {
+    const set = $("#setBtn"); if (set && !$("#walkBtn")) set.insertAdjacentHTML("beforebegin", `<button class="icon-btn walk-btn" id="walkBtn" type="button" aria-label="スタンプ集め（歩いた記録）"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="13.5" cy="4" r="1.8"/><path d="m9 21 2.2-5.5L14 18v3M7 12.5 9.5 9l3.5-.8 2.6 2.8L18 12.5M13 8.2 11.2 15.5"/></svg><i></i></button>`);
+    const b = $("#walkBtn"); if (b) b.onclick = () => this.cur ? this.menu() : this.home();
+    try { this.cur = JSON.parse(lsGet(this.K) || "null"); } catch (_) { this.cur = null; }
+    if (this.cur && (!this.cur.start || Date.now() - this.cur.start > 2 * 86400e3)) { this.cur = null; try { localStorage.removeItem(this.K); } catch (_) {} }
+    if (this.cur) { this.watch(); this.bar(); }
+    document.addEventListener("visibilitychange", () => { if (document.hidden) { this.keep(true); return; } if (this.cur) { this.watch(); if (this.pocketOn) this.lock(); } this.stepsBack(); });
+    addEventListener("pagehide", () => this.keep(true));
+    if (/[?&]walk=/.test(location.search)) setTimeout(() => this.stepsBack(true), 2500);
+  },
+  start() {
+    if (!navigator.geolocation) { toast("この端末では位置情報が使えません"); return; }
+    this.cur = { id: uid("w"), start: Date.now(), pts: [], gaps: [] }; this.keep(true); this.watch(); this.bar(); closeSheet();
+    toast("スタンプ集めを始めました。アプリを開いている間の道のりを記録します", 4200);
+  },
+  watch() {
+    if (!this.cur || !navigator.geolocation) return; if (this.wid != null) navigator.geolocation.clearWatch(this.wid);
+    this.wid = navigator.geolocation.watchPosition(p => this.onPos(p), e => { if (e && e.code === 1) toast("位置情報が使えません。設定で「位置情報」を許可してください", 4800); }, { enableHighAccuracy: true, maximumAge: 4000, timeout: 30000 });
+  },
+  onPos(p) {
+    const c = this.cur; if (!c) return; const q = [+p.coords.latitude.toFixed(6), +p.coords.longitude.toFixed(6), Date.now(), 0], acc = p.coords.accuracy != null ? p.coords.accuracy : 999, last = c.pts[c.pts.length - 1];
+    if (acc > (last && q[2] - last[2] > 180000 ? 120 : 60)) return;
+    if (last) { const d = mDist(last, q), dt = q[2] - last[2]; if (d < 10 && dt < 60000) return;
+      if (dt > 90000 && d > 150) { c.gaps.push({ i: c.pts.length, a: last.slice(0, 3), b: q.slice(0, 3) }); setTimeout(() => this.fillGaps(), 200); } }
+    c.pts.push(q); this.keep(); this.paint();
+  },
+  // 画面を閉じていた区間を、道に沿ってつなぐ（その間に登録したスタンプも通る）
+  async route(a, b) {
+    const u = `https://routing.openstreetmap.de/routed-foot/route/v1/driving/${a[1]},${a[0]};${b[1]},${b[0]}?overview=full&geometries=geojson`;
+    const r = await fetch(u); if (!r.ok) throw 0; const j = await r.json(); const g = j.routes && j.routes[0]; if (!g) throw 0;
+    return { pts: g.geometry.coordinates.map(([x, y]) => [+y.toFixed(6), +x.toFixed(6)]), m: g.distance };
+  },
+  async fillGaps(w) {
+    const c = w || this.cur; if (!c || this.filling) return; this.filling = true;
+    try {
+      for (const g of c.gaps) {
+        if (g.done) continue; const dt = g.b[2] - g.a[2], d = mDist(g.a, g.b);
+        if (d / Math.max(1, dt / 1000) > 3.4 || d > 30000) { g.done = 1; g.ride = 1; continue; }   // 歩くより速い＝電車などに乗った区間。道はたどらない
+        const via = stamps.filter(s => s.lat != null && !s.sample && Zukan.t(s) > g.a[2] && Zukan.t(s) < g.b[2]).sort((x, y) => Zukan.t(x) - Zukan.t(y)).map(s => [+s.lat, +s.lng, Zukan.t(s)]);
+        const seq = [g.a, ...via, g.b], out = []; let ok = true;
+        for (let i = 0; i + 1 < seq.length; i++) { try { const r = await this.route(seq[i], seq[i + 1]); out.push(...(out.length ? r.pts.slice(1) : r.pts)); } catch (_) { ok = false; break; } }
+        if (ok && out.length) { g.r = out; g.done = 1; }
+      }
+    } finally { this.filling = false; if (c === this.cur) { this.keep(); this.paint(); } }
+  },
+  // 地図に描く線: [{ pts, kind: "walk"|"fill"|"ride"|"line" }]
+  segs(c) {
+    const S = [], P = c.pts || [], gi = new Map((c.gaps || []).map(g => [g.i, g])); let cur = null;
+    const push = (kind, pts) => { if (pts.length < 2) return; S.push({ kind, pts }); };
+    for (let i = 0; i < P.length; i++) {
+      const g = gi.get(i);
+      if (g) { if (cur) push(cur.kind, cur.pts); cur = null; push(g.r ? "fill" : g.ride ? "ride" : "line", g.r || [g.a, g.b]); }
+      const q = P[i], prev = i && !g ? P[i - 1] : null, dt = prev ? q[2] - prev[2] : 0; const kind = !prev ? "walk" : dt >= 8000 ? (mDist(prev, q) / (dt / 1000) > 6 ? "ride" : "walk") : (cur ? cur.kind : "walk");   // GPSのぶれで「乗り物」にならないよう、8秒以上あいた2点で速さを見る
+      if (!cur || cur.kind !== kind) { if (cur) push(cur.kind, cur.pts); cur = { kind, pts: prev ? [prev] : [] }; }
+      cur.pts.push(q);
+    }
+    if (cur) push(cur.kind, cur.pts); return S;
+  },
+  stats(c, end) {
+    let walk = 0, ride = 0; for (const s of this.segs(c)) { let d = 0; for (let i = 1; i < s.pts.length; i++) d += mDist(s.pts[i - 1], s.pts[i]); if (s.kind === "ride") ride += d; else walk += d; }
+    const t0 = c.start, t1 = end || c.end || Date.now(); return { walk, ride, ms: t1 - t0, est: Math.round(walk / 0.7) };
+  },
+  stampsOf(w) { const t1 = w.end || Date.now(); return stamps.filter(s => !s.sample && s.type !== "goshuin" && Zukan.t(s) >= w.start - 60000 && Zukan.t(s) <= t1 + 60000).sort((a, b) => Zukan.t(a) - Zukan.t(b)); },
+  async stop() {
+    const c = this.cur; if (!c) return; if (this.wid != null) { navigator.geolocation.clearWatch(this.wid); this.wid = null; } this.unlock(true);
+    c.end = Date.now(); await this.fillGaps(c).catch(() => {});
+    const st = this.stats(c), w = { id: c.id, start: c.start, end: c.end, pts: simplifyPts(c.pts, 6), gaps: c.gaps, walkM: Math.round(st.walk), rideM: Math.round(st.ride), est: st.est, stamps: this.stampsOf(c).map(s => s.id) };
+    this.cur = null; try { localStorage.removeItem(this.K); } catch (_) {} this.bar();
+    try { await this.put(w); } catch (_) { toast("記録をアカウントに保存できませんでした。通信を確かめてください", 4200); lsSet("petalog.walkUnsaved", JSON.stringify(w)); }
+    this.show(w, true);
+  },
+  // ---- 画面 ----
+  bar() {
+    let el = $("#walkBar"); const b = $("#walkBtn"); if (b) b.classList.toggle("on", !!this.cur);
+    if (!this.cur) { if (el) el.remove(); clearInterval(this.tm); this.tm = 0; return; }
+    if (!el) { el = document.createElement("div"); el.id = "walkBar"; el.className = "walk-bar"; el.innerHTML = `<span class="wb-dot"></span><span class="wb-t" id="wbT"></span><button type="button" id="wbPocket">おさんぽモード</button><button type="button" id="wbStop">終了</button>`; document.body.appendChild(el);
+      $("#wbPocket").onclick = () => this.pocket(); $("#wbStop").onclick = () => this.askStop(); el.querySelector(".wb-t").onclick = () => this.menu(); }
+    if (!this.tm) this.tm = setInterval(() => this.paint(), 1000); this.paint();
+  },
+  paint() {
+    const c = this.cur; if (!c) return; const st = this.stats(c), txt = `記録中 ${fmtDur(st.ms)} · ${fmtM(st.walk + st.ride)}`;
+    const t = $("#wbT"); if (t) t.textContent = txt; const pk = $("#pkStat"); if (pk) pk.textContent = txt; const pc = $("#pkClock"); if (pc) { const d = new Date(); pc.textContent = pad2(d.getHours()) + ":" + pad2(d.getMinutes()); }
+  },
+  askStop() {
+    sheetCtx = { mode: "walkstop" }; const st = this.stats(this.cur);
+    openSheet(`<div class="sheet-head"><h2>スタンプ集めを終わる</h2><button class="btn small ghost" type="button" data-close>やめる</button></div>
+      <p style="margin:0 0 6px">${fmtDur(st.ms)} · ${fmtM(st.walk + st.ride)}（歩いた ${fmtM(st.walk)}）· スタンプ ${this.stampsOf(this.cur).length}こ</p>
+      <p class="cap">終わると、道のりの地図ができます。${isIOS ? "iPhoneの歩数も入れられます。" : ""}</p>
+      <div class="acts"><button class="btn" type="button" data-close>まだ続ける</button><button class="btn primary" type="button" id="wsGo">終わる</button></div>`);
+    $("#wsGo").onclick = () => { closeSheet(); this.stop(); };
+  },
+  menu() { if (this.cur) this.askStop(); },
+  // おさんぽモード（ポケットに入れたまま記録）
+  async pocket() {
+    if (!this.cur) return; this.pocketOn = true;
+    let el = $("#pocket"); if (!el) { el = document.createElement("div"); el.id = "pocket"; el.className = "pocket"; document.body.appendChild(el); }
+    el.innerHTML = `<div class="pk-clock" id="pkClock"></div><div class="pk-stat" id="pkStat"></div><p class="pk-msg">画面を消さずに、道のりを記録しています。<br>このままポケットやかばんへどうぞ。<br>画面にさわっても反応しません。</p>
+      <button type="button" class="pk-un" id="pkUn"><i></i><span>長押しでもどる</span></button>`;
+    el.hidden = false; this.paint(); await this.lock();
+    const un = $("#pkUn"); let t = 0; const stop = () => { clearTimeout(t); un.classList.remove("hold"); };
+    un.onpointerdown = e => { e.preventDefault(); un.classList.add("hold"); t = setTimeout(() => { stop(); this.unlock(); }, 1300); };
+    un.onpointerup = un.onpointercancel = un.onpointerleave = stop;
+    el.oncontextmenu = e => e.preventDefault();
+    if (!("wakeLock" in navigator)) toast("この端末では画面をつけたままにできません。画面が消えた間は、あとで道に沿ってつなぎます", 5200);
+  },
+  async lock() { try { if ("wakeLock" in navigator && (!this.wake || this.wake.released)) this.wake = await navigator.wakeLock.request("screen"); } catch (_) {} },
+  unlock(quiet) { this.pocketOn = false; const el = $("#pocket"); if (el) el.hidden = true; try { if (this.wake) this.wake.release(); } catch (_) {} this.wake = null; if (!quiet) toast("おさんぽモードを終えました（記録は続いています）"); },
+  // ---- 一覧と、1回分の記録 ----
+  async home() {
+    sheetCtx = { mode: "walks" }; const ctx = sheetCtx;
+    openSheet(`<div class="sheet-head"><h2>スタンプ集め</h2><button class="btn small ghost" type="button" data-close>閉じる</button></div><p class="cap"><span class="spin"></span> 読み込み中…</p>`);
+    const L = await this.loadList(); if (sheetCtx !== ctx) return; const y = new Date().getFullYear();
+    openSheet(`<div class="sheet-head"><h2>スタンプ集め</h2><button class="btn small ghost" type="button" data-close>閉じる</button></div>
+      <div class="walk-start"><button class="btn primary" type="button" id="wkStart">🚶 スタンプ集めを始める</button>
+        <p class="cap">始めると、アプリを開いている間の道のりを記録します。終わったら、歩いた地図・時間・距離・歩数と、その日のスタンプがまとまります。ポケットに入れるときは「おさんぽモード」にしてください。</p></div>
+      <div class="sec"><button class="btn" type="button" id="wkYear">✨ ${y}年のぺたろぐ（まとめ画像）</button></div>
+      <div class="sec"><h4>これまでの記録</h4>${L.length ? `<div class="walk-list">${L.slice(0, 60).map(w => `<button type="button" data-wk="${esc(w.id)}"><b>${esc(fmtDate(new Date(w.start).toISOString().slice(0, 10)))}</b><span>${fmtDur(w.end - w.start)} · ${fmtM((w.walkM || 0) + (w.rideM || 0))} · ${(w.steps || w.est || 0).toLocaleString()}歩${w.steps ? "" : "（見積もり）"} · スタンプ ${(w.stamps || []).length}こ</span></button>`).join("")}</div>` : `<p class="cap">まだありません。</p>`}</div>
+      ${isIOS ? `<div class="sec"><h4>iPhoneの歩数を使う</h4><p class="cap" style="margin-top:0">iPhoneの「ヘルスケア」の歩数を入れるには、最初に1回だけ「ショートカット」を用意します。</p><button class="btn small" type="button" id="wkSc">ショートカットの用意のしかた</button></div>` : ""}`);
+    $("#wkStart").onclick = () => this.start(); $("#wkYear").onclick = () => YearSum.open(y);
+    const sc = $("#wkSc"); if (sc) sc.onclick = () => this.scGuide();
+    $("#sheet").querySelector(".walk-list") && ($("#sheet").querySelector(".walk-list").onclick = e => { const b = e.target.closest("[data-wk]"); if (b) { const w = L.find(x => x.id === b.dataset.wk); if (w) this.show(w); } });
+  },
+  async show(w, fresh) {
+    sheetCtx = { mode: "walk" }; const ctx = sheetCtx; const S = this.stampsOfW(w);
+    const steps = w.steps || w.est || 0;
+    openSheet(`<div class="sheet-head"><h2>${fresh ? "おつかれさまでした！" : esc(fmtDate(new Date(w.start).toISOString().slice(0, 10)))}</h2><button class="btn small ghost" type="button" data-close>閉じる</button></div>
+      <div class="walk-map"><canvas id="wkCv"></canvas></div>
+      <div class="walk-stats"><span><b>${fmtDur(w.end - w.start)}</b><small>時間</small></span><span><b>${fmtM(w.walkM || 0)}</b><small>歩いた${w.rideM > 300 ? `<br>（乗り物 ${fmtM(w.rideM)}）` : ""}</small></span><span><b>${steps.toLocaleString()}</b><small>歩${w.steps ? (w.stepsSrc === "iphone" ? "（iPhone）" : "") : "（見積もり）"}</small></span><span><b>${S.length}</b><small>スタンプ</small></span></div>
+      ${isIOS && !w.steps ? `<div class="sec"><button class="btn" type="button" id="wkSteps">iPhoneの歩数を入れる</button><p class="cap" style="margin:6px 0 0">ショートカット「${WALK_SC}」が開いて、この時間の歩数をぺたろぐに送ります。<a href="#" id="wkScHelp">用意のしかた</a></p></div>` : ""}
+      <div class="acts"><button class="btn" type="button" id="wkSave">画像で保存</button><button class="btn primary" type="button" id="wkPage">ジャーナルにページを作る</button></div>
+      <div class="acts" style="margin-top:8px"><button class="btn ghost" type="button" id="wkDel">この記録を消す</button></div>`);
+    const cv = $("#wkCv"), W0 = Math.min(720, ($("#sheet").clientWidth || 360) - 32) * Math.min(2, devicePixelRatio || 1);
+    walkMap(w, S, Math.round(W0), Math.round(W0 * 0.9), { thumbs: true }).then(m => { if (sheetCtx !== ctx) return; cv.width = m.width; cv.height = m.height; cv.getContext("2d").drawImage(m, 0, 0); });
+    $("#wkSave").onclick = async () => { const im = await walkCard(w, S); saveImage(im, "petalog-walk-" + new Date(w.start).toISOString().slice(0, 10)); };
+    $("#wkPage").onclick = () => this.toPage(w, S);
+    $("#wkDel").onclick = async () => { if (!confirm("この歩いた記録を消しますか？（スタンプは消えません）")) return; try { await this.remove(w.id); toast("消しました"); this.home(); } catch (_) { toast("消せませんでした"); } };
+    const ss = $("#wkSteps"); if (ss) ss.onclick = () => this.askSteps(w);
+    const sh = $("#wkScHelp"); if (sh) sh.onclick = e => { e.preventDefault(); this.scGuide(); };
+  },
+  stampsOfW(w) { const ids = new Set(w.stamps || []); const S = stamps.filter(s => ids.has(s.id)); return S.length ? S.sort((a, b) => Zukan.t(a) - Zukan.t(b)) : this.stampsOf(w); },
+  // iPhone の歩数: サーバーで合言葉を作って、ショートカットに渡す
+  async askSteps(w) {
+    if (!(Store.mode === "cloud" && window.PetalogCloud)) { toast("歩数を入れるにはログインしてください（右上の設定から）"); return; }
+    let r; try { r = await PetalogCloud.walk("begin", { walk_id: w.id, start: w.start, end: w.end }); } catch (_) { toast("準備できませんでした。通信を確かめてください"); return; }
+    lsSet("petalog.walkWait", w.id);
+    const pad = d => { const z = new Date(d), o = -z.getTimezoneOffset(), s = o >= 0 ? "+" : "-"; return `${z.getFullYear()}-${pad2(z.getMonth() + 1)}-${pad2(z.getDate())}T${pad2(z.getHours())}:${pad2(z.getMinutes())}:${pad2(z.getSeconds())}${s}${pad2(Math.floor(Math.abs(o) / 60))}:${pad2(Math.abs(o) % 60)}`; };
+    const text = JSON.stringify({ k: r.key, start: pad(w.start), end: pad(w.end) });
+    location.href = `shortcuts://run-shortcut?name=${encodeURIComponent(WALK_SC)}&input=text&text=${encodeURIComponent(text)}`;
+  },
+  async stepsBack(force) {   // ショートカットから戻ってきたら、届いた歩数を受け取る
+    const id = lsGet("petalog.walkWait"); if (!id || !(Store.mode === "cloud" && window.PetalogCloud)) return;
+    let r = null; for (let i = 0; i < (force ? 4 : 2) && !r; i++) { try { r = await PetalogCloud.walk("fetch", { walk_id: id }); } catch (_) {} if (!r) await new Promise(x => setTimeout(x, 1500)); }
+    if (!r || r.steps == null) return; try { localStorage.removeItem("petalog.walkWait"); } catch (_) {}
+    const L = await this.loadList(true), w = L.find(x => x.id === id); if (!w) return;
+    w.steps = r.steps; w.stepsSrc = "iphone"; if (r.km) w.healthKm = r.km; try { await this.put(w); } catch (_) {}
+    toast(`iPhoneの歩数を入れました（${r.steps.toLocaleString()}歩）`, 3600); if (sheetCtx && sheetCtx.mode === "walk") this.show(w);
+  },
+  scGuide() {
+    sheetCtx = { mode: "walksc" };
+    const url = "https://xwhmmgqmiefnhcdpbuoz.supabase.co/functions/v1/walk";
+    openSheet(`<div class="sheet-head"><h2>iPhoneの歩数を使う</h2><button class="btn small ghost" type="button" data-close>閉じる</button></div>
+      <p class="cap" style="margin-top:0">iPhoneの「ショートカット」アプリで、ショートカットを1つ作ります（最初の1回だけ）。名前は <b>${WALK_SC}</b> にしてください。</p>
+      <ol class="sc-steps">
+        <li>「ショートカット」アプリを開き、右上の「＋」で新しいショートカットを作る。名前を「${WALK_SC}」にする</li>
+        <li>「アクションを追加」で <b>辞書を取得</b> を追加（入力は「ショートカットの入力」）</li>
+        <li><b>辞書の値を取得</b> を追加 → キーは <code>start</code>。もう1つ追加してキーは <code>end</code>、もう1つ追加してキーは <code>k</code></li>
+        <li><b>ヘルスケアサンプルを検索</b> を追加 → 種類「歩数」、条件「開始日」が start より後、「終了日」が end より前</li>
+        <li><b>統計を計算</b> を追加 → 「合計」</li>
+        <li>もう1回 <b>ヘルスケアサンプルを検索</b>（種類「歩行＋走行の距離」、同じ条件）と <b>統計を計算</b>（合計）を追加</li>
+        <li><b>URLの内容を取得</b> を追加 → URL は下のアドレス、方法「POST」、本文「JSON」で、<code>task</code> = <code>steps</code>、<code>k</code> = k の値、<code>steps</code> = 歩数の合計、<code>km</code> = 距離の合計</li>
+        <li>最後に <b>URLを開く</b> を追加 → <code>https://petalog-stamp.github.io/?walk=done</code></li>
+      </ol>
+      <div class="sc-url"><code>${url}</code><button class="btn small" type="button" id="scCopy">コピー</button></div>
+      <p class="cap">一度作れば、あとは記録の画面で「iPhoneの歩数を入れる」を押すだけです。初回だけ「ヘルスケアへのアクセス」を「許可」してください。</p>`);
+    $("#scCopy").onclick = () => { try { navigator.clipboard.writeText(url); toast("コピーしました"); } catch (_) {} };
+  },
+  // ジャーナルに「この日のスタンプ集め」ページを作る（地図を背景に、スタンプを道のりの上に貼る）
+  async toPage(w, S) {
+    const b0 = Books.data && Books.data.books; if (!b0) { toast("ジャーナルを読み込めていません"); return; }
+    let b = Books.curBook || [...b0].sort((x, y) => Math.max(0, ...y.pages.map(q => q.updated || 0)) - Math.max(0, ...x.pages.map(q => q.updated || 0)))[0];
+    if (!b) { b = Books.mkBook("わたしのスタンプジャーナル"); b0.push(b); }
+    const sz = PAGE_SIZES.a4, PW = 1240, PH = Math.round(PW * sz.h / sz.w);
+    const m = await walkMap(w, S, PW, PH, { page: true, top: 0.17, bottom: 0.08 }); const url = m.toDataURL("image/jpeg", 0.86);
+    const p = Books.mkPage({ size: "a4", paper: "photo", title: `${fmtDate(new Date(w.start).toISOString().slice(0, 10))} スタンプ集め` });
+    const key = "bg_" + p.id; try { await Store.putPhoto(key, url); } catch (_) { toast("地図を保存できませんでした"); return; } p.bg = key; Board.bgImgs.set(key, await loadImg(url));
+    const k = sz.w / PW, pos = m._pos || [];
+    S.forEach((s, i) => { const q = pos[i]; if (!q) return; p.items.push({ k: "w" + i, sid: s.id, x: Math.round(q[0] * k), y: Math.round(q[1] * k - 170), r: ((i * 37) % 13) - 6, s: 0.62 }); });
+    const st = `${fmtDur(w.end - w.start)} · ${fmtM(w.walkM || 0)} · ${(w.steps || w.est || 0).toLocaleString()}歩`;
+    p.items.push({ k: "wt", t: "text", text: `${fmtDate(new Date(w.start).toISOString().slice(0, 10))}\nスタンプ集め`, font: "hand", color: "#2B3A55", fs: 120, s: 1, x: Math.round(sz.w / 2), y: 230, r: -2 });
+    p.items.push({ k: "ws", t: "text", text: st, font: "mono", color: "#5A4A30", fs: 64, s: 1, x: Math.round(sz.w / 2), y: 450, r: 0 });
+    b.pages.push(p); Books.save(true); closeSheet(); toast("ジャーナルにページを作りました"); show("board"); Books.editPage(b.id, p.id);
+  }
+};
+// 経路の点を間引く（Douglas–Peucker、m 単位）
+function simplifyPts(P, tol) {
+  if (!P || P.length < 3) return P || []; const keep = new Uint8Array(P.length); keep[0] = keep[P.length - 1] = 1; const st = [[0, P.length - 1]];
+  const xy = p => [p[1] * 111320 * Math.cos(p[0] * Math.PI / 180), p[0] * 110540];
+  while (st.length) { const [a, b] = st.pop(); const A = xy(P[a]), B = xy(P[b]); let md = 0, mi = -1;
+    for (let i = a + 1; i < b; i++) { const C = xy(P[i]), dx = B[0] - A[0], dy = B[1] - A[1], L = dx * dx + dy * dy, t = L ? clamp(((C[0] - A[0]) * dx + (C[1] - A[1]) * dy) / L, 0, 1) : 0, d = Math.hypot(C[0] - A[0] - t * dx, C[1] - A[1] - t * dy); if (d > md) { md = d; mi = i; } }
+    if (mi >= 0 && md > tol) { keep[mi] = 1; st.push([a, mi], [mi, b]); } }
+  return P.filter((_, i) => keep[i]);
+}
+// 歩いた地図（紙の上に、近くの路線と駅・道のり・スタンプ）。o.page: ジャーナル用（スタンプは貼るので印だけ）
+async function walkMap(w, S, Wd, Hd, o = {}) {
+  const cv = mkCanvas(Wd, Hd), x = cv.getContext("2d"); x.fillStyle = "#FBF8F1"; x.fillRect(0, 0, Wd, Hd);
+  try { const pat = x.createPattern(Paper.washi(), "repeat"); if (pat) { x.globalAlpha = 0.55; x.fillStyle = pat; x.fillRect(0, 0, Wd, Hd); x.globalAlpha = 1; } } catch (_) {}
+  const segs = Walk.segs(w), pts = segs.flatMap(s => s.pts); S.forEach(s => s.lat != null && pts.push([+s.lat, +s.lng]));
+  if (!pts.length) { x.fillStyle = "#8A8070"; x.font = `600 ${Wd * 0.04}px 'Zen Kaku Gothic New',sans-serif`; x.textAlign = "center"; x.fillText("道のりの記録がありません", Wd / 2, Hd / 2); cv._pos = []; return cv; }
+  const WP = pts.map(p => W(p[0], p[1])); let x0 = Math.min(...WP.map(p => p[0])), x1 = Math.max(...WP.map(p => p[0])), y0 = Math.min(...WP.map(p => p[1])), y1 = Math.max(...WP.map(p => p[1]));
+  const minSpan = 0.0006; if (x1 - x0 < minSpan) { const c = (x0 + x1) / 2; x0 = c - minSpan / 2; x1 = c + minSpan / 2; } if (y1 - y0 < minSpan) { const c = (y0 + y1) / 2; y0 = c - minSpan / 2; y1 = c + minSpan / 2; }
+  const top = (o.top || 0.08) * Hd, bot = (o.bottom || 0.08) * Hd, side = 0.09 * Wd, aw = Wd - side * 2, ah = Hd - top - bot, k = Math.min(aw / (x1 - x0), ah / (y1 - y0));
+  const ox = side + (aw - (x1 - x0) * k) / 2, oy = top + (ah - (y1 - y0) * k) / 2, X = wx => ox + (wx - x0) * k, Y = wy => oy + (wy - y0) * k, P = (la, ln) => { const [a, b] = W(la, ln); return [X(a), Y(b)]; };
+  const vx0 = x0 - (ox) / k, vx1 = x1 + (Wd - ox - (x1 - x0) * k) / k, vy0 = y0 - oy / k, vy1 = y1 + (Hd - oy - (y1 - y0) * k) / k, S1 = Wd / 900;
+  // 近くの路線と駅
+  x.save(); x.globalAlpha = 0.32; x.lineCap = x.lineJoin = "round";
+  for (const L of GEO.lines) { const [a, b, c, d] = L.bb; if (c < vx0 || a > vx1 || d < vy0 || b > vy1) continue; x.beginPath(); for (const f of L.P) { x.moveTo(X(f[0]), Y(f[1])); for (let i = 2; i < f.length; i += 2) x.lineTo(X(f[i]), Y(f[i + 1])); } x.strokeStyle = L.c || "#8090A0"; x.lineWidth = 5 * S1; x.stroke(); }
+  x.globalAlpha = 0.75; x.font = `600 ${15 * S1}px 'Zen Kaku Gothic New',sans-serif`; x.textBaseline = "middle";
+  for (const s of GEO.stations) { if (s.x < vx0 || s.x > vx1 || s.y < vy0 || s.y > vy1) continue; const px = X(s.x), py = Y(s.y); x.beginPath(); x.arc(px, py, 5 * S1, 0, 7); x.fillStyle = "#fff"; x.fill(); x.lineWidth = 2 * S1; x.strokeStyle = "#5A6070"; x.stroke(); x.fillStyle = "#5A6070"; x.fillText(s.n + "駅", px + 9 * S1, py); }
+  x.restore();
+  // 道のり
+  x.save(); x.lineCap = x.lineJoin = "round";
+  for (const s of segs) { x.beginPath(); s.pts.forEach((p, i) => { const [a, b] = P(p[0], p[1]); i ? x.lineTo(a, b) : x.moveTo(a, b); });
+    if (s.kind === "ride" || s.kind === "line") { x.setLineDash([10 * S1, 9 * S1]); x.strokeStyle = s.kind === "ride" ? "rgba(70,100,160,.7)" : "rgba(200,65,46,.55)"; x.lineWidth = 5 * S1; x.stroke(); x.setLineDash([]); }
+    else { x.strokeStyle = "rgba(255,255,255,.95)"; x.lineWidth = 14 * S1; x.stroke(); x.strokeStyle = "#C8412E"; x.lineWidth = 7.5 * S1; x.stroke(); } }
+  x.restore();
+  // スタート・ゴール
+  const all = segs.flatMap(s => s.pts); const flag = (p, txt, col) => { if (!p) return; const [a, b] = P(p[0], p[1]); x.save(); x.beginPath(); x.arc(a, b, 15 * S1, 0, 7); x.fillStyle = col; x.fill(); x.lineWidth = 3.5 * S1; x.strokeStyle = "#fff"; x.stroke(); x.fillStyle = "#fff"; x.font = `800 ${15 * S1}px 'Zen Kaku Gothic New',sans-serif`; x.textAlign = "center"; x.textBaseline = "middle"; x.fillText(txt, a, b + 0.5); x.restore(); };
+  flag(all[0], "S", "#2E8B57"); flag(all[all.length - 1], "G", "#C8412E");
+  // スタンプ
+  const pos = []; let n = 0;
+  for (const s of S) {
+    if (s.lat == null) { pos.push(null); continue; } const [a, b] = P(+s.lat, +s.lng); pos.push([a, b]); n++;
+    if (o.thumbs) { try { const im = await loadImg(s.cut); const R = 34 * S1; x.save(); x.shadowColor = "rgba(0,0,0,.25)"; x.shadowBlur = 8 * S1; x.beginPath(); x.arc(a, b - R - 8 * S1, R, 0, 7); x.fillStyle = "#fff"; x.fill(); x.restore();
+      x.save(); x.beginPath(); x.arc(a, b - R - 8 * S1, R - 3 * S1, 0, 7); x.clip(); const sc = (R - 5 * S1) * 2 / Math.max(im.naturalWidth, im.naturalHeight); x.globalCompositeOperation = isDigi(s) ? "source-over" : "multiply"; x.drawImage(im, a - im.naturalWidth * sc / 2, b - R - 8 * S1 - im.naturalHeight * sc / 2, im.naturalWidth * sc, im.naturalHeight * sc); x.restore();
+      x.beginPath(); x.moveTo(a, b); x.lineTo(a - 6 * S1, b - 10 * S1); x.lineTo(a + 6 * S1, b - 10 * S1); x.closePath(); x.fillStyle = "#fff"; x.fill(); } catch (_) {} }
+    else { x.beginPath(); x.arc(a, b, 11 * S1, 0, 7); x.fillStyle = "#2B4C9B"; x.fill(); x.lineWidth = 3 * S1; x.strokeStyle = "#fff"; x.stroke(); x.fillStyle = "#fff"; x.font = `800 ${12 * S1}px 'IBM Plex Mono',monospace`; x.textAlign = "center"; x.textBaseline = "middle"; x.fillText(String(n), a, b + 0.5); x.textAlign = "left"; }
+  }
+  cv._pos = pos; return cv;
+}
+// 共有用の1枚（地図＋日付＋数字）
+async function walkCard(w, S) {
+  await PrintCard.fonts("スタンプ集め時間歩いたスタンプ歩0123456789.:kmm分ぺたろぐ年月日");
+  const Wd = 1080, Hd = 1350, cv = mkCanvas(Wd, Hd), x = cv.getContext("2d"); const m = await walkMap(w, S, Wd, 1000, { thumbs: true, top: 0.06 });
+  x.fillStyle = "#FBF8F1"; x.fillRect(0, 0, Wd, Hd); x.drawImage(m, 0, 150);
+  x.fillStyle = "#2B3A55"; x.textAlign = "left"; x.font = "700 54px 'Zen Kaku Gothic New',sans-serif"; x.fillText(fmtDate(new Date(w.start).toISOString().slice(0, 10)), 64, 98);
+  x.fillStyle = "#C8412E"; x.font = "700 30px 'Zen Kaku Gothic New',sans-serif"; x.fillText("スタンプ集め", 64, 140);
+  const items = [[fmtDur(w.end - w.start), "時間"], [fmtM(w.walkM || 0), "歩いた"], [(w.steps || w.est || 0).toLocaleString(), w.steps ? "歩" : "歩（見積もり）"], [String(S.length), "スタンプ"]];
+  items.forEach(([v, l], i) => { const cx = 64 + i * 245; x.fillStyle = "#1B2130"; x.font = "700 50px 'Zen Kaku Gothic New',sans-serif"; x.fillText(v, cx, 1235); x.fillStyle = "#7A7060"; x.font = "500 24px 'Zen Kaku Gothic New',sans-serif"; x.fillText(l, cx, 1275); });
+  x.fillStyle = "#A89A80"; x.font = "500 22px 'IBM Plex Mono',monospace"; x.textAlign = "right"; x.fillText("ぺたろぐ  petalog-stamp.github.io", Wd - 48, Hd - 30);
+  return cv;
+}
+
+/* ================= 「○○年のぺたろぐ」まとめ画像（インスタ用 1080×1350） ================= */
+const YearSum = {
+  async data(y) {
+    const L = list().filter(s => !s.sample && (s.date || "").startsWith(String(y))), W0 = (await Walk.loadList()).filter(w => new Date(w.start).getFullYear() === y);
+    const prefs = new Set(L.map(s => s.pref || (s.lat != null ? prefAt(s.lat, s.lng) : "")).filter(Boolean));
+    const months = new Array(12).fill(0); L.forEach(s => { const m = +(s.date || "").slice(5, 7); if (m) months[m - 1]++; });
+    return { y, L, n: L.length, prefs, months, ovl: L.filter(s => s.overlap).length, digi: L.filter(isDigi).length, first: L.filter(s => s.first).length,
+      walkM: W0.reduce((a, w) => a + (w.walkM || 0), 0), rideM: W0.reduce((a, w) => a + (w.rideM || 0), 0), ms: W0.reduce((a, w) => a + (w.end - w.start), 0), steps: W0.reduce((a, w) => a + (w.steps || w.est || 0), 0), outs: W0.length,
+      cats: [...L.reduce((m, s) => m.set(catNorm(s.cat), (m.get(catNorm(s.cat)) || 0) + 1), new Map())].sort((a, b) => b[1] - a[1]) };
+  },
+  async render(y) {
+    const D = await this.data(y); await PrintCard.fonts(`${y}年のぺたろぐスタンプ枚まい都道府県移動距離歩数時間レア重ね押しデジスタ第一発見者回おでかけ0123456789.,km` + (Profile.nick || ""));
+    const Wd = 1080, Hd = 1350, cv = mkCanvas(Wd, Hd), x = cv.getContext("2d");
+    const g = x.createLinearGradient(0, 0, 0, Hd); g.addColorStop(0, "#1B2A4E"); g.addColorStop(1, "#0F1830"); x.fillStyle = g; x.fillRect(0, 0, Wd, Hd);
+    x.globalAlpha = 0.07; for (let i = 0; i < 160; i++) { x.fillStyle = "#fff"; x.beginPath(); x.arc((i * 137.5) % Wd, (i * 89.3) % Hd, 1 + (i % 3), 0, 7); x.fill(); } x.globalAlpha = 1;
+    // 日本地図（行った都道府県に色）
+    const mx = 560, my = 170, mw = 470, mh = 520; let a0 = 1e9, a1 = -1e9, b0 = 1e9, b1 = -1e9; GEO.prefs.forEach(p => p.rings.forEach(r => r.forEach(([u, v]) => { if (u < a0) a0 = u; if (u > a1) a1 = u; if (v < b0) b0 = v; if (v > b1) b1 = v; })));
+    const kk = Math.min(mw / (a1 - a0), mh / (b1 - b0)), MX = u => mx + (u - a0) * kk, MY = v => my + (v - b0) * kk;
+    for (const p of GEO.prefs) { const on = D.prefs.has(p.n); x.beginPath(); p.rings.forEach(r => r.forEach(([u, v], i) => i ? x.lineTo(MX(u), MY(v)) : x.moveTo(MX(u), MY(v)))); x.fillStyle = on ? "#F0C35A" : "rgba(255,255,255,.12)"; x.fill(); x.lineWidth = 1; x.strokeStyle = "rgba(15,24,48,.8)"; x.stroke(); }
+    // 見出し
+    x.textAlign = "left"; x.fillStyle = "#F0C35A"; x.font = "700 30px 'IBM Plex Mono',monospace"; x.fillText(String(y), 64, 110);
+    x.fillStyle = "#FFFFFF"; x.font = "700 64px 'Shippori Mincho',serif"; x.fillText(`${y}年の`, 64, 196); x.fillText("ぺたろぐ", 64, 276);
+    if (Profile.nick) { x.fillStyle = "rgba(255,255,255,.7)"; x.font = "500 26px 'Zen Kaku Gothic New',sans-serif"; x.fillText(Profile.nick + " さん", 64, 326); }
+    x.fillStyle = "#FFFFFF"; x.font = "800 150px 'Zen Kaku Gothic New',sans-serif"; x.fillText(String(D.n), 64, 520); const nw = x.measureText(String(D.n)).width;
+    x.font = "700 40px 'Zen Kaku Gothic New',sans-serif"; x.fillStyle = "#F0C35A"; x.fillText("まい", 64 + nw + 12, 520); x.fillStyle = "rgba(255,255,255,.75)"; x.font = "500 26px 'Zen Kaku Gothic New',sans-serif"; x.fillText("押したスタンプ", 64, 572);
+    x.fillStyle = "#FFFFFF"; x.font = "800 64px 'Zen Kaku Gothic New',sans-serif"; x.fillText(`${D.prefs.size}`, 64, 680); const pw = x.measureText(String(D.prefs.size)).width; x.font = "600 30px 'Zen Kaku Gothic New',sans-serif"; x.fillStyle = "rgba(255,255,255,.8)"; x.fillText(" / 47 都道府県", 64 + pw, 680);
+    // 数字のタイル
+    const tiles = [[fmtM(D.walkM + D.rideM), "移動距離"], [D.steps.toLocaleString(), "歩数"], [fmtDur(D.ms), "スタンプ集めの時間"], [`${D.outs}回`, "おでかけ"]];
+    tiles.forEach(([v, l], i) => { const tx = 64 + (i % 2) * 486, ty = 730 + Math.floor(i / 2) * 150; x.fillStyle = "rgba(255,255,255,.08)"; x.beginPath(); x.roundRect ? x.roundRect(tx, ty, 466, 130, 22) : x.rect(tx, ty, 466, 130); x.fill();
+      x.fillStyle = "#FFFFFF"; x.font = "800 50px 'Zen Kaku Gothic New',sans-serif"; x.fillText(v, tx + 28, ty + 70); x.fillStyle = "rgba(255,255,255,.65)"; x.font = "500 24px 'Zen Kaku Gothic New',sans-serif"; x.fillText(l, tx + 28, ty + 108); });
+    // レア
+    x.fillStyle = "#F0C35A"; x.font = "700 28px 'Zen Kaku Gothic New',sans-serif"; x.fillText(`レア  重ね押し ${D.ovl} ・ デジスタ ${D.digi} ・ 第一発見者 ${D.first}`, 64, 1068);
+    // スタンプのならび
+    const pick = [...D.L].filter(s => s.cut).slice(-9).reverse(); const cs = 104, gap = 12; let ix = 64;
+    for (const s of pick) { try { const im = await loadImg(s.cut); x.save(); x.fillStyle = "#FBF8F1"; x.beginPath(); x.roundRect ? x.roundRect(ix, 1110, cs, cs, 14) : x.rect(ix, 1110, cs, cs); x.fill(); x.clip(); const sc = (cs - 14) / Math.max(im.naturalWidth, im.naturalHeight); x.globalCompositeOperation = isDigi(s) ? "source-over" : "multiply"; x.drawImage(im, ix + cs / 2 - im.naturalWidth * sc / 2, 1110 + cs / 2 - im.naturalHeight * sc / 2, im.naturalWidth * sc, im.naturalHeight * sc); x.restore(); } catch (_) {} ix += cs + gap; if (ix + cs > Wd - 40) break; }
+    x.fillStyle = "rgba(255,255,255,.55)"; x.font = "500 22px 'IBM Plex Mono',monospace"; x.textAlign = "right"; x.fillText("ぺたろぐ  petalog-stamp.github.io", Wd - 48, Hd - 36);
+    return cv;
+  },
+  async open(y) {
+    sheetCtx = { mode: "year" }; const ctx = sheetCtx;
+    openSheet(`<div class="sheet-head"><h2>${y}年のぺたろぐ</h2><button class="btn small ghost" type="button" data-close>閉じる</button></div><div class="year-img"><span class="spin"></span></div>`);
+    const cv = await this.render(y); if (sheetCtx !== ctx) return; const url = cv.toDataURL("image/jpeg", 0.9);
+    openSheet(`<div class="sheet-head"><h2>${y}年のぺたろぐ</h2><button class="btn small ghost" type="button" data-close>閉じる</button></div>
+      <div class="year-img"><img src="${url}" alt="${y}年のまとめ"></div><p class="cap">インスタにそのまま投稿できる大きさ（1080×1350）です。いつでもここから作れます。</p>
+      <div class="acts">${[y - 1, y].map(v => `<button class="btn${v === y ? "" : " ghost"}" type="button" data-yr="${v}">${v}年</button>`).join("")}<button class="btn primary" type="button" id="yrSave">画像で保存</button></div>`);
+    $("#yrSave").onclick = () => saveImage(cv, `petalog-${y}`);
+    $("#sheet").querySelectorAll("[data-yr]").forEach(b => b.onclick = () => this.open(+b.dataset.yr));
+  }
+};
+YearSum.btn = function () { if (!$("#sheet") || (sheetCtx && sheetCtx.mode !== "settings") || $("#yrSec")) return; const y = new Date().getFullYear(); const head = $("#sheet .sheet-head"); if (!head) return;
+  head.insertAdjacentHTML("afterend", `<div class="sec" id="yrSec"><button class="btn" type="button" id="yrOpen">✨ ${y}年のぺたろぐ（まとめ画像）</button></div>`); $("#yrOpen").onclick = () => YearSum.open(y); };
+
 /* ================= boot ================= */
 addEventListener("resize", () => { Book.layout(); if (view === "fall") { Fall.dirty = true; Fall.stop(); Fall.start(); } if (view === "map") MapV.draw(); });
 document.addEventListener("visibilitychange", () => { if (document.hidden) Fall.stop(); else if (view === "fall") Fall.start(); });
@@ -6429,7 +6801,7 @@ document.addEventListener("contextmenu", e => { if (!e.target.closest("input,tex
   ready = true; Book.idx = 0; MapV.shown = false;
   refreshAll(); show(view);
   if (window.PetalogCloud) PetalogCloud.afterBoot();
-  setTimeout(() => Privacy.firstSync(), 2500); loadSheets(); setTimeout(trimOld, 6000); setTimeout(() => Zukan.backfill(), 9000); setTimeout(() => Numbers.ensure(), 1500);
+  setTimeout(() => Privacy.firstSync(), 2500); loadSheets(); setTimeout(trimOld, 6000); setTimeout(() => Zukan.backfill(), 9000); Walk.init(); setTimeout(() => Numbers.ensure(), 1500);
   if (!lsGet("petalog.pinchHint")) { lsSet("petalog.pinchHint", "1"); setTimeout(() => toast("トレカ一覧は、2本指でつまむと並べる列の数（1〜5列）を変えられます", 4200), 4000); }
   (async () => { let n = 0; for (const s of stamps) { if (await fillStats(s)) n++; } if (n) Grid.render(); })();
 })();
