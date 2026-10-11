@@ -855,6 +855,14 @@ html.tcv-on #toast{z-index:95}
 .bcv-z{display:flex;align-items:center;gap:10px;font-size:13px}.bcv-z input{flex:1}
 .bcv-hint{margin:0;font-size:12px;color:rgba(255,255,255,.65)}
 .bcv .linkbtn{background:none;border:0;padding:0;color:#9FD3FF;font:inherit;font-size:13px;text-decoration:underline;align-self:flex-start}
+
+/* 10/11 特集の路線画面: 駅のマスを1〜5列（2本指でつまんで変える） */
+.slots[class*=" c"]{grid-template-columns:repeat(var(--cols,3),minmax(0,1fr))}
+.slots.c1 .st{font-size:16px}.slots.c1 .gd{font-size:12px}.slots.c1 .code{font-size:12px}
+.slots.c2 .st{font-size:14px}.slots.c2 .gd{font-size:11px}
+.slots.c4{gap:7px}.slots.c4 .st{font-size:10.5px}.slots.c4 .gd{font-size:8px;letter-spacing:-.02em}.slots.c4 .slot{padding:4px 4px 5px}
+.slots.c5{gap:6px}.slots.c5 .st{font-size:9.5px}.slots.c5 .gd{display:none}.slots.c5 .code{font-size:8.5px;padding:0 3px}.slots.c5 .slot{padding:3px 3px 4px;border-radius:8px}
+.slots.c4 .art span,.slots.c5 .art span{font-size:10px}
 </style>
 
 <div id="app">
@@ -2708,7 +2716,7 @@ function rallyIndex() {
 const stampTime = s => Math.max(s.created || 0, Date.parse(s.date || "") || 0);
 const gmapsDir = (lat, lng, mode = "transit") => `https://www.google.com/maps/dir/?api=1&destination=${(+lat).toFixed(6)},${(+lng).toFixed(6)}&travelmode=${mode}`;
 const Rally = {
-  cur: null, q: "", pref: null, hl: null,
+  cur: null, q: "", pref: null, hl: null, cols: clamp(Math.round(+lsGet("petalog.rallyCols") || 3), 1, 5),
   row(r, g) { const n = r.stations.length, got = g ? g.size : 0; return `<button type="button" class="rrow" data-r="${esc(r.id)}" style="--c:${r.c}"><span class="lineball sm">${esc(r.short.slice(0, 1))}</span><span class="rn"><b>${esc(r.name)}</b><small>${n}駅 · <em class="stb st-${r.info.st}">${ST_LABEL[r.info.st]}</em></small></span><span class="rp"><b>${got}</b>/${n}</span><span class="rbar"><i style="width:${(got / n * 100).toFixed(1)}%"></i></span></button>`; },
   render() {
     const box = $("#rallyBox"); const idx = rallyIndex();
@@ -2747,9 +2755,8 @@ const Rally = {
     box.innerHTML = `<div class="rdet-head" style="--c:${r.c}"><div class="row"><button class="btn small" type="button" id="rBack">‹ 特集一覧</button><span style="flex:1"></span><button class="btn small" type="button" id="rReg">${Profile.lines.includes(r.id) ? "✓ イベント・路線に登録済み" : "＋ イベント・路線に登録"}</button></div>
       <div class="row"><span class="lineball">${esc(r.short.slice(0, 1))}</span><h2 style="flex:1">${esc(r.name)}</h2><span class="big">${g.size}<span class="stat"> / ${n}</span></span></div>
       <div class="bar"><i style="width:${(g.size / n * 100).toFixed(1)}%"></i></div>
-      <p><em class="stb st-${I.st}">${ST_LABEL[I.st]}</em> ${esc(I.note || "")}${I.place ? `<br>置き場所の目安: ${esc(I.place)}（時間は駅の営業時間内が目安）` : ""}${I.src ? ` <a href="${I.src}" target="_blank" rel="noopener">出典</a>` : ""}</p>
-      <p>${g.size === n ? "🎉 コンプリート！" : `あと ${n - g.size} 駅。`}まだの駅をタップすると、置き場所・道案内・追加ができます。</p></div>
-      <div class="slots" style="--c:${r.c}">${r.stations.map((st, i) => { const s = g.get(st.n); const hs = stationHasStamp(r, st.n);
+      ${g.size === n ? `<p>🎉 コンプリート！</p>` : ""}</div>
+      <div class="slots c${Rally.cols}" style="--c:${r.c};--cols:${Rally.cols}">${r.stations.map((st, i) => { const s = g.get(st.n); const hs = stationHasStamp(r, st.n);
         return s ? `<button type="button" class="slot got washi" data-open="${s.id}" data-st="${esc(st.n)}"><span class="code">${i + 1}</span><span class="art"><img src="${s.cut}" alt="" draggable="false"></span><span class="st">${esc(st.n)}</span><span class="gd">GET ${esc(fmtDate(s.date))}</span></button>`
           : (() => { const cm = pubsOk ? communityFor(r.id + "|" + st.n, st.n + "駅", st.lat, st.lng) : null; const gd = hs === "none" ? "スタンプなし" : cm && cm.warn ? "なかった報告あり" : cm && cm.n ? `✓${cm.n}人 ${cm.last.slice(2, 7).replace("-", ".")}` : "未獲得";
             return `<button type="button" class="slot no washi${hs === "none" ? " nost" : ""}${cm && (cm.n || cm.warn) ? " seen" : ""}${this.hl === st.n ? " hl" : ""}" data-si="${i}" data-st="${esc(st.n)}"><span class="code">${i + 1}</span><span class="art"><span>${hs === "none" ? "なし" : hs === "ask" ? "窓口" : "?"}</span></span><span class="st">${esc(st.n)}</span><span class="gd${cm && cm.warn ? " warn" : cm && cm.n ? " okc" : ""}">${gd}</span></button>`; })(); }).join("")}</div>`;
@@ -5805,6 +5812,30 @@ const BackCrop = {
     tabs(); draw();
   }
 };
+
+/* ---------- 10/11 特集の路線画面: 2本指で駅のマスの列の数を変える（1〜5列・覚えておく） ---------- */
+(function rallyPinch() {
+  const box = document.getElementById("rallyBox"); if (!box) return;
+  const dist = t => Math.hypot(t[0].clientX - t[1].clientX, t[0].clientY - t[1].clientY);
+  const anchorAt = (x, y) => { const el = document.elementFromPoint(x, y); const c = el && el.closest("[data-st]"); return c ? c.dataset.st : null; };
+  const setRC = (n, at) => {
+    n = clamp(n, 1, 5); if (n === Rally.cols) return; Rally.cols = n; lsSet("petalog.rallyCols", n);
+    const sl = box.querySelector(".slots"); if (!sl) return;
+    sl.className = sl.className.replace(/\bc\d\b/, "c" + n); sl.style.setProperty("--cols", n);
+    if (at) { const el = box.querySelector(`[data-st="${CSS.escape(at)}"]`); if (el) el.scrollIntoView({ block: "center" }); }
+  };
+  let d0 = 0, acc = 0;
+  box.addEventListener("touchstart", e => { if (e.touches.length === 2) d0 = dist(e.touches); }, { passive: true });
+  box.addEventListener("touchmove", e => {
+    if (e.touches.length !== 2 || !d0 || !box.querySelector(".slots")) return; e.preventDefault();
+    const r = dist(e.touches) / d0, mx = (e.touches[0].clientX + e.touches[1].clientX) / 2, my = (e.touches[0].clientY + e.touches[1].clientY) / 2;
+    if (r > 1.25 && Rally.cols > 1) { setRC(Rally.cols - 1, anchorAt(mx, my)); d0 = dist(e.touches); }
+    else if (r < 0.8 && Rally.cols < 5) { setRC(Rally.cols + 1, anchorAt(mx, my)); d0 = dist(e.touches); }
+  }, { passive: false });
+  box.addEventListener("touchend", e => { if (e.touches.length < 2) d0 = 0; }, { passive: true });
+  box.addEventListener("wheel", e => { if (!e.ctrlKey || !box.querySelector(".slots")) return; e.preventDefault(); acc += e.deltaY; if (Math.abs(acc) > 60) { setRC(Rally.cols + (acc > 0 ? 1 : -1), anchorAt(e.clientX, e.clientY)); acc = 0; } }, { passive: false });
+  window.RallyCols = setRC;   // 確認用
+})();
 
 /* ================= boot ================= */
 addEventListener("resize", () => { Book.layout(); if (view === "fall") { Fall.dirty = true; Fall.stop(); Fall.start(); } if (view === "map") MapV.draw(); });
