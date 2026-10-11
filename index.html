@@ -1002,6 +1002,12 @@ html.tcv-on #toast{z-index:95}
 .map-legend .lge{border:3px solid #8E949E;background:#C9CDD4}.map-legend .lgf{border:3px solid #C8412E;opacity:.35}
 .hq-g .hq-t{display:flex;gap:10px;align-items:center}.hq-g .hq-t img{width:46px;height:46px;object-fit:contain;mix-blend-mode:multiply;background:#F6F3EC;border-radius:8px}
 .hq-g .hq-t span{display:flex;flex-direction:column}.hq-g .hq-t small{color:var(--muted);font-size:11.5px}
+
+/* 10/11 実寸ルールの表示 */
+.realfit{margin:6px 0 0;font-size:12px}
+.realfit.ok{color:#1E7A45;font-weight:700}
+.realfit.big{color:#A5501F}
+.tc-dim{height:calc(var(--u) * 2.24)}
 </style>
 
 <div id="app">
@@ -3563,7 +3569,7 @@ function wireForm() {
   };
   renderLoc(); renderPhotos(); PlacePick.mount(c);
   if (c.ro) return;
-  if ($("#f_size")) $("#f_size").oninput = () => { c.d.sizeSrc = "manual"; $("#sizeSrc").hidden = false; $("#sizeSrc").textContent = "手入力"; };
+  if ($("#f_size")) $("#f_size").oninput = () => { c.d.sizeSrc = "manual"; $("#sizeSrc").hidden = false; $("#sizeSrc").textContent = "手入力"; realFitNote(); }; setTimeout(realFitNote, 0);
   ["#f_name", "#f_place"].forEach(id => { const el = $(id); if (el) el.addEventListener("change", refreshRallySel); });
   const evl = $("#f_evl");
   evl.onchange = () => { const v = evl.value; $("#evNewBox").hidden = v !== "__newev"; $("#evSug").hidden = v !== "__newev" || !$("#evSug").children.length; $("#lnBox").hidden = v !== "__newline"; if (v === "__newev") $("#f_evNew").focus(); if (v === "__newline") { $("#lnQ").value = ""; lnSearch(""); } refreshRallySel(); };
@@ -3584,7 +3590,7 @@ function wireForm() {
   $("#refSel").onchange = () => { $("#refCustom").hidden = $("#refSel").value !== "custom"; updateMeas(); };
   $("#refCustom").oninput = updateMeas;
   $("#refAdd").onclick = async () => { const n = $("#refNewN").value.trim(), cm = parseFloat($("#refNewCm").value); if (!n || !(cm > 0)) { toast("名前と長さ（cm）を入れてください"); return; } Profile.refs.push({ n, cm }); await Profile.save(); $("#refSel").innerHTML = refOptions(); $("#refSel").value = "u" + (Profile.refs.length - 1); $("#refCustom").hidden = true; $("#refNewN").value = $("#refNewCm").value = ""; updateMeas(); toast(`「${n}」を基準物に登録しました`); };
-  $("#measApply").onclick = () => { const mm = c.measMm; if (!mm) return; $("#f_size").value = (mm / 10).toFixed(1); c.d.sizeSrc = "ref"; $("#sizeSrc").hidden = false; $("#sizeSrc").textContent = "基準物で測定"; closeMeasure(); toast(`大きさを ${(mm / 10).toFixed(1)}cm にしました`); };
+  $("#measApply").onclick = () => { setTimeout(realFitNote, 0); const mm = c.measMm; if (!mm) return; $("#f_size").value = (mm / 10).toFixed(1); c.d.sizeSrc = "ref"; $("#sizeSrc").hidden = false; $("#sizeSrc").textContent = "基準物で測定"; closeMeasure(); toast(`大きさを ${(mm / 10).toFixed(1)}cm にしました`); };
 }
 async function openMeasure() {
   const c = sheetCtx; $("#measureBox").hidden = false; c.measMm = 0; $("#measRes").textContent = ""; $("#measApply").disabled = true;
@@ -3620,7 +3626,7 @@ function applyAI(r, force) {
   const c = sheetCtx;
   if (r.cat && $("#f_cat") && (force || !c.catTouched)) $("#f_cat").value = catNorm(r.cat);
   if (typeof r.lat === "number" && typeof r.lng === "number" && (force || c.d.lat == null)) setLoc(+r.lat.toFixed(5), +r.lng.toFixed(5), "AIの推定（施設の代表位置）");
-  if ($("#f_size") && typeof r.size_cm === "number" && r.size_cm > 0.5 && r.size_cm < 30 && (force || !$("#f_size").value)) { $("#f_size").value = (+r.size_cm).toFixed(1); c.d.sizeSrc = "ai"; $("#sizeSrc").hidden = false; $("#sizeSrc").textContent = "AIの見積もり"; }
+  setTimeout(realFitNote, 0); if ($("#f_size") && typeof r.size_cm === "number" && r.size_cm > 0.5 && r.size_cm < 30 && (force || !$("#f_size").value)) { $("#f_size").value = (+r.size_cm).toFixed(1); c.d.sizeSrc = "ai"; $("#sizeSrc").hidden = false; $("#sizeSrc").textContent = "AIの見積もり"; }
   PlacePick.mark(); refreshRallySel();
 }
 async function runAI(force) {
@@ -3901,6 +3907,7 @@ function formHTML(d, ro) {
   ${gos || digi ? "" : `<div class="sec"><h4>大きさ（実寸）</h4>
     <div class="sizebox"><input id="f_size" inputmode="decimal" placeholder="未入力" value="${d.sizeMm ? (d.sizeMm / 10).toFixed(1) : ""}" aria-label="スタンプの大きさ（cm）"${dis}><span>cm（いちばん長い所・丸なら直径）</span><span class="src" id="sizeSrc"${d.sizeSrc ? "" : " hidden"}>${d.sizeSrc === "ref" ? "基準物で測定" : d.sizeSrc === "ai" ? "AIの見積もり" : "手入力"}</span>
       ${ro ? "" : `<button class="btn small" type="button" id="measureBtn">写真で測る</button>`}</div>
+    <p class="cap realfit" id="realFit"></p>
     <div class="measure" id="measureBox" hidden>
       <div id="measCanvasBox"></div>
       <div>写真の中の<b>基準になる物</b>（硬貨・カード・登録したキーホルダーなど）の端から端へ、指で線を引いてください。</div>
@@ -5834,7 +5841,10 @@ setTimeout(() => {
 }, 6500);
 
 /* ---------- トレカ（スタンプトレカ）: 一覧と印刷で共通のレイアウト（単位はmm、窓の左上が原点） ---------- */
-const TC = { W: 63, H: 88, hd: 7, ft: 6.2, wx: 2.2, ww: 58.6, wh: 74.8, top: 6, bot: 59.3, gap: 1.8, dimh: 2.8, maxW: 52, nameTop: 60.3, ruleY: 67, factsY: 70.6, tabW: 21.4, tabH: 5.2 };
+// 実寸ルール（10/11）: 長い辺（丸は直径）が REAL_MM までのスタンプは、トレカに必ず実寸で入る。こえるものは縮小。
+// 5.0cm の丸が入るように、絵の枠を少し広げた（上 6→5.6mm、下 59.3→59.4mm、寸法線のすき間 1.8→1.2mm・高さ 2.8→2.6mm）
+const REAL_MM = 50;
+const TC = { W: 63, H: 88, hd: 7, ft: 6.2, wx: 2.2, ww: 58.6, wh: 74.8, top: 5.6, bot: 59.4, gap: 1.2, dimh: 2.6, maxW: 52, nameTop: 60.3, ruleY: 67, factsY: 70.6, tabW: 21.4, tabH: 5.2 };
 const GICON = {
   "駅": "M12 2C8 2 4 2.5 4 6v9.5A3.5 3.5 0 0 0 7.5 19L6 20.5v.5h2.2l2-2h3.6l2 2H18v-.5L16.5 19a3.5 3.5 0 0 0 3.5-3.5V6c0-3.5-4-4-8-4zM7.5 17a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3zM11 10H6V6h5zm2 0V6h5v4zm3.5 7a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3z",
   "空港": "M21 16v-2l-8-5V3.5a1.5 1.5 0 0 0-3 0V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5z",
@@ -5850,7 +5860,10 @@ function tcLayout(s) {
   const A = artOf(s), ar = clamp((A.w || 1) / (A.h || 1), 0.2, 5), known = !!s.sizeMm && !A.sheet;
   const room = TC.bot - TC.top, maxH = room - (known ? TC.gap + TC.dimh : 0);
   let w, h, real = false;
-  if (known) { w = sizeDims(s).w; h = w / ar; real = w <= TC.maxW + 0.01 && h <= maxH + 0.01; if (!real) { const k = Math.min(TC.maxW / w, maxH / h); w *= k; h *= k; } }
+  if (known) {   // 判定は切り抜きの縦横ではなく、入力した大きさ（丸は直径）で
+    const D = sizeDims(s), L = Math.max(D.lw, D.lh); w = D.lw; h = D.lh; real = L <= REAL_MM + 0.01;
+    const k = Math.min(real ? 1 : REAL_MM / L, TC.maxW / w, maxH / h); if (k < 0.9999) { w *= k; h *= k; }
+  }
   else { w = Math.min(TC.maxW, maxH * ar) * 0.88; h = w / ar; }
   const G = h + (known ? TC.gap + TC.dimh : 0), y = TC.top + (room - G) * 0.56, x = (TC.ww - w) / 2;   // C3: ひとかたまりを真ん中より少し下に
   const wmm = known ? sizeDims(s).lw : 0;
@@ -6391,6 +6404,14 @@ const HQ = {
       a.disabled = true; run(+(a.dataset.hqok ?? a.dataset.hqhide), a.dataset.hqhide != null ? "hide" : "ok"); };
   }
 };
+
+// 大きさ欄の近くに「トレカに実寸で入るか」を出す
+function realFitNote() {
+  const el = $("#realFit"), f = $("#f_size"); if (!el || !f) return; const v = parseFloat(String(f.value).replace(/[^\d.]/g, "")), lim = (REAL_MM / 10).toFixed(1);
+  if (!(v > 0)) { el.textContent = `${lim}cmまでなら、トレカに実寸（原寸大）で入ります`; el.className = "cap realfit"; return; }
+  if (v * 10 <= REAL_MM + 0.01) { el.textContent = "✓ トレカに実寸（原寸大）で入ります"; el.className = "cap realfit ok"; }
+  else { el.textContent = `${lim}cmをこえるので、トレカには縮小して入れます（実寸で入るのは${lim}cmまで）`; el.className = "cap realfit big"; }
+}
 
 /* ================= boot ================= */
 addEventListener("resize", () => { Book.layout(); if (view === "fall") { Fall.dirty = true; Fall.stop(); Fall.start(); } if (view === "map") MapV.draw(); });
