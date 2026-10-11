@@ -6270,7 +6270,7 @@ const Zukan = {
       if (x.pref) c.d.pref = x.pref; this.render(c); toast("みんなの図鑑の内容を入れました"); });
   },
   // 登録・編集したあとで図鑑に入れる（公開するスタンプだけ）。→ { design, first, members, isNew }
-  async register(d, design) {
+  async register(d, design, quiet) {
     if (!this.ok() || d.type === "goshuin" || !d.cut) return null;
     if (!d.share) { if (d.design) this.leave(d.id); return null; }
     let dh = ""; try { dh = await this.dh(d.cut); } catch (_) { return null; }
@@ -6279,7 +6279,7 @@ const Zukan = {
     if (!r || !r.design) return null;
     const cur = findStamp(d.id) || d, changed = cur.design !== r.design || !!cur.first !== !!r.first;
     cur.design = r.design; d.design = r.design; if (r.first) { cur.first = true; d.first = true; } else { delete cur.first; delete d.first; }
-    if (changed) { try { await Store.saveStamp(cur); if (cur.share && thumb) await Store.pubPut(pubView(cur), thumb, Profile.nick); } catch (_) {} refreshAll(); }
+    if (changed) { try { await Store.saveStamp(cur); if (cur.share && thumb) await Store.pubPut(pubView(cur), thumb, Profile.nick); } catch (_) {} if (!quiet) Grid.render(); }   // 「ぜんぶ」のスタンプを降らせ直さないよう、トレカ一覧だけ描き直す
     return r;
   },
   leave(id) { if (!this.ok()) return; PetalogCloud.zukan("leave", { stamp_id: id }).catch(() => {}); const s = findStamp(id); if (s && (s.design || s.first)) { delete s.design; delete s.first; } },
@@ -6288,7 +6288,8 @@ const Zukan = {
     if (this.busy || !this.ok()) return; this.busy = true;
     try {
       const L = stamps.filter(s => !s.sample && s.type !== "goshuin" && s.share && !s.design && s.cut && !/^data:image\/svg/.test(s.cut)).sort((a, b) => this.t(a) - this.t(b));
-      for (const s of L) { if (!this.ok()) break; try { await this.register(s); } catch (e) { if (e && (e.code === "login_required" || e.code === "network")) break; } await new Promise(r => setTimeout(r, 250)); }
+      let n = 0; for (const s of L) { if (!this.ok()) break; try { if (await this.register(s, null, true)) n++; } catch (e) { if (e && (e.code === "login_required" || e.code === "network")) break; } await new Promise(r => setTimeout(r, 250)); }
+      if (n) Grid.render();   // まとめて1回だけ（1枚ごとに画面を作り直すと「ぜんぶ」のスタンプがずっと降り続ける）
     } finally { this.busy = false; }
   }
 };
