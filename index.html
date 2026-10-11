@@ -5739,21 +5739,43 @@ const PrintCard = {
     const TX = 4.6 * m, TW = 53.8 * m, T0 = 41.6 * m, TMAX = 69.6 * m, units = this.ruby(String((txt != null ? txt : this.text) || "").trim() || this.fallback(s));
     const wsU = (() => { const ws = this.wordStarts(units.map(u => u.t).join("")), out = []; let off = 0; for (const u of units) { out.push(ws.has(off)); off += [...u.t].length; } return out; })();
     let f = 2.4 * m, lines = [], lh = 0;
-    const layout = (f, us = units) => { const rf = f * 0.46, out = [[]]; let w = 0; const NO = "、。，．）」』】〉》ー…・！？!?,.)]%ぁぃぅぇぉっゃゅょゎァィゥェォッャュョヮヵヶ々", OPEN = "「『（【〈《(［";
-      for (let ui = 0; ui < us.length; ui++) { const u = us[ui]; if (u.t === "\n") { out.push([]); w = 0; continue; } x.font = `500 ${f}px ${UI}`; const bw = x.measureText(u.t).width; let uw = bw; if (u.r) { x.font = `500 ${rf}px ${UI}`; uw = Math.max(bw, x.measureText(u.r).width); }
-        const line = out[out.length - 1], cur = { ...u, w: uw, bw, ui };
-        if (line.length && w + uw > TW) {   // 枠からはみ出すときは改行。行頭に来てはいけない字（。、ゃ など）は前の字といっしょに次の行へ送る
-          let carry = [cur]; while (line.length > 1 && (NO.includes(carry[0].t) || OPEN.includes(line[line.length - 1].t))) carry.unshift(line.pop());
-          // 単語の途中なら、行が4分の3以上うまっている限り、その単語ごと次の行へ（長い単語はそのまま切る）
-          if (!wsU[carry[0].ui]) { let p = line.length; while (p > 0 && !wsU[line[p - 1].ui]) p--; p--;
-            let rest = 0; for (let q = carry[carry.length - 1].ui + 1; q < us.length && !wsU[q] && us[q].t !== "\n"; q++) rest++;
-            const moved = line.length - p, keep = line.slice(0, Math.max(0, p)).reduce((t, c) => t + c.w, 0);
-            if (p > 0 && moved + carry.length + rest <= 9 && keep >= TW * 0.75) { carry = line.splice(p).concat(carry); while (line.length > 1 && OPEN.includes(line[line.length - 1].t)) carry.unshift(line.pop()); } }
-          out.push(carry); w = carry.reduce((t, c) => t + c.w, 0); continue;
-        }
-        line.push(cur); w += uw; }
+    // 折り返し: 文全体を見て「切ってよい所」で切る（句読点のあと・文節の頭を優先、単語の途中はなるべく避ける）→ 行の右はしは両端そろえ
+    const NOH = "、。，．）」』】〉》ー…・！？!?,.)]%ぁぃぅぇぉっゃゅょゎァィゥェォッャュョヮヵヶ々", OPH = "「『（【〈《(［", CLOSE = "、。，．！？!?」』）】〉》)]";
+    const kd = c => !c ? "" : /[ぁ-ゟ]/.test(c) ? "H" : /[゠-ヿｦ-ﾟ]/.test(c) ? "K" : /[㐀-鿿々〆]/.test(c) ? "J" : /[0-9A-Za-z０-９Ａ-Ｚａ-ｚ]/.test(c) ? "D" : "O";
+    const run = (P, j, dir, K) => { let n = 0; for (let k = dir < 0 ? j - 1 : j; k >= 0 && k < P.length; k += dir) { const cs = [...P[k].t]; if (!cs.every(c => kd(c) === K)) break; n += cs.length; } return n; };
+    const pen = (P, j) => {   // P[j-1] の後ろ・P[j] の前で切ったときの「いやさ」（0=自然）
+      const p = P[j - 1], q = P[j], a = [...p.t].pop(), c = [...q.t][0], A = kd(a), C = kd(c), ws = !!wsU[q.ui];
+      if (NOH.includes(c) || OPH.includes(a)) return 1000;   // 行頭・行末の禁則
+      if (A === "D" && C === "D") return 1000;               // 数字や英字の途中
+      if (CLOSE.includes(a)) return 0;                       // 句読点・閉じかっこのあと
+      if (OPH.includes(c)) return 0.3;                       // 開きかっこの前
+      if (A === "H" && (C === "J" || C === "K" || C === "D")) return 0.5;   // 文節の頭（「〜の｜新宿」「〜と｜8つ」）
+      if (A === "D") return 14;                              // 「8｜つ」「1914｜年」
+      if (P.inq && P.inq[j] && P.inq[j] === P.inq[j - 1]) return 20;   // 「内藤とうがらし」のような短いかっこの中（名前）は切らない
+      if (A === "K" && C === "K") return ws ? 3 : 30;        // カタカナ語の途中（「インフォ｜メーション」）
+      // ひらがなの切れ目は機械ではうまく見分けられないので、1字だけ取りのこす切り方（「とうがら｜し」「飾ら｜れ」）を強くさける
+      if (A === "H" && C === "H") return Math.min(run(P, j, -1, "H"), run(P, j, 1, "H")) < 2 ? 16 : "はをにでへもや".includes(a) ? 6 : 12;   // 「よ｜みがえり」「とう｜がらし」もさける
+      if (C === "H") return run(P, j, 1, "H") < 2 || (A === "J" && run(P, j, -1, "J") < 2) ? 12 : 4;   // 「並｜んで」「消｜しました」はさける／「以降｜いったん」はよい
+      return ws ? 4 : 10;                                    // 漢字どうし（「新宿｜御苑」）など
+    };
+    const layout = (f, us = units) => { const rf = f * 0.46, out = [], paras = [[]];
+      us.forEach((u, ui) => { if (u.t === "\n") { paras.push([]); return; } x.font = `500 ${f}px ${UI}`; const bw = x.measureText(u.t).width; let uw = bw;
+        if (u.r) { x.font = `500 ${rf}px ${UI}`; uw = Math.max(bw, x.measureText(u.r).width); } paras[paras.length - 1].push({ ...u, w: uw, bw, ui }); });
+      out.cost = 0; for (const P of paras) { const n = P.length; if (!n) { out.push([]); continue; }
+        P.inq = new Array(n).fill(0); for (let k = 0, g = 0; k < n; k++) if ("「『".includes(P[k].t)) { let e = k + 1, len = 0; while (e < n && !"」』".includes(P[e].t) && len <= 12) len += [...P[e++].t].length;
+          if (e < n && len <= 12) { g++; for (let q = k + 1; q < e; q++) P.inq[q] = g; } }
+        const best = new Array(n + 1).fill(Infinity), from = new Array(n + 1).fill(0); best[0] = 0;
+        for (let j = 1; j <= n; j++) { let wd = 0;
+          for (let i = j - 1; i >= 0; i--) { wd += P[i].w; if (wd > TW && i < j - 1) break; if (best[i] === Infinity) continue;
+            const sl = Math.max(0, TW - wd) / f, c = best[i] + (j === n ? (i > 0 && j - i < 4 ? 6 : 0) : 1.0 * sl * sl + pen(P, j));
+            if (c < best[j]) { best[j] = c; from[j] = i; } } }
+        out.cost += best[n]; const cuts = []; for (let j = n; j > 0; j = from[j]) cuts.unshift([from[j], j]);
+        cuts.forEach(([i, j], k) => { const ln = P.slice(i, j); if (k < cuts.length - 1 && ln.length > 1) { const sl = TW - ln.reduce((t, u) => t + u.w, 0); ln.gap = Math.max(0, Math.min(sl / (ln.length - 1), f * 0.22)); } out.push(ln); }); }
       return out; };
-    for (; f >= 1.6 * m; f -= 0.05 * m) { lh = f * 1.78; lines = layout(f); if (T0 + lines.length * lh <= TMAX) break; }
+    // 欄に入るいちばん大きい字から少し小さい字までためして、いちばん自然に折り返せる大きさを選ぶ（大きい字ほどよい）
+    let grow = false; { let pick = null, f0 = 0; for (; f >= 1.6 * m; f -= 0.05 * m) { const h = f * 1.78, ls = layout(f); if (T0 + ls.length * h > TMAX) { if (!pick) { lh = h; lines = ls; } continue; }
+        if (!f0) f0 = f; const sc = ls.cost + Math.round((f0 - f) / (0.05 * m)) * 3; if (!pick || sc < pick.sc) pick = { sc, h, ls }; if (f <= f0 - 0.25 * m) break; }
+      if (pick) { lh = pick.h; lines = pick.ls; grow = pick.h < f0 * 1.78 - 0.001; } }
     let maxL = Math.max(1, Math.floor((TMAX - T0) / lh));
     if (lines.length > maxL) {   // いちばん小さい字でも入りきらないときは、入る範囲の最後の「。」で切る（文の途中で「…」にしない）
       const shown = lines.slice(0, maxL).reduce((t, l) => t + l.length, 0); let cut = -1;
@@ -5762,10 +5784,11 @@ const PrintCard = {
     }
     f = lh / 1.78;   // 描く字の大きさを、折り返しを計算した大きさにそろえる
     this._lines = { lines, TW };   // 確認用
-    if (lines.length > maxL) { lines = lines.slice(0, maxL); const last = lines[maxL - 1]; while (last.length > 1 && last.reduce((t, u) => t + u.w, 0) > TW - f) last.pop(); last.push({ t: "…", w: f, bw: f }); }
+    if (lines.length > maxL) { lines = lines.slice(0, maxL); const last = lines[maxL - 1]; last.gap = 0; while (last.length > 1 && last.reduce((t, u) => t + u.w, 0) > TW - f) last.pop(); last.push({ t: "…", w: f, bw: f }); }
+    if (grow) lh = Math.max(lh, Math.min(f * 1.95, (TMAX - T0) / Math.max(1, lines.length)));   // 自然な折り返しのために字を少し小さくしたときは、行間を少し広げて欄をうめる
     const rf = f * 0.46; x.save(); x.shadowColor = "rgba(0,0,0,.28)"; x.shadowBlur = 0.12 * m; x.shadowOffsetY = 0.08 * m; x.textAlign = "center"; x.textBaseline = "middle";
     lines.forEach((ln, i) => { const y = T0 + (i + 0.62) * lh; let cx = TX; for (const u of ln) { x.font = `500 ${f}px ${UI}`; x.fillStyle = "#fff"; x.fillText(u.t, cx + u.w / 2, y);
-      if (u.r) { x.font = `500 ${rf}px ${UI}`; x.fillStyle = "rgba(255,255,255,.9)"; x.fillText(u.r, cx + u.w / 2, y - f * 0.5 - rf * 0.62); } cx += u.w; } });
+      if (u.r) { x.font = `500 ${rf}px ${UI}`; x.fillStyle = "rgba(255,255,255,.9)"; x.fillText(u.r, cx + u.w / 2, y - f * 0.5 - rf * 0.62); } cx += u.w + (ln.gap || 0); } });
     x.restore();
     // 下の段: 金の線／No.と緯度経度（左）／QR（右・箱の右端とそろえる）
     const gy = 70.4 * m, gl = x.createLinearGradient(BX, 0, BX + BW, 0); gl.addColorStop(0, "rgba(201,162,74,0)"); gl.addColorStop(0.1, gold); gl.addColorStop(0.9, gold); gl.addColorStop(1, "rgba(201,162,74,0)"); x.fillStyle = gl; x.fillRect(BX, gy, BW, Math.max(1.5, 0.15 * m));
