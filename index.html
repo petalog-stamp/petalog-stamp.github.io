@@ -1046,6 +1046,206 @@ html.tcv-on #toast{z-index:95}
 .stand-ask{margin-top:8px;display:flex;flex-direction:column;gap:6px;background:var(--ai-soft);border-radius:12px;padding:10px 12px;font-size:13px}
 .stand-ask small{color:var(--muted);font-size:11.5px;line-height:1.6}
 .mapq{font-size:16px}
+
+/* ================= はじめてのツアー ================= */
+:root{--t-paper:#F2ECDF;--t-ink:#1F2D5C;--t-shu:#C8412E;--t-shu2:#A93322;--t-gold:#B8902F;--t-mute:#5E5A52}
+html.tour-lock,html.tour-lock body{overflow:hidden}
+.twel-paper{position:absolute;inset:0;background-color:var(--t-paper);background-size:360px;background-blend-mode:multiply}
+/* ようこそ */
+.twel{position:fixed;inset:0;z-index:9500;color:var(--t-ink);overflow:hidden;opacity:0;transition:opacity .35s}
+.twel.in{opacity:1}.twel.out{opacity:0;transform:scale(1.02);transition:opacity .4s,transform .4s}
+.twel-stamps{position:absolute;inset:0 0 calc(var(--ch,38%) + 6px) 0}
+.twel-stamps img{position:absolute;max-width:150px;transform:translate(-50%,-50%) rotate(var(--r));mix-blend-mode:multiply;opacity:0;animation:tpress .5s cubic-bezier(.25,.9,.3,1.15) var(--d) forwards}
+@keyframes tpress{0%{opacity:0;transform:translate(-50%,-50%) rotate(var(--r)) scale(1.4);filter:blur(3px)}60%{opacity:.95;transform:translate(-50%,-50%) rotate(var(--r)) scale(.96);filter:blur(0)}100%{opacity:.86;transform:translate(-50%,-50%) rotate(var(--r)) scale(1)}}
+.twel-logo{position:absolute;left:50%;top:55%;width:150px;height:150px;margin:-75px 0 0 -75px;border-radius:50%;border:8px solid var(--t-shu);box-shadow:inset 0 0 0 5px var(--t-paper),inset 0 0 0 7px var(--t-shu);display:grid;place-items:center;mix-blend-mode:multiply;opacity:0;transform:rotate(-9deg) scale(2.2);animation:tslam .55s cubic-bezier(.3,1.2,.4,1) 1.7s forwards}
+.twel-logo span{font:400 31px/1 "Dela Gothic One","Zen Kaku Gothic New",sans-serif;color:var(--t-shu);letter-spacing:.02em}
+@keyframes tslam{0%{opacity:0;transform:rotate(-24deg) scale(2.4)}70%{opacity:.96;transform:rotate(-8deg) scale(.94)}100%{opacity:.94;transform:rotate(-9deg) scale(1)}}
+.twel-copy{position:absolute;left:0;right:0;bottom:0;max-width:480px;margin:0 auto;padding:0 26px calc(26px + env(safe-area-inset-bottom,0px));opacity:0;transform:translateY(12px);animation:tup .6s ease 2.15s forwards}
+@keyframes tup{to{opacity:1;transform:none}}
+.twel-copy h1 span{display:block;white-space:nowrap}
+.twel-copy h1{font:400 clamp(21px,6.3vw,28px)/1.42 "Dela Gothic One","Zen Kaku Gothic New",sans-serif;margin:0 0 12px;letter-spacing:.01em;color:var(--t-ink)}
+.twel-copy p{font-size:14.5px;line-height:1.8;color:var(--t-mute);margin:0 0 20px}
+.twel-go{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;height:58px;border:0;border-radius:999px;background:var(--t-shu);color:#fff;font:700 18px "Zen Kaku Gothic New",sans-serif;letter-spacing:.04em;box-shadow:0 8px 22px rgba(200,65,46,.32);cursor:pointer;transition:transform .12s}
+.twel-go:active{transform:scale(.97)}
+.twel-go small{font-size:12px;font-weight:700;padding:3px 9px;border-radius:99px;background:rgba(255,255,255,.2)}
+.twel-link,.tc-login,.tj-links button,.tj-again{background:none;border:0;color:inherit;font:500 13.5px "Zen Kaku Gothic New",sans-serif;text-decoration:underline;text-underline-offset:3px;cursor:pointer;padding:10px 4px}
+.twel-link{display:block;margin:6px auto 0;color:var(--t-ink)}
+.twel-go:focus-visible,.twel-link:focus-visible,.tc-next:focus-visible,.tj-go:focus-visible,.tcam-shutter:focus-visible,.tcam-save:focus-visible{outline:3px solid var(--t-gold);outline-offset:3px}
+/* 案内カード */
+.tcoach{position:fixed;left:50%;width:min(420px,calc(100% - 20px));transform:translateX(-50%);z-index:100;background:var(--card);color:var(--ink);border-radius:18px;padding:12px 14px 8px;box-shadow:0 14px 40px rgba(12,22,52,.24),0 0 0 1px rgba(0,0,0,.05);transition:opacity .2s,transform .25s,top .3s,bottom .3s}
+.tcoach[data-pos=top]{top:calc(env(safe-area-inset-top,0px) + 8px)}
+.tcoach[data-pos=bottom]{bottom:calc(72px + env(safe-area-inset-bottom,0px))}
+.tcoach[data-pos=low]{bottom:calc(12px + env(safe-area-inset-bottom,0px))}
+.tcoach.hide{opacity:0;pointer-events:none;transform:translateX(-50%) translateY(10px)}
+.tc-top{display:flex;align-items:center;justify-content:space-between}
+.tc-rally{list-style:none;display:flex;gap:6px;margin:0;padding:0}
+.tc-rally li{width:28px;height:28px;border-radius:50%;border:1.5px dashed var(--line);color:var(--muted);display:grid;place-items:center}
+.tc-rally svg{width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.tc-rally li.now{border-color:var(--shu);color:var(--shu)}
+.tc-rally li.got{background:var(--shu);border:1.5px solid var(--shu);color:#fff;transform:rotate(-8deg)}
+.tc-rally li.press{animation:tstampin .45s cubic-bezier(.3,1.3,.4,1)}
+@keyframes tstampin{0%{transform:rotate(-20deg) scale(1.9);opacity:0}100%{transform:rotate(-8deg) scale(1);opacity:1}}
+.tc-x{width:32px;height:32px;border-radius:50%;border:0;background:var(--surface);color:var(--muted);font-size:14px;cursor:pointer;flex:none}
+.tcoach h3{font-size:16.5px;margin:9px 0 3px;line-height:1.45}
+.tcoach p{font-size:13.5px;line-height:1.7;margin:0;color:var(--muted)}
+.tcoach p.tc-ok{display:flex;gap:8px;align-items:flex-start;color:var(--ink);margin-top:8px;padding:8px 10px;border-radius:12px;background:var(--shu-soft)}
+.tc-ok i{flex:none;width:20px;height:20px;border-radius:50%;background:var(--shu);color:#fff;font-style:normal;font-size:12px;display:grid;place-items:center;margin-top:1px;transform:rotate(-8deg)}
+.tc-tn{display:flex;align-items:center;gap:12px;margin-top:8px;font-size:13px;line-height:1.45}
+.tc-tn small{color:var(--muted)}
+.tn-book{position:relative;width:30px;height:44px;border-radius:3px 5px 5px 3px;background:linear-gradient(90deg,#6B4126,#8A5634 40%,#7A4A2C);box-shadow:inset -2px 0 0 rgba(0,0,0,.18);flex:none}
+.tn-book i{position:absolute;left:62%;top:-2px;bottom:-2px;width:3px;background:#2A2622;border-radius:2px}
+.tn-book b{position:absolute;left:4px;top:6px;width:15px;height:15px;border-radius:50%;border:2px solid rgba(255,235,210,.75)}
+.tc-acts{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:6px}
+.tc-login{font-size:12.5px;color:var(--muted);padding:10px 0}
+.tc-next{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);background:var(--surface);color:var(--ink);font:700 14px "Zen Kaku Gothic New",sans-serif;padding:9px 18px;border-radius:99px;cursor:pointer}
+.tc-next.ready,.tc-next.cta{background:var(--t-shu);border-color:var(--t-shu);color:#fff}
+.tc-next.ready{animation:tnudge 1.6s ease-in-out infinite}
+.tc-next svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linejoin:round}
+@keyframes tnudge{0%,100%{box-shadow:0 0 0 0 rgba(200,65,46,.4)}50%{box-shadow:0 0 0 7px rgba(200,65,46,0)}}
+.tc-arrive{padding:8px 4px 10px;text-align:center}
+.tc-arrive b{display:block;font-size:17px;color:var(--shu);margin-bottom:4px}
+.tc-arrive span{font-size:13.5px;color:var(--muted)}
+.tour-mapnote{font-size:13px;line-height:1.6}
+/* 指の丸 */
+.tdot{position:fixed;z-index:99;width:0;height:0;pointer-events:none}
+.tdot i{position:absolute;left:-23px;top:-23px;width:46px;height:46px;border-radius:50%;background:rgba(200,65,46,.28);border:3px solid #fff;box-shadow:0 2px 12px rgba(0,0,0,.35),0 0 0 3px var(--t-shu)}
+.tdot[data-kind=tap] i{animation:ttap 1.4s ease-in-out infinite}
+.tdot[data-kind=drag] i{animation:tdrag 2.2s cubic-bezier(.4,0,.3,1) infinite}
+@keyframes ttap{0%,100%{transform:scale(1)}40%{transform:scale(.78)}55%{transform:scale(.9);box-shadow:0 2px 10px rgba(0,0,0,.35),0 0 0 14px rgba(200,65,46,0)}}
+@keyframes tdrag{0%{transform:translate(0,0) scale(.85);opacity:0}12%{opacity:1;transform:translate(0,0) scale(.8)}62%{transform:translate(-60px,-170px) scale(.8);opacity:1}80%,100%{transform:translate(-70px,-190px) scale(1);opacity:0}}
+/* 地図のピンをタップしたとき */
+.tpop{position:fixed;left:50%;top:calc(env(safe-area-inset-top,0px) + 76px);width:min(400px,calc(100% - 24px));transform:translateX(-50%) translateY(-8px);opacity:0;z-index:101;transition:opacity .2s,transform .25s}
+.tpop.in{opacity:1;transform:translateX(-50%)}
+.tpop-in{position:relative;display:flex;gap:12px;align-items:center;background:var(--card);color:var(--ink);border-radius:16px;padding:12px 44px 12px 12px;box-shadow:0 12px 34px rgba(12,22,52,.25)}
+.tpop-in img{width:74px;height:74px;object-fit:contain;mix-blend-mode:multiply;flex:none}
+.tpop-in b{display:block;font-size:16px;margin:2px 0 1px}
+.tpop-in small{color:var(--muted);font-size:12px}
+.tpop-in p{font-size:12.5px;line-height:1.55;margin:5px 0 0;color:var(--muted)}
+.tpop-in p.tpop-rare{color:var(--t-gold);font-weight:700}
+.tpop-tag{font-size:11px;font-weight:700;color:var(--shu)}
+.tpop .tc-x{position:absolute;top:8px;right:8px}
+/* カメラのデモ */
+.tcam{position:fixed;inset:0;z-index:8000;background:#0B0C0F;color:#fff;display:flex;flex-direction:column;opacity:0;transition:opacity .25s}
+.tcam.in{opacity:1}.tcam.away{opacity:0}
+.tcam-top{display:flex;align-items:center;justify-content:center;gap:8px;position:relative;padding:calc(env(safe-area-inset-top,0px) + 12px) 16px 12px;font-size:15px}
+.tcam-x{position:absolute;left:12px;bottom:6px;background:none;border:0;color:#fff;font:500 15px "Zen Kaku Gothic New",sans-serif;padding:8px;cursor:pointer}
+.tcam-demo{font-size:11px;font-weight:700;color:#FFD36E;border:1px solid #FFD36E;border-radius:99px;padding:1px 8px}
+.tcam-view{position:relative;flex:none;width:min(100%,calc((100vh - 230px) * .75),480px);aspect-ratio:3/4;margin:0 auto;overflow:hidden;border-radius:4px;background:#222 repeating-conic-gradient(#2F3138 0 25%,#26282E 0 50%) 0 0/22px 22px}
+.tcam-view canvas{position:absolute;inset:0;width:100%;height:100%}
+.tcam-sway{position:absolute;inset:0;animation:tsway 3.2s ease-in-out infinite alternate}
+.tcam.shot .tcam-sway{animation-play-state:paused}
+@keyframes tsway{0%{transform:translate(-6px,4px) rotate(-.8deg) scale(1.03)}100%{transform:translate(5px,-5px) rotate(.7deg) scale(1.05)}}
+.tcam-photobox,.tcam-cutbox{position:absolute;inset:0}
+.tcam.cutting .tcam-photobox{clip-path:inset(100% 0 0 0);transition:clip-path 1.4s cubic-bezier(.5,0,.5,1)}
+.tcam-photobox{clip-path:inset(0 0 0 0)}
+.tcam.cut .tcam-cutbox canvas{animation:tglowin 1.2s ease forwards}
+@keyframes tglowin{0%{filter:drop-shadow(0 0 0 rgba(255,255,255,0))}45%{filter:drop-shadow(0 0 10px rgba(255,255,255,.75))}100%{filter:drop-shadow(0 0 3px rgba(255,255,255,.35))}}
+.tcam-scan{position:absolute;left:0;right:0;top:0;height:3px;background:linear-gradient(90deg,transparent,#FFD36E 20%,#fff 50%,#FFD36E 80%,transparent);box-shadow:0 0 18px 4px rgba(255,211,110,.6);opacity:0}
+.tcam.cutting .tcam-scan{opacity:1;top:100%;transition:top 1.4s cubic-bezier(.5,0,.5,1),opacity .2s}
+.tcam.cut .tcam-scan{opacity:0}
+.tcam-guide{position:absolute;inset:16% 12% 22%;transition:opacity .2s}
+.tcam-guide i{position:absolute;width:30px;height:30px;border:3px solid rgba(255,255,255,.9)}
+.tcam-guide i:nth-child(1){left:0;top:0;border-right:0;border-bottom:0;border-radius:6px 0 0 0}
+.tcam-guide i:nth-child(2){right:0;top:0;border-left:0;border-bottom:0;border-radius:0 6px 0 0}
+.tcam-guide i:nth-child(3){left:0;bottom:0;border-right:0;border-top:0;border-radius:0 0 0 6px}
+.tcam-guide i:nth-child(4){right:0;bottom:0;border-left:0;border-top:0;border-radius:0 0 6px 0}
+.tcam.shot .tcam-guide{opacity:0}
+.tcam-hint{position:absolute;left:50%;bottom:14px;transform:translateX(-50%);width:max-content;max-width:88%;margin:0;background:rgba(0,0,0,.6);padding:8px 14px;border-radius:99px;font-size:13px;line-height:1.5;text-align:center}
+.tcam-bot{flex:1;display:grid;place-items:center;padding-bottom:env(safe-area-inset-bottom,0px);min-height:110px}
+.tcam-shutter{width:78px;height:78px;border-radius:50%;border:4px solid #fff;background:none;padding:0;display:grid;place-items:center;cursor:pointer;animation:tshut 1.6s ease-in-out infinite}
+.tcam-shutter i{width:62px;height:62px;border-radius:50%;background:#fff;transition:transform .1s}
+.tcam-shutter:active i{transform:scale(.88)}
+@keyframes tshut{0%,100%{box-shadow:0 0 0 0 rgba(255,255,255,.45)}50%{box-shadow:0 0 0 12px rgba(255,255,255,0)}}
+.tcam.shot .tcam-shutter{animation:none;opacity:.35}
+.tcam-flash{position:fixed;inset:0;background:#fff;opacity:0;pointer-events:none}
+.tcam.shot .tcam-flash{animation:tflash .5s ease-out}
+@keyframes tflash{0%{opacity:.95}100%{opacity:0}}
+.tcam-sheet{position:absolute;left:0;right:0;bottom:0;max-width:520px;margin:0 auto;background:#FFFDF8;color:var(--t-ink);border-radius:22px 22px 0 0;padding:18px 20px calc(18px + env(safe-area-inset-bottom,0px));transform:translateY(105%);transition:transform .45s cubic-bezier(.2,.9,.2,1);box-shadow:0 -10px 30px rgba(0,0,0,.35)}
+.tcam.ask .tcam-sheet{transform:none}
+.tcam-ai{margin:0 0 10px;font-size:13.5px;font-weight:700;color:var(--t-gold);display:flex;gap:6px;align-items:center}
+.tcam-ai i{font-style:normal}
+.tcam-sheet dl{margin:0 0 14px;display:grid;gap:6px}
+.tcam-sheet dl div{display:grid;grid-template-columns:5.5em 1fr;align-items:baseline;border-bottom:1px dashed #DDD3BF;padding:5px 0}
+.tcam-sheet dt{font-size:12.5px;color:var(--t-mute)}
+.tcam-sheet dd{margin:0;font-size:17px;font-weight:700;min-height:1.4em}
+.tcam-save{width:100%;height:54px;border:0;border-radius:99px;background:var(--t-shu);color:#fff;font:700 17px "Zen Kaku Gothic New",sans-serif;cursor:pointer;transition:opacity .2s}
+.tcam-save:disabled{opacity:.4}
+/* お祝い・登録画面 */
+.tfin{position:fixed;inset:0;z-index:9600;color:var(--t-ink);overflow:hidden;opacity:0;transition:opacity .35s}
+.tfin.in{opacity:1}
+.tfin-fx{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:2}
+.tfin-stage{position:absolute;left:0;right:0;top:0;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;padding:calc(env(safe-area-inset-top,0px) + 16px) 22px 16px;z-index:1;transition:height .6s cubic-bezier(.2,.9,.2,1),gap .6s}
+.tfin.p2 .tfin-stage{height:calc(100% - var(--jh,0px));gap:10px}
+.tfin-rally{list-style:none;display:flex;gap:10px;margin:0;padding:0}
+.tfin-rally li{width:40px;height:40px;border-radius:50%;background:var(--t-shu);color:#fff;display:grid;place-items:center;transform:rotate(-8deg);mix-blend-mode:multiply;opacity:0;animation:tstampin .4s cubic-bezier(.3,1.3,.4,1) var(--d) forwards;transition:width .5s,height .5s}
+.tfin-rally svg{width:21px;height:21px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.tfin.lite .tfin-rally{display:none}
+.tfin.p2 .tfin-rally li{width:28px;height:28px}.tfin.p2 .tfin-rally svg{width:15px;height:15px}
+.tfin-hanko{position:relative;width:170px;height:170px;flex:none;border-radius:50%;border:9px solid var(--t-shu);box-shadow:inset 0 0 0 5px var(--t-paper),inset 0 0 0 8px var(--t-shu);display:grid;place-items:center;mix-blend-mode:multiply;transform:rotate(-9deg);transition:width .6s,height .6s,border-width .6s}
+.tfin-hanko span{font:400 36px/1 "Dela Gothic One","Zen Kaku Gothic New",sans-serif;color:var(--t-shu);transition:font-size .6s}
+.tfin.fan .tfin-hanko{opacity:0}
+.tfin.fan.slam .tfin-hanko{animation:tslam .5s cubic-bezier(.3,1.25,.4,1) forwards}
+.tfin.fan.slam .tfin-hanko::after{content:"";position:absolute;inset:-46px;border-radius:50%;background:radial-gradient(circle at 12% 30%,var(--t-shu) 0 4px,transparent 5px),radial-gradient(circle at 88% 22%,var(--t-shu) 0 3px,transparent 4px),radial-gradient(circle at 80% 86%,var(--t-shu) 0 5px,transparent 6px),radial-gradient(circle at 18% 82%,var(--t-shu) 0 2.5px,transparent 3.5px),radial-gradient(circle at 50% 4%,var(--t-shu) 0 2px,transparent 3px),radial-gradient(circle at 97% 55%,var(--t-shu) 0 2px,transparent 3px);opacity:0;animation:tsplat .35s ease-out .32s forwards}
+@keyframes tsplat{0%{opacity:0;transform:scale(.6)}100%{opacity:.85;transform:scale(1)}}
+.tfin.fan.slam .tfin-stage{animation:tshake .38s ease-out .33s}
+@keyframes tshake{0%,100%{transform:none}20%{transform:translate(-5px,3px)}40%{transform:translate(4px,-3px)}60%{transform:translate(-3px,2px)}80%{transform:translate(2px,-1px)}}
+.tfin.lite .tfin-hanko,.tfin.p2 .tfin-hanko{width:104px;height:104px;border-width:6px}
+.tfin.lite .tfin-hanko span,.tfin.p2 .tfin-hanko span{font-size:22px}
+.tfin-h{margin:0;text-align:center;font:400 clamp(21px,6.2vw,29px)/1.42 "Dela Gothic One","Zen Kaku Gothic New",sans-serif;letter-spacing:.02em;transition:font-size .6s}
+.tfin-h span{display:block;white-space:nowrap}
+.tfin-h .up{color:var(--t-shu);font-size:1.32em;line-height:1.3;margin-top:4px;background:linear-gradient(transparent 72%,rgba(184,144,47,.32) 72% 92%,transparent 92%)}
+.tfin.fan .tfin-h span{opacity:0;transform:translateY(12px)}
+.tfin.fan.slam .tfin-h span{animation:tup .5s ease forwards}
+.tfin.fan.slam .tfin-h span:nth-child(1){animation-delay:.55s}.tfin.fan.slam .tfin-h span:nth-child(2){animation-delay:.8s}
+.tfin.fan.slam .tfin-h span:nth-child(3){animation-delay:1.05s}.tfin.fan.slam .tfin-h span:nth-child(4){animation-delay:1.3s}.tfin.fan.slam .tfin-h span:nth-child(5){animation:tupbig .6s cubic-bezier(.3,1.4,.5,1) 1.65s forwards}
+@keyframes tupbig{0%{opacity:0;transform:scale(.6)}100%{opacity:1;transform:none}}
+.tfin.p2 .tfin-h{font-size:clamp(16px,4.6vw,21px)}
+.tjoin{position:absolute;left:50%;bottom:0;width:min(480px,100%);max-height:80%;overflow:auto;-webkit-overflow-scrolling:touch;transform:translate(-50%,105%);background:#FFFDF8;color:var(--t-ink);border-radius:24px 24px 0 0;padding:20px 20px calc(14px + env(safe-area-inset-bottom,0px));box-shadow:0 -12px 40px rgba(70,50,20,.2);transition:transform .55s cubic-bezier(.2,.9,.2,1);z-index:3}
+.tfin.p2 .tjoin{transform:translate(-50%,0)}
+.tjoin h3{font-size:19px;margin:0 40px 12px 0;line-height:1.4}
+.tjoin .tc-x{position:absolute;top:14px;right:14px;background:#F1ECE1;color:var(--t-mute)}
+.tj-sub{font-size:13.5px;color:var(--t-mute);line-height:1.7;margin:0 0 14px}
+.tj-perks{list-style:none;margin:0 0 14px;padding:0;display:grid;gap:10px}
+.tj-perks li{display:flex;gap:12px;align-items:center;font-size:12.5px;line-height:1.5;color:var(--t-mute)}
+.tj-perks li i{flex:none;width:38px;height:38px;border-radius:50%;background:#F7E1DB;color:var(--t-shu);display:grid;place-items:center;transform:rotate(-6deg)}
+.tj-perks li svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.tj-perks b{display:block;font-size:14px;color:var(--t-ink)}
+.tj-perks small{font-size:12.5px}
+@media (max-height:760px){
+  .tfin.p2 .tfin-rally{display:none}
+  .tfin.p2 .tfin-hanko,.tfin.lite .tfin-hanko{width:66px;height:66px;border-width:4px;box-shadow:inset 0 0 0 3px var(--t-paper),inset 0 0 0 5px var(--t-shu)}
+  .tfin.p2 .tfin-hanko span,.tfin.lite .tfin-hanko span{font-size:14px}
+  .tfin.p2 .tfin-h{font-size:15px;line-height:1.35}
+  .tj-perks{grid-template-columns:repeat(3,1fr);gap:6px}
+  .tj-perks li{flex-direction:column;text-align:center;gap:4px}
+  .tj-perks li i{width:32px;height:32px}
+  .tj-perks b{font-size:12.5px}.tj-perks small{display:none}
+  .tjoin h3{font-size:17px;margin-bottom:10px}
+}
+.tj-form{display:grid;gap:8px}
+.tj-in{width:100%;height:50px;border-radius:12px;border:1.5px solid #D9D1C0;background:#fff;color:#1B2130;padding:0 14px;font:16px "Zen Kaku Gothic New",sans-serif;box-sizing:border-box}
+.tj-in:focus{outline:none;border-color:var(--t-ink);box-shadow:0 0 0 3px rgba(31,45,92,.14)}
+.tj-pw{display:flex;gap:6px}.tj-pw button{flex:none;border:1.5px solid #D9D1C0;background:#fff;color:var(--t-ink);border-radius:12px;padding:0 14px;font:500 13px "Zen Kaku Gothic New",sans-serif;cursor:pointer}
+.tj-go{height:54px;border:0;border-radius:99px;background:var(--t-shu);color:#fff;font:700 17px "Zen Kaku Gothic New",sans-serif;letter-spacing:.03em;cursor:pointer;box-shadow:0 8px 20px rgba(200,65,46,.28);display:flex;align-items:center;justify-content:center;gap:8px}
+.tj-go:disabled{opacity:.6}
+.tj-msg{font-size:13px;line-height:1.6;min-height:1.2em;margin:2px 0 0;color:var(--t-ink)}
+.tj-links{display:flex;flex-direction:column;align-items:center}
+.tj-links button{color:var(--t-ink);padding:6px 4px}
+.tj-skip{display:block;width:100%;margin-top:6px;padding:12px;border:1.5px dashed #CFC5B0;border-radius:12px;background:none;color:var(--t-mute);font:500 13px "Zen Kaku Gothic New",sans-serif;cursor:pointer}
+.tj-again{display:block;margin:4px auto 0;font-size:12.5px;color:var(--t-mute)}
+/* 登録したあと */
+.tnudge{position:fixed;z-index:60;max-width:240px;background:var(--t-ink);color:#fff;padding:10px 14px;border-radius:14px;font-size:13.5px;line-height:1.5;box-shadow:0 10px 26px rgba(12,22,52,.3);opacity:0;transform:translateY(-6px);transition:opacity .25s,transform .25s;cursor:pointer}
+.tnudge.in{opacity:1;transform:none}
+.tnudge::before{content:"";position:absolute;top:-7px;right:26px;border:7px solid transparent;border-top:0;border-bottom-color:var(--t-ink)}
+.tnudge b{display:block;font-size:14.5px}
+#addBtn.tglow{animation:tnudge 1.4s ease-in-out infinite}
+@media (prefers-reduced-motion: reduce){
+  .twel *,.tfin *,.tdot i,.tcoach,.tc-next,.tcam *{animation:none!important;transition:none!important}
+  .twel-stamps img{opacity:.86}.twel-logo{opacity:.94;transform:rotate(-9deg)}.twel-copy{opacity:1;transform:none}
+  .tfin .tfin-hanko,.tfin .tfin-rally li{opacity:1}.tfin .tfin-h span{opacity:1;transform:none}
+}
+.twel,.twel *,.tfin,.tfin *,.tcoach,.tcoach *,.tcam,.tcam *,.tpop,.tpop *,.tnudge{box-sizing:border-box}
+.tj-go{width:100%}
 </style>
 
 <div id="app">
@@ -1356,7 +1556,7 @@ const SAMPLE_EV = ["旅行", "デート", "デート", "旅行", "ドライブ",
 function buildSamples() {
   SAMPLES = SAMPLE_DEF.map((d, i) => {
     const art = drawSample({ name: d[0], sub: d[1], ink: d[7], ink2: d[8], motif: d[9], shape: d[10] });
-    return { id: "sample" + i, sample: true, name: d[0], place: d[0], pref: d[2], cat: catNorm(d[3]), date: d[4], lat: d[5], lng: d[6], ink: d[7], cut: art.url, cw: art.w, ch: art.h, shape: d[10], sizeMm: d[11], sizeSrc: "manual", note: d[12], memo: d[13], event: SAMPLE_EV[i] || "", overlap: !!d[8], scenes: [], created: i };
+    return { id: "sample" + i, sample: true, name: d[0], place: d[0], pref: d[2], cat: catNorm(d[3]), date: d[4], lat: d[5], lng: d[6], ink: d[7], cut: art.url, cw: art.w, ch: art.h, shape: d[10], sizeMm: d[11], sizeSrc: "manual", note: d[12], memo: d[13], event: SAMPLE_EV[i] || "", overlap: !!d[8], scenes: [], created: i, trivia: SAMPLE_TRIVIA[d[0]] || "" };
   });
 }
 function drawGoshuin() {
@@ -6345,7 +6545,7 @@ const Pack = {
         <div class="pk-stage"><div class="pk-pack"><div class="pk-top"><i></i></div><div class="pk-body"><span class="pk-shine"></span><span class="pk-logo">ぺたろぐ</span><span class="pk-sub">STAMP CARD${kind === "ovl" ? " · 重ね押し" : kind === "digi" ? " · DIGITAL" : ""}</span><span class="pk-gx" style="--g:${gcol(catNorm(s.cat))}"></span></div></div>
           <div class="pk-card"><div class="pk-in"><div class="pk-f">${front}<span class="pk-holo"></span></div><div class="pk-b" style="--g:${gcol(catNorm(s.cat))}"><div class="tcv-wait"><span class="spin"></span><small>プチ情報を書いています…</small></div></div></div></div></div>
         <div class="pk-title" aria-live="polite"></div>
-        <div class="pk-acts"><button class="btn" type="button" data-pk="close">とじる</button><button class="btn primary" type="button" data-pk="view">トレカを見る</button></div>
+        <div class="pk-acts">${o.oneBtn ? `<button class="btn primary" type="button" data-pk="close">${esc(o.oneBtn)}</button>` : `<button class="btn" type="button" data-pk="close">とじる</button><button class="btn primary" type="button" data-pk="view">トレカを見る</button>`}</div>
         <div class="pk-tap">タップで開ける</div>`;
       document.body.appendChild(el); document.documentElement.classList.add("tcv-on");
       const $e = q => el.querySelector(q), card = $e(".pk-card"), inner = $e(".pk-in"), title = $e(".pk-title");
@@ -6953,6 +7153,364 @@ async function useStandPhoto(f) {
   $("#standKeep").onclick = async () => { try { const cv = await fileToCanvas(f, 1400); const p = makePhoto(cv); if (p) { c.newScenes.push({ k: uid("p").slice(1), url: p.url }); renderPhotos(); toast("写真に追加しました"); } } catch (_) { toast("この写真は追加できませんでした"); } box.hidden = true; box.innerHTML = ""; };
 }
 
+/* ================= はじめてのツアー（ログインの前に、さわって体験する） =================
+   ようこそ → ぜんぶ（つまんで投げる）→ トレカ（タップ・裏返す）→ 地図（じぶん＋みんな）→ ジャーナル（開く）→ 1まい登録（カメラのデモ）→ お祝い → 登録画面
+   ツアーの間は「砂場」: 本当の記録・ジャーナル・設定には何も書かない（ログイン中に見直すときも安全） */
+const SAMPLE_TRIVIA = {
+  "東京駅": "丸の内駅舎は辰野金吾《たつのきんご》の設計で、1914年に開業しました。赤レンガの駅舎は2012年に創建当時の姿へ復原され、南北のドームの天井も見どころです。",
+  "鎌倉駅": "東口は鶴岡八幡宮《つるがおかはちまんぐう》へ続く若宮大路《わかみやおおじ》や小町通りの玄関口。西口には旧駅舎の時計台が残され、江ノ電の乗り場もこの駅にあります。",
+  "赤レンガ倉庫": "横浜赤レンガ倉庫は、明治の終わりから大正のはじめにかけて国の保税倉庫として建てられました。いまは1号館が文化施設、2号館がショップやレストランとして使われています。",
+  "京都駅": "いまの京都駅ビルは1997年に完成。原広司《はらひろし》の設計で、大階段と吹き抜けの大空間が名物です。駅の正面には京都タワーが立っています。",
+  "道の駅 富士": "富士山のふもとは湧き水が豊か。山梨県側の名物には、コシの強い吉田《よしだ》のうどんや、野菜たっぷりのほうとうがあります。晴れた日は富士山がよく見えます。",
+  "花火大会": "隅田川の花火は、江戸時代の両国の川開きが始まりといわれます。掛け声の「たまや」「かぎや」は、江戸の花火屋の屋号から生まれました。",
+  "函館駅": "函館朝市は駅のすぐそば。函館山からの夜景や、洋館が並ぶ元町《もとまち》も歩いて回れます。駅の近くには、かつての青函連絡船・摩周丸《ましゅうまる》が残されています。",
+  "都庁前駅": "都営大江戸線の都庁前駅は、環状部と放射部がつながる駅。真上の東京都庁第一本庁舎は丹下健三《たんげけんぞう》の設計で、45階の展望室は無料で入れます。",
+};
+const TOUR_ICON = {
+  fall: '<circle cx="8" cy="15" r="4"/><circle cx="16.5" cy="16.5" r="3.5"/><circle cx="13" cy="7" r="3.5"/>',
+  card: '<rect x="3.5" y="5" width="11" height="15" rx="1.5"/><path d="M9 4.2 17.8 3a1.5 1.5 0 0 1 1.7 1.3l1.6 12.2a1.5 1.5 0 0 1-1.3 1.7l-2.3.3"/>',
+  map: '<path d="M12 21s-6-5.6-6-11a6 6 0 0 1 12 0c0 5.4-6 11-6 11z"/><circle cx="12" cy="10" r="2.2"/>',
+  journal: '<rect x="4" y="3" width="16" height="18" rx="1.5"/><circle cx="10" cy="10" r="3"/><rect x="12" y="13" width="5" height="4" rx=".8"/>',
+  camera: '<path d="M4 8h3l1.6-2.4h6.8L17 8h3v11H4z"/><circle cx="12" cy="13.2" r="3.6"/>',
+};
+const tIco = (k, cls) => `<svg viewBox="0 0 24 24" class="${cls || ""}" aria-hidden="true">${TOUR_ICON[k] || ""}</svg>`;
+// みんなの地図のデモ（架空のスタンプ。ツアーの中だけで見せる）
+const TOUR_PUBS = [
+  ["商店街の福引所", "SHOTENGAI", "東京都", "施設", 35.7128, 139.7960, "#B4432F", "star", "circle"],
+  ["路面電車の車庫", "TRAM DEPOT", "東京都", "駅", 35.7349, 139.7684, "#2D5A3D", "train", "rect", 1],
+  ["下町の銭湯", "SENTO", "東京都", "施設", 35.6990, 139.8130, "#24508F", "wave", "circle"],
+  ["坂の上の図書館", "LIBRARY", "神奈川県", "施設", 35.4440, 139.6470, "#7A3B2A", "brick", "rect"],
+  ["古民家カフェ", "OLD HOUSE", "神奈川県", "施設", 35.3260, 139.5570, "#5B4A2E", "gate", "circle", 1],
+  ["灯台の岬", "LIGHTHOUSE", "神奈川県", "施設", 35.1420, 139.6740, "#1F5E7A", "tower", "circle"],
+  ["峠の茶屋", "TOGE", "神奈川県", "施設", 35.2330, 139.0240, "#3E5F2A", "mount", "rect", 1],
+  ["湖畔の遊覧船", "LAKE CRUISE", "山梨県", "施設", 35.5090, 138.7620, "#2B4C9B", "boat", "circle"],
+  ["秩父の山の駅", "CHICHIBU", "埼玉県", "道の駅", 35.9920, 139.0850, "#6A2E5E", "mount", "circle"],
+  ["朝市の食堂", "ASAICHI", "北海道", "施設", 41.7718, 140.7270, "#1F5E7A", "boat", "circle", 1],
+  ["町家の手ぬぐい屋", "MACHIYA", "京都府", "施設", 35.0040, 135.7700, "#7A2E6B", "brick", "rect", 1],
+];
+const TOUR_DEMO = { name: "ぺたろぐ駅", sub: "PETALOG STA.", ink: "#C23B2E", motif: "train", shape: "circle" };
+
+const Tour = {
+  on: false, i: -1, did: {}, preview: false, el: {}, tickT: 0, saved: null, demo: null,
+  STEPS: [
+    { k: "fall", v: "fall", pos: "top", t: "押したスタンプが、ここに集まる", b: "スタンプを指でつまんで、ぽーんと投げてみて。", ok: "いいね！ スマホを傾けると、スタンプが転がります。" },
+    { k: "card", v: "book", pos: "bottom", t: "1まいずつ、トレカになる", b: "好きなトレカをタップして開いてみよう。", b2: "トレカをタップすると裏返ります。", ok: "裏面には、その場所のプチ情報。本物を登録すると、AIが書いてくれます。" },
+    { k: "map", v: "map", pos: "bottom", t: "押した場所が、地図になる", b: "青いピンがあなた、朱色のピンはみんなが見つけたスタンプ。ネット検索には出てこない、地元だけのレアスタンプが見つかるかも…？ 朱色のピンをタップ！", ok: "旅先で「近くにスタンプないかな？」と探せます。" },
+    { k: "journal", v: "board", pos: "bottom", t: "ノートに貼って、飾る", b: "スタンプジャーナルをタップして開いてみよう。", b2: "ページをめくって、中を見てみて。", ok: "トラベラーズノートのサイズで作れば、印刷してそのまま貼れます。", tn: 1 },
+    { k: "camera", v: "fall", pos: "top", t: "さあ、1まい登録してみよう", b: "スタンプを撮るだけで、切り抜き・名前の読み取りまで自動です。ここではデモで体験できます。", cta: "カメラを開く（デモ）" },
+  ],
+  // ---------- はじまり ----------
+  auto() {   // ログインしていない人が開いたとき（cloud.js の afterBoot から）。何か出したら true
+    if (stamps.length || this.on) return false;
+    if (!lsGet("petalog.tourDone")) { this.start(); return true; }
+    this.join({ back: true }); return true;
+  },
+  fromURL() { const q = new URLSearchParams(location.search); if (!q.has("tour")) return false; try { history.replaceState(null, "", location.pathname + location.hash); } catch (_) {} setTimeout(() => this.start({ preview: true }), 400); return true; },
+  loggedIn() { return !!(window.PetalogCloud && PetalogCloud.loggedIn && PetalogCloud.loggedIn()); },
+  ev(s, n) { try { Track.ev("tour", { s, ...(n != null ? { n } : {}) }); } catch (_) {} },
+  start(o = {}) {
+    if (this.on) return; this.on = true; this.preview = !!o.preview || this.loggedIn(); this.i = -1; this.did = {};
+    lsSet("petalog.pinchHint", "1"); try { document.fonts.load('400 30px "Dela Gothic One"', "ぺたろぐ押したスタンプが、旅のコレクションになる。さぁあなたの集めをでもっと素敵な趣味にアップデート！ツアーはここまで"); document.fonts.load('600 30px "Klee One"', "0123456789.はじめての1まい"); } catch (_) {} if (typeof closeSheet === "function") closeSheet(); if (CardView.el) CardView.close(true);
+    this.sandbox(true); this.hooks(); this.ev("start");
+    this.welcome();
+  },
+  // ---------- 砂場（本物の記録には書かない） ----------
+  sandbox(on) {
+    const W = ["saveStamp", "delStamp", "putMeta", "putPhoto", "delPhoto", "pubPut", "pubDel", "pubPutMany", "pubDelMany", "saveWalk", "delWalk"];
+    if (on) {
+      this.saved = { stamps, books: Books.data, bs: Books.sample, bm: Books.mode, bc: Books.cur, view, W: {}, save: Books.save, pubs: MapV.pubs, mm: MapV.mode, shown: MapV.shown };
+      for (const k of W) if (typeof Store[k] === "function") { this.saved.W[k] = Store[k]; Store[k] = async () => null; }
+      Books.save = function () {};
+      stamps = []; Books.data = Books.sampleData(); Books.sample = true; Books.mode = "shelf"; Books.cur = null; Board.data = null;
+      refreshAll();
+    } else if (this.saved) {
+      const S = this.saved; this.saved = null;
+      for (const k of Object.keys(S.W)) Store[k] = S.W[k];
+      Books.save = S.save; stamps = S.stamps; Books.data = S.books; Books.sample = S.bs; Books.mode = S.bm === "edit" ? "shelf" : S.bm; Books.cur = S.bc; Board.data = null;
+      MapV.pubs = S.pubs; MapV.mode = S.mm || "me"; MapV.shown = S.shown; try { MapV.setMode(MapV.mode); } catch (_) {}
+      if (this.demo) { SAMPLES = SAMPLES.filter(s => s !== this.demo); this.demo = null; }
+      Book.idx = 0; refreshAll(); show("fall");
+    }
+  },
+  hooks() {
+    if (this.hooked) return; this.hooked = true; const T = this;
+    const fs = Fall.setup; Fall.setup = function () { const r = fs.apply(this, arguments); if (r && this.mc && window.Matter) Matter.Events.on(this.mc, "startdrag", () => { if (T.on) T.mark("fall"); }); return r; };
+    const sh = Fall.shake; Fall.shake = function () { if (T.on) T.mark("fall"); return sh.apply(this, arguments); };
+    const co = CardView.open; CardView.open = function () { const r = co.apply(this, arguments); if (T.on) { T.sub("card"); T.place(); } return r; };
+    const cc = CardView.close; CardView.close = function () { const r = cc.apply(this, arguments); if (T.on) setTimeout(() => T.place(), 300); return r; };
+    const op = MapV.openPubs; MapV.openPubs = function (ids) { if (T.on) return T.pubPop(ids); return op.apply(this, arguments); };
+    const om = MapV.openMine; if (om) MapV.openMine = function () { if (T.on && T.cur && T.cur.k === "map") { toast("青いピンは、あなたが押したスタンプです（いまはサンプル）"); return; } return om.apply(this, arguments); };
+    const ft = MapV.foot; MapV.foot = function () { if (T.on && this.mode === "all") { const f = $("#mapFoot"); if (f) f.innerHTML = `<span class="tour-mapnote">朱色のピンは、ほかの人が見つけたスタンプ（いまはサンプル）。ログインすると、本物のみんなの記録が見られます。</span>`; return; } return ft.apply(this, arguments); };
+    const rd = MapV.render; MapV.render = function () { const r = rd.apply(this, arguments); if (T.on) { const sg = $("#mapSeg"); if (sg) sg.hidden = false; } return r; };
+    const ob = Books.openBook; Books.openBook = function () { const r = ob.apply(this, arguments); if (T.on) T.sub("journal"); return r; };
+    const tro = Trust.of; Trust.of = function (g) { if (T.on && g && g.top && String(g.top._id || "").startsWith("tp")) return { trust: 3 }; return tro.apply(this, arguments); };
+    const yb = YearSum.btn; YearSum.btn = function () { const r = yb.apply(this, arguments); T.settingsBtn(); return r; };
+    // ツアー中の「＋ 追加」は、デモの登録へ
+    $("#addBtn").addEventListener("click", e => { if (!T.on) return; e.stopImmediatePropagation(); e.preventDefault(); if (T.i >= 0) T.go(T.STEPS.findIndex(s => s.k === "camera")); }, true);
+    addEventListener("resize", () => { if (T.on) T.place(); });
+  },
+  // ---------- ようこそ ----------
+  welcome() {
+    const el = document.createElement("div"); el.className = "twel"; el.setAttribute("role", "dialog"); el.setAttribute("aria-label", "ぺたろぐへようこそ");
+    const L = SAMPLES.filter(s => s.type !== "goshuin").slice(0, 7);
+    const spots = [[18, 14, -14, 30], [52, 8, 8, 25], [85, 17, 14, 28], [10, 50, 10, 27], [90, 52, -12, 26], [21, 87, -6, 24], [79, 89, 9, 23]];
+    el.innerHTML = `<div class="twel-paper"></div>
+      <div class="twel-stamps">${L.map((s, k) => { const [x, y, r, w] = spots[k] || [50, 50, 0, 22]; return `<img src="${s.cut}" alt="" style="left:${x}%;top:${y}%;width:${w}vmin;--r:${r}deg;--d:${180 + k * 210}ms">`; }).join("")}
+        <div class="twel-logo" aria-hidden="true"><span>ぺたろぐ</span></div></div>
+      <div class="twel-copy">
+        <h1><span>押したスタンプが、</span><span>旅のコレクションになる。</span></h1>
+        <p>撮るだけで切り抜いて、トレカに、地図に、ノートに。まずはログインせずに、さわってみてください。</p>
+        <button class="twel-go" type="button" id="twGo">さわってみる<small>約1分</small></button>
+        <button class="twel-link" type="button" id="twLogin">アカウントをお持ちの方はログイン</button>
+      </div>`;
+    this.paper(el); document.body.appendChild(el); this.el.wel = el; document.documentElement.classList.add("tour-lock");
+    const fit = () => { const cp = el.querySelector(".twel-copy"); if (cp) el.style.setProperty("--ch", cp.offsetHeight + "px"); }; fit(); addEventListener("resize", fit);
+    requestAnimationFrame(() => el.classList.add("in"));
+    el.querySelector("#twGo").onclick = () => { this.ev("go"); el.classList.add("out"); setTimeout(() => { el.remove(); document.documentElement.classList.remove("tour-lock"); this.go(0); }, 420); };
+    el.querySelector("#twLogin").onclick = () => { this.ev("login0"); el.remove(); this.el.wel = null; this.stop(); this.join({ login: true }); };
+  },
+  // ---------- 案内カード ----------
+  get cur() { return this.STEPS[this.i]; },
+  paper(el) { try { if (!this._wu) this._wu = Paper.washi().toDataURL("image/png"); const p = el.querySelector(".twel-paper"); if (p) p.style.backgroundImage = `url(${this._wu})`; } catch (_) {} },
+  go(i) {
+    if (!this.on) return; this.popClose(); if (CardView.el && !CardView.el.hidden) CardView.close(true); if (typeof closeSheet === "function" && $("#sheetWrap") && !$("#sheetWrap").hidden) closeSheet();
+    if (i >= this.STEPS.length) return this.finale();
+    this.i = i; const st = this.cur; this.subOn = false; this.ev("step", i + 1);
+    if (st.k === "map") { MapV.pubs = this.pubs(); MapV.mode = "all"; MapV.shown = true; }
+    else if (MapV.mode === "all") { MapV.mode = "me"; }
+    if (st.k === "journal") { Books.mode = "shelf"; Books.cur = null; }
+    show(st.v);
+    if (st.k === "map") setTimeout(() => { try { MapV.setMode("all"); MapV.map && MapV.map.invalidateSize({ animate: false }); MapV.map && MapV.map.fitBounds([[35.12, 138.72], [35.98, 139.98]], { padding: [24, 24] }); } catch (_) {} setTimeout(() => this.place(), 700); }, 120);
+    this.card(); this.place(); clearInterval(this.tickT); this.tickT = setInterval(() => this.tick(), 250);
+  },
+  card() {
+    let c = this.el.card; const st = this.cur, n = this.STEPS.length;
+    if (!c) { c = this.el.card = document.createElement("div"); c.className = "tcoach"; c.setAttribute("role", "dialog"); c.setAttribute("aria-live", "polite"); document.body.appendChild(c);
+      c.addEventListener("click", e => { const a = e.target.closest("[data-t]"); if (!a) return; const k = a.dataset.t;
+        if (k === "next") this.go(this.i + 1); else if (k === "cta") this.camera(); else if (k === "x") this.quit(); else if (k === "login") { this.ev("login", this.i + 1); this.stop(); this.join({ login: true }); } }); }
+    const done = !!this.did[st.k], body = this.subOn && st.b2 && !done ? st.b2 : st.b;
+    c.dataset.pos = st.pos; c.classList.toggle("done", done);
+    c.innerHTML = `<div class="tc-top"><ol class="tc-rally" aria-label="すすみぐあい ${this.i + 1} / ${n}">${this.STEPS.map((s, k) => `<li class="${this.did[s.k] ? "got" : ""}${k === this.i ? " now" : ""}">${tIco(s.k)}</li>`).join("")}</ol>
+        <button class="tc-x" type="button" data-t="x" aria-label="ツアーを終わる">✕</button></div>
+      <h3>${esc(st.t)}</h3><p>${esc(body)}</p>${done && st.ok ? `<p class="tc-ok"><i aria-hidden="true">✓</i>${esc(st.ok)}</p>` : ""}
+      ${st.tn && done ? `<div class="tc-tn" aria-hidden="true"><span class="tn-book"><i></i><b></b></span><span>トラベラーズノート<br><small>1ページ・見開きの大きさに対応</small></span></div>` : ""}
+      <div class="tc-acts"><button class="tc-login" type="button" data-t="login">ログインはこちら</button>
+        ${st.cta ? `<button class="tc-next cta" type="button" data-t="cta">${tIco("camera")}${esc(st.cta)}</button>` : `<button class="tc-next${done ? " ready" : ""}" type="button" data-t="next">${done ? "つぎへ" : "とばす"}</button>`}</div>`;
+  },
+  sub(k) { if (!this.on || !this.cur || this.cur.k !== k) return; if (!this.subOn) { this.subOn = true; this.card(); } },
+  mark(k) {
+    if (!this.on || !this.cur || this.cur.k !== k || this.did[k]) return; this.did[k] = true; this.card();
+    const li = this.el.card && this.el.card.querySelectorAll(".tc-rally li")[this.i]; if (li) { li.classList.add("press"); }
+    this.place();
+  },
+  tick() {
+    if (!this.on || !this.cur) return; const st = this.cur, c = this.el.card; if (!c) return;
+    const sheetOpen = $("#sheetWrap") && !$("#sheetWrap").hidden, tcv = CardView.el && !CardView.el.hidden;
+    c.classList.toggle("hide", !!sheetOpen || !!document.querySelector(".pk") || !!this.el.cam);
+    if (st.k === "card" && tcv && Math.round(CardView.base / 180) % 2 !== 0) this.mark("card");
+    if (st.k === "journal" && Books.mode === "book" && Book.idx > 0) this.mark("journal");
+    c.dataset.pos = st.k === "card" && tcv ? "low" : st.pos;
+    if (this._sp !== (tcv ? 1 : 0) + (Books.mode === "book" ? 2 : 0)) { this._sp = (tcv ? 1 : 0) + (Books.mode === "book" ? 2 : 0); this.place(); }
+  },
+  // 指の丸（どこをさわればいいか）
+  place() {
+    if (!this.on || !this.cur) { this.dot(null); return; } const st = this.cur, tcv = CardView.el && !CardView.el.hidden;
+    let r = null, kind = "tap";
+    if (st.k === "fall" && !this.did.fall) { const w = $("#fallWrap"); if (w) { const b = w.getBoundingClientRect(); r = { x: b.left + b.width * 0.5, y: b.top + b.height * 0.8 }; kind = "drag"; } }
+    else if (st.k === "card" && !this.did.card) { if (tcv) { const b = CardView.el.querySelector("#tcvCard").getBoundingClientRect(); r = { x: b.left + b.width * 0.5, y: b.top + b.height * 0.55 }; } else { const e = $("#cards [data-open]"); if (e) { const b = e.getBoundingClientRect(); r = { x: b.left + b.width / 2, y: b.top + b.height / 2 }; } } }
+    else if (st.k === "map" && !this.did.map && MapV.map) { const h = (MapV.pinHits || []).find(p => p.pub && this.rare.has(p.pub)) || (MapV.pinHits || []).find(p => p.pub); if (h) { const b = MapV.map.getContainer().getBoundingClientRect(); r = { x: b.left + h.px, y: b.top + h.py }; } }
+    else if (st.k === "journal" && !this.did.journal && Books.mode === "shelf") { const e = document.querySelector("#shelfBox [data-book]"); if (e) { const b = e.getBoundingClientRect(); r = { x: b.left + b.width / 2, y: b.top + b.height / 2 }; } }
+    this.dot(r, kind);
+  },
+  dot(r, kind) {
+    let d = this.el.dot; if (!r) { if (d) d.hidden = true; return; }
+    if (!d) { d = this.el.dot = document.createElement("div"); d.className = "tdot"; d.setAttribute("aria-hidden", "true"); d.innerHTML = "<i></i>"; document.body.appendChild(d); }
+    d.hidden = false; d.dataset.kind = kind; d.style.left = r.x + "px"; d.style.top = r.y + "px";
+  },
+  // ---------- 地図のデモ ----------
+  rare: new Set(),
+  pubs() {
+    if (this._pubs) return this._pubs; this.rare = new Set();
+    this._pubs = TOUR_PUBS.map((d, i) => { const art = drawSample({ name: d[0], sub: d[1], ink: d[6], motif: d[7], shape: d[8] }); const id = "tp" + i; if (d[9]) this.rare.add(id);
+      return { _id: id, sid: id, by: "tour", nick: "サンプル", name: d[0], place: d[0], pref: d[2], cat: d[3], date: todayStr(), lat: d[4], lng: d[5], thumb: art.url, type: "stamp", t: Date.now() - i * 864e5, ct: Date.now() - i * 864e5, spotTags: [], lr: 1 }; });
+    return this._pubs;
+  },
+  pubPop(ids) {
+    const p = (this._pubs || []).find(x => x._id === (ids || [])[0]); if (!p) return; this.popClose(); this.mark("map");
+    const rare = this.rare.has(p._id), el = document.createElement("div"); el.className = "tpop"; el.setAttribute("role", "dialog");
+    el.innerHTML = `<div class="tpop-in"><img src="${p.thumb}" alt=""><div><span class="tpop-tag">みんなの記録・サンプル</span><b>${esc(p.name)}</b><small>${esc(p.pref)}</small>
+      ${rare ? `<p class="tpop-rare">★ ネットにほとんど情報がない、レアなスタンプ</p>` : `<p>置き場所のメモや「まだあった？」も、みんなで共有できます。</p>`}</div>
+      <button class="tc-x" type="button" aria-label="とじる">✕</button></div>`;
+    document.body.appendChild(el); this.el.pop = el; requestAnimationFrame(() => el.classList.add("in"));
+    el.querySelector(".tc-x").onclick = () => this.popClose();
+  },
+  popClose() { if (this.el.pop) { this.el.pop.remove(); this.el.pop = null; } },
+  // ---------- 終わり ----------
+  quit() { this.ev("x", this.i + 1); this.stop(); this.join({ quit: true }); },
+  stop() {
+    if (!this.on) return; this.on = false; clearInterval(this.tickT); this.popClose();
+    ["card", "dot", "cam"].forEach(k => { if (this.el[k]) { this.el[k].remove(); this.el[k] = null; } });
+    if (this.el.wel) { this.el.wel.remove(); this.el.wel = null; } if (!this.el.join) document.documentElement.classList.remove("tour-lock");
+    if (CardView.el && !CardView.el.hidden) CardView.close(true);
+    this.sandbox(false); this.i = -1; if (!this.preview) lsSet("petalog.tourDone", "1");
+  },
+  openLogin() { if (window.PetalogCloud && PetalogCloud.openLogin) PetalogCloud.openLogin(false); else toast("いまはログインできません。時間をおいて開き直してください"); },
+  settingsBtn() {
+    if (!$("#sheet") || (sheetCtx && sheetCtx.mode !== "settings") || $("#tourSec")) return; const y = $("#yrSec") || $("#sheet .sheet-head"); if (!y) return;
+    y.insertAdjacentHTML("afterend", `<div class="sec" id="tourSec"><button class="btn" type="button" id="tourAgain">ぺたろぐの使い方ツアーを見る</button></div>`);
+    $("#tourAgain").onclick = () => { closeSheet(); this.start({ preview: true }); };
+  },
+};
+// ---------- 1まい登録してみる（カメラのデモ。本当には撮らない・保存しない） ----------
+Object.assign(Tour, {
+  async shot() {   // デモの「写真」: スタンプジャーナルの紙に押したスタンプ（と、切り抜いたあとのスタンプだけ）
+    const W = 900, H = 1200, ph = mkCanvas(W, H), cut = mkCanvas(W, H), x = ph.getContext("2d"), y = cut.getContext("2d");
+    const art = drawSample(TOUR_DEMO), im = await loadImg(art.url);
+    const g = x.createLinearGradient(0, 0, W, H); g.addColorStop(0, "#F1EBDD"); g.addColorStop(1, "#E2D8C3"); x.fillStyle = g; x.fillRect(0, 0, W, H);
+    try { x.globalCompositeOperation = "multiply"; x.fillStyle = x.createPattern(Paper.washi(), "repeat"); x.fillRect(0, 0, W, H); } catch (_) {}
+    x.globalCompositeOperation = "source-over"; x.strokeStyle = "rgba(96,84,60,.4)"; x.lineWidth = 3; x.setLineDash([12, 9]); x.strokeRect(140, 250, 620, 640); x.setLineDash([]);
+    x.fillStyle = "rgba(38,52,96,.78)"; x.font = "600 40px 'Klee One','Zen Kaku Gothic New',sans-serif"; x.fillText(fmtDate(todayStr()) + "  はじめての1まい", 150, 960);
+    const put = (c, mul) => { c.save(); c.translate(450, 570); c.rotate(-0.07); if (mul) { c.globalCompositeOperation = "multiply"; c.globalAlpha = 0.9; } const k = 540 / im.width; c.drawImage(im, -im.width * k / 2, -im.height * k / 2, im.width * k, im.height * k); c.restore(); };
+    put(x, true); put(y, false);
+    const v = x.createRadialGradient(W * 0.52, H * 0.46, W * 0.25, W * 0.5, H * 0.5, W * 0.98); v.addColorStop(0, "rgba(0,0,0,0)"); v.addColorStop(1, "rgba(46,34,14,.42)"); x.fillStyle = v; x.fillRect(0, 0, W, H);
+    return { ph, cut, art };
+  },
+  async camera() {
+    if (this.el.cam) return; this.ev("cam");
+    const el = document.createElement("div"); el.className = "tcam"; el.setAttribute("role", "dialog"); el.setAttribute("aria-label", "スタンプを撮る（デモ）");
+    el.innerHTML = `<div class="tcam-top"><button type="button" class="tcam-x" data-c="x">やめる</button><b>スタンプを撮る</b><span class="tcam-demo">デモ</span></div>
+      <div class="tcam-view"><div class="tcam-sway"><div class="tcam-cutbox"></div><div class="tcam-photobox"></div></div><i class="tcam-scan"></i>
+        <span class="tcam-guide" aria-hidden="true"><i></i><i></i><i></i><i></i></span><p class="tcam-hint">スタンプが枠に入ったら、シャッター！</p></div>
+      <div class="tcam-sheet" aria-live="polite"><p class="tcam-ai"><i aria-hidden="true">✦</i>読み取りました</p>
+        <dl><div><dt>名前</dt><dd data-ty="${esc(TOUR_DEMO.name)}"></dd></div><div><dt>ジャンル</dt><dd data-ty="駅"></dd></div><div><dt>押した日</dt><dd data-ty="${esc(fmtDate(todayStr()))}"></dd></div></dl>
+        <button class="tcam-save" type="button" data-c="save" disabled>トレカにする</button></div>
+      <div class="tcam-bot"><button class="tcam-shutter" type="button" data-c="shoot" aria-label="シャッター"><i></i></button></div><i class="tcam-flash"></i>`;
+    document.body.appendChild(el); this.el.cam = el; requestAnimationFrame(() => el.classList.add("in"));
+    const P = await this.shot(); P.ph.className = "tcam-photo"; P.cut.className = "tcam-cut"; el.querySelector(".tcam-photobox").appendChild(P.ph); el.querySelector(".tcam-cutbox").appendChild(P.cut);
+    const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches, wait = ms => sleep(reduce ? 0 : ms);
+    let phase = 0;
+    el.addEventListener("click", async e => {
+      const b = e.target.closest("[data-c]"); if (!b) return; const c = b.dataset.c;
+      if (c === "x") { this.ev("camx"); el.classList.remove("in"); setTimeout(() => { el.remove(); this.el.cam = null; }, 260); return; }
+      if (c === "shoot" && phase === 0) {
+        phase = 1; this.ev("shoot"); el.classList.add("shot"); el.querySelector(".tcam-hint").textContent = "撮れました";
+        await wait(500); el.classList.add("cutting"); el.querySelector(".tcam-hint").textContent = "背景の紙を消して、スタンプだけ切り抜いています…";
+        await wait(1500); el.classList.add("cut"); el.querySelector(".tcam-hint").textContent = "切り抜けました！";
+        await wait(500); el.classList.add("ask");
+        for (const dd of el.querySelectorAll("[data-ty]")) { const t = [...dd.dataset.ty]; for (let k = 1; k <= t.length; k++) { dd.textContent = t.slice(0, k).join(""); await wait(70); } await wait(140); }
+        el.querySelector(".tcam-save").disabled = false; phase = 2; return;
+      }
+      if (c === "save" && phase === 2) {
+        phase = 3; this.ev("save"); b.disabled = true;
+        const d = { id: "sample_demo", sample: true, _no: 1, name: TOUR_DEMO.name, place: TOUR_DEMO.name, pref: "", cat: "駅", date: todayStr(), cut: P.art.url, cw: P.art.w, ch: P.art.h, shape: "circle", ink: TOUR_DEMO.ink, sizeMm: 48, sizeSrc: "manual", scenes: [], created: Date.now(),
+          trivia: "ぺたろぐ駅は、ぺたろぐの中だけにある架空の駅。ここで押したスタンプが、あなたのコレクションの第1号です。本物のスタンプを登録すると、裏面にはその場所のプチ情報が入ります。" };
+        this.demo = d; SAMPLES = [d, ...SAMPLES.filter(s => s.id !== d.id)];
+        el.classList.add("away"); await wait(240);
+        await Pack.play(d, { oneBtn: "つぎへ" });
+        el.remove(); this.el.cam = null; if (!this.on) return;
+        this.did.camera = true; this.card(); show("fall"); Fall.drop();
+        const c2 = this.el.card; if (c2) { c2.classList.remove("hide"); c2.innerHTML = `<div class="tc-arrive"><b>あなたの1まい目が届きました！</b><span>こんなふうに、押すたびにコレクションが増えていきます。</span></div>`; }
+        clearInterval(this.tickT); await wait(2600); if (this.on) this.finale();
+      }
+    });
+  },
+});
+// ---------- お祝い → 登録画面 ----------
+Object.assign(Tour, {
+  finale() {
+    this.ev("done"); const steps = this.STEPS; this.dot(null); if (this.el.card) { this.el.card.remove(); this.el.card = null; }
+    const el = this.joinEl({ fanfare: true });
+    el.querySelector(".tfin-rally").innerHTML = steps.map((s, k) => `<li style="--d:${120 + k * 130}ms">${tIco(s.k)}</li>`).join("");
+    const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+    setTimeout(() => this.stop(), 600);   // 下のアプリは、もとの状態にもどしておく
+    const fx = this.confetti(el.querySelector(".tfin-fx"));
+    setTimeout(() => { el.classList.add("slam"); if (navigator.vibrate) try { navigator.vibrate(18); } catch (_) {} fx.burst(); }, reduce ? 0 : 1050);
+    setTimeout(() => this.showPanel(el), reduce ? 0 : 3300);
+  },
+  join(o = {}) { const el = this.joinEl({ ...o, fanfare: false }); setTimeout(() => this.showPanel(el, o.login), 80); },
+  joinEl(o) {
+    this.closeJoin(); const logged = this.loggedIn(), canAuth = !!(window.PetalogCloud && PetalogCloud.auth);
+    const el = document.createElement("div"); el.className = "tfin" + (o.fanfare ? " fan" : " lite"); el.setAttribute("role", "dialog"); el.setAttribute("aria-label", "ぺたろぐをはじめる");
+    el.innerHTML = `<div class="twel-paper"></div><canvas class="tfin-fx" aria-hidden="true"></canvas>
+      <div class="tfin-stage"><ol class="tfin-rally" aria-hidden="true"></ol>
+        <div class="tfin-hanko" aria-hidden="true"><span>ぺたろぐ</span></div>
+        <h2 class="tfin-h">${o.fanfare ? `<span>さぁ、</span><span>あなたのスタンプ集めを</span><span>ぺたろぐで</span><span>もっと素敵な趣味に</span><span class="up">アップデート！！</span>` : `<span>あなたのスタンプ集めを、</span><span class="up">ぺたろぐで。</span>`}</h2></div>
+      <div class="tjoin" hidden>${logged ? `<button class="tc-x" type="button" data-j="x" aria-label="とじる">✕</button><h3>ツアーはここまで</h3><p class="tj-sub">いつでも設定の「ぺたろぐの使い方ツアーを見る」から見直せます。</p><button class="tj-go" type="button" data-j="x">とじる</button>`
+        : `<button class="tc-x" type="button" data-j="x" aria-label="とじる">✕</button>
+        <h3 data-h>無料で登録して、はじめる</h3>
+        <ul class="tj-perks"><li><i aria-hidden="true">${tIco("journal")}</i><span><b>記録が消えない</b><small>機種変更しても、PCからでも同じコレクション</small></span></li>
+          <li><i aria-hidden="true">${tIco("map")}</i><span><b>みんなの地図</b><small>ほかの人が見つけたスタンプの場所がわかる</small></span></li>
+          <li><i aria-hidden="true">${tIco("camera")}</i><span><b>AIがお手伝い</b><small>スタンプの名前の読み取りと、裏面のプチ情報</small></span></li></ul>
+        ${canAuth ? `<form class="tj-form" novalidate><input class="tj-in" type="email" name="email" autocomplete="email" inputmode="email" autocapitalize="off" spellcheck="false" placeholder="メールアドレス" required>
+          <div class="tj-pw"><input class="tj-in" type="password" name="pw" autocomplete="new-password" placeholder="パスワード（8文字以上）" minlength="8" required><button type="button" data-j="eye" aria-pressed="false">表示</button></div>
+          <button class="tj-go" type="submit">登録してはじめる</button><p class="tj-msg" role="status"></p></form>
+          <div class="tj-links"><button type="button" data-j="mode">アカウントをお持ちの方はログイン</button><button type="button" data-j="forgot" hidden>パスワードを忘れたとき</button></div>`
+          : `<p class="tj-msg">いまはログインの仕組みに接続できません。時間をおいて開き直してください。</p>`}
+        <button class="tj-skip" type="button" data-j="skip">ログインしないで使う（この端末だけに保存）</button>
+        ${o.fanfare ? "" : `<button class="tj-again" type="button" data-j="again">もう一度ツアーを見る</button>`}`}</div>`;
+    this.paper(el); document.body.appendChild(el); this.el.join = el; document.documentElement.classList.add("tour-lock");
+    requestAnimationFrame(() => el.classList.add("in"));
+    let mode = "up";
+    const setMode = m => { mode = m; const f = el.querySelector(".tj-form"); if (!f) return; el.querySelector("[data-h]").textContent = m === "up" ? "無料で登録して、はじめる" : "ログイン";
+      f.querySelector(".tj-go").textContent = m === "up" ? "登録してはじめる" : "ログイン"; f.pw.autocomplete = m === "up" ? "new-password" : "current-password";
+      el.querySelector("[data-j=mode]").textContent = m === "up" ? "アカウントをお持ちの方はログイン" : "はじめての方は登録"; el.querySelector("[data-j=forgot]").hidden = m === "up";
+      el.querySelector(".tj-perks").hidden = m !== "up"; f.querySelector(".tj-msg").textContent = ""; };
+    this.setJoinMode = setMode;
+    el.addEventListener("click", async e => {
+      const b = e.target.closest("[data-j]"); if (!b) return; const k = b.dataset.j, f = el.querySelector(".tj-form");
+      if (k === "x") { this.ev("joinx"); this.closeJoin(); if (!logged && !this.preview) toast("右上の⚙から、いつでもログイン・登録できます", 3400); }
+      else if (k === "skip") { this.ev("skip"); if (window.PetalogCloud && PetalogCloud.skipLogin) PetalogCloud.skipLogin(); this.closeJoin(); toast("この端末だけに保存します。あとから右上の⚙でログインできます", 3800); }
+      else if (k === "again") { this.closeJoin(); this.start({ preview: false }); }
+      else if (k === "mode") setMode(mode === "up" ? "in" : "up");
+      else if (k === "eye") { const p = f.pw, on = p.type === "password"; p.type = on ? "text" : "password"; b.textContent = on ? "隠す" : "表示"; b.setAttribute("aria-pressed", String(on)); }
+      else if (k === "forgot") { const m = f.querySelector(".tj-msg"), em = f.email.value.trim(); if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(em)) { m.textContent = "上の欄にメールアドレスを入れてから押してください。"; return; }
+        b.disabled = true; const r = await PetalogCloud.forgot(em); b.disabled = false; m.textContent = r ? "パスワードを決め直すためのメールを送りました。メールのリンクを開いてください。" : "いまはメールを送れませんでした。時間をおいて試してください。"; }
+    });
+    const form = el.querySelector(".tj-form");
+    if (form) form.onsubmit = async ev => {
+      ev.preventDefault(); const m = form.querySelector(".tj-msg"), go = form.querySelector(".tj-go"), email = form.email.value.trim(), pw = form.pw.value;
+      if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) { m.textContent = "メールアドレスの形が正しくないようです。"; return; }
+      if (pw.length < 8) { m.textContent = "パスワードは8文字以上にしてください。"; return; }
+      go.disabled = true; go.innerHTML = `<span class="spin"></span> ${mode === "up" ? "登録中" : "ログイン中"}`; this.ev(mode === "up" ? "signup" : "login2");
+      if (mode === "up") lsSet("petalog.afterJoin", "1");
+      const r = await PetalogCloud.auth(mode, email, pw);
+      go.disabled = false; go.textContent = mode === "up" ? "登録してはじめる" : "ログイン";
+      if (r && r.ok) { m.textContent = mode === "up" ? "登録しました！ ぺたろぐを開いています…" : "ログインしました。読み込み直します…"; go.disabled = true; return; }
+      if (r && r.confirm) { m.innerHTML = `<b>確認メールを送りました。</b>メールのリンクを開くと登録が完了します。届かないときは迷惑メールのフォルダも見てください。`; setMode("in"); form.email.value = email; return; }
+      lsSet("petalog.afterJoin", ""); m.textContent = (r && r.error) || "うまくいきませんでした。もう一度どうぞ。";
+    };
+    return el;
+  },
+  showPanel(el, login) {
+    if (!el.isConnected) return; const p = el.querySelector(".tjoin"); p.hidden = false; if (login && this.setJoinMode) this.setJoinMode("in");
+    requestAnimationFrame(() => { el.style.setProperty("--jh", p.offsetHeight + "px"); el.classList.add("p2"); });
+  },
+  closeJoin() { const el = this.el.join; if (!el) return; this.el.join = null; if (el._fx) el._fx.stop(); el.classList.remove("in"); setTimeout(() => el.remove(), 320); if (!this.on) document.documentElement.classList.remove("tour-lock"); },
+  // ミニスタンプの紙ふぶき
+  confetti(cv) {
+    const x = cv.getContext("2d"), dpr = Math.min(2, devicePixelRatio || 1), ims = SAMPLES.filter(s => s.type !== "goshuin" && s.cut).map(s => imgFor(s.cut)).filter(Boolean);
+    const P = []; let raf = 0, run = true; const size = () => { cv.width = innerWidth * dpr; cv.height = innerHeight * dpr; }; size();
+    const add = (n, burst) => { const r = this.el.join && this.el.join.querySelector(".tfin-hanko"), b = r ? r.getBoundingClientRect() : { left: innerWidth / 2, top: innerHeight / 3, width: 0, height: 0 };
+      for (let i = 0; i < n; i++) { const a = -Math.PI / 2 + (Math.random() - 0.5) * 2.6, v = burst ? 7 + Math.random() * 9 : 0;
+        P.push({ im: ims[(Math.random() * ims.length) | 0], x: burst ? b.left + b.width / 2 : Math.random() * innerWidth, y: burst ? b.top + b.height / 2 : -40, vx: Math.cos(a) * v, vy: burst ? Math.sin(a) * v : 1 + Math.random() * 1.5, r: Math.random() * 6, vr: (Math.random() - 0.5) * 0.2, s: 26 + Math.random() * 24, life: 1 }); } };
+    const tick = () => { x.setTransform(dpr, 0, 0, dpr, 0, 0); x.clearRect(0, 0, innerWidth, innerHeight); x.globalCompositeOperation = "multiply";
+      for (let i = P.length - 1; i >= 0; i--) { const p = P[i]; p.vy += 0.22; p.vx *= 0.985; p.vy = Math.min(p.vy, 5.5); p.x += p.vx; p.y += p.vy; p.r += p.vr; if (p.y > innerHeight + 60) { P.splice(i, 1); continue; }
+        if (p.im && p.im.complete && p.im.naturalWidth) { x.save(); x.translate(p.x, p.y); x.rotate(p.r); x.globalAlpha = 0.92; const ar = p.im.naturalWidth / p.im.naturalHeight; x.drawImage(p.im, -p.s / 2, -p.s / ar / 2, p.s, p.s / ar); x.restore(); } }
+      if (run || P.length) raf = requestAnimationFrame(tick); };
+    const api = { burst: () => { add(46, true); let k = 0; const t = setInterval(() => { if (!run || ++k > 14) return clearInterval(t); add(3, false); }, 220); }, stop: () => { run = false; P.length = 0; cancelAnimationFrame(raf); removeEventListener("resize", size); } };
+    raf = requestAnimationFrame(tick); addEventListener("resize", size); if (this.el.join) this.el.join._fx = api; return api;
+  },
+  // 登録したあと、はじめて開いたとき: 「＋ 追加」を指さす
+  nudge() {
+    if (!lsGet("petalog.afterJoin")) return; lsSet("petalog.afterJoin", ""); if (!this.loggedIn() || stamps.length) return;
+    const b = $("#addBtn"); if (!b) return; const r = b.getBoundingClientRect(), el = document.createElement("div"); el.className = "tnudge"; el.setAttribute("role", "status");
+    el.innerHTML = `<b>ようこそ！</b>ここから本物の1まい目を登録しよう`; el.style.top = (r.bottom + 12) + "px"; el.style.right = Math.max(10, innerWidth - r.right - 6) + "px";
+    document.body.appendChild(el); requestAnimationFrame(() => el.classList.add("in")); b.classList.add("tglow");
+    const off = () => { el.classList.remove("in"); b.classList.remove("tglow"); setTimeout(() => el.remove(), 300); };
+    el.onclick = off; b.addEventListener("click", off, { once: true }); setTimeout(off, 9000);
+  },
+});
+
 /* ================= boot ================= */
 addEventListener("resize", () => { Book.layout(); if (view === "fall") { Fall.dirty = true; Fall.stop(); Fall.start(); } if (view === "map") MapV.draw(); });
 document.addEventListener("visibilitychange", () => { if (document.hidden) Fall.stop(); else if (view === "fall") Fall.start(); });
@@ -6968,7 +7526,8 @@ document.addEventListener("contextmenu", e => { if (!e.target.closest("input,tex
   await Books.load();
   ready = true; Book.idx = 0; MapV.shown = false;
   refreshAll(); show(view);
-  if (window.PetalogCloud) PetalogCloud.afterBoot();
+  if (!Tour.fromURL()) { if (window.PetalogCloud) PetalogCloud.afterBoot(); else Tour.auto(); }
+  setTimeout(() => Tour.nudge(), 1200);
   setTimeout(() => Privacy.firstSync(), 2500); loadSheets(); setTimeout(trimOld, 6000); setTimeout(() => Zukan.backfill(), 9000); Walk.init(); Track.init(); setTimeout(() => Numbers.ensure(), 1500);
   if (!lsGet("petalog.pinchHint")) { lsSet("petalog.pinchHint", "1"); setTimeout(() => toast("トレカ一覧は、2本指でつまむと並べる列の数（1〜5列）を変えられます", 4200), 4000); }
   (async () => { let n = 0; for (const s of stamps) { if (await fillStats(s)) n++; } if (n) Grid.render(); })();

@@ -366,6 +366,21 @@
     return "うまくいきませんでした。もう一度どうぞ。" + (d ? `（${d}）` : "");
   }
 
+  // ログイン・新規登録（ログイン画面と、はじめてのツアーの登録画面の両方で使う）→ { ok } / { confirm }（確認メール待ち）。うまくいかないときは投げる
+  async function authRun(mode, email, password) {
+    if (mode === "in") {
+      const { error } = await sb.auth.signInWithPassword({ email, password });
+      if (error) throw error;
+      if (typeof Track !== "undefined") { Track.ev("login"); Track.flush(true); }
+      return { ok: true };
+    }
+    const { data, error } = await sb.auth.signUp({ email, password, options: { emailRedirectTo: location.origin + location.pathname } });
+    if (error) throw error;
+    if (data && data.user && Array.isArray(data.user.identities) && data.user.identities.length === 0) throw { message: "already registered" };
+    if (typeof Track !== "undefined") { Track.ev("signup", { confirm: data && data.session ? 0 : 1 }); Track.flush(true); }
+    return data && data.session ? { ok: true } : { confirm: true };
+  }
+
   function openLogin(welcome) {
     if (typeof openSheet !== "function") return;
     if (!sb) { say("いまはログインの仕組みに接続できません。時間をおいて開き直してください。", 4000); return; }
@@ -412,17 +427,8 @@
       if (password.length < 8) { $("#auMsg").textContent = "パスワードは8文字以上にしてください。"; return; }
       const go = $("#auGo"); go.disabled = true; go.innerHTML = `<span class="spin"></span> ${mode === "in" ? "ログイン中" : "登録中"}`;
       try {
-        if (mode === "in") {
-          const { error } = await sb.auth.signInWithPassword({ email, password });
-          if (error) throw error;
-          if (typeof Track !== "undefined") { Track.ev("login"); Track.flush(true); }
-        } else {
-          const { data, error } = await sb.auth.signUp({ email, password, options: { emailRedirectTo: location.origin + location.pathname } });
-          if (error) throw error;
-          if (data && data.user && Array.isArray(data.user.identities) && data.user.identities.length === 0) throw { message: "already registered" };
-          if (typeof Track !== "undefined") { Track.ev("signup", { confirm: data && data.session ? 0 : 1 }); Track.flush(true); }
-          if (!data.session) { $("#auMsg").textContent = "確認メールを送りました。メールのリンクを開いてから、ここでログインしてください。"; setMode("in"); $("#auEmail").value = email; return; }
-        }
+        const r = await authRun(mode, email, password);
+        if (r.confirm) { $("#auMsg").textContent = "確認メールを送りました。メールのリンクを開いてから、ここでログインしてください。"; setMode("in"); $("#auEmail").value = email; return; }
         ls.set(LS_SKIP, "");
         $("#auMsg").textContent = "ログインしました。読み込み直します…";
         setTimeout(() => { reloadKeepingSession(); }, 300);
@@ -624,9 +630,17 @@
       if (recovery && attached) { openNewPassword(); return; }
       if (attached && (memLogin || !storeOK())) setTimeout(() => say("この画面ではログインを覚えておけないので、閉じるとログアウトします。Safariで開くか、ホーム画面のぺたろぐのアイコンから使ってください。", 9000), 3000);
       if (attached) { offerMove(); return; }
-      if (!ls.get(LS_SKIP) && !ss.get(SS_ASKED)) openLogin(true);
+      if (!ls.get(LS_SKIP) && !ss.get(SS_ASKED)) { ss.set(SS_ASKED, "1"); if (!(typeof Tour !== "undefined" && Tour.auto())) openLogin(true); }
     },
     openLogin,
+    // はじめてのツアーの登録画面から
+    async auth(mode, email, password) {
+      if (!sb) return { error: "いまはログインの仕組みに接続できません。時間をおいて開き直してください。" };
+      try { const r = await authRun(mode === "in" ? "in" : "up", email, password); if (r.ok) { ls.set(LS_SKIP, ""); setTimeout(() => { reloadKeepingSession(); }, 500); } return r; }
+      catch (e) { return { error: authError(e) }; }
+    },
+    async forgot(email) { if (!sb) return false; const { error } = await sb.auth.resetPasswordForEmail(email, { redirectTo: location.origin + location.pathname }); return !error; },
+    skipLogin() { ls.set(LS_SKIP, "1"); },
   };
 
   // app shell stays on the phone: opens even when the network or GitHub is unreachable
@@ -638,7 +652,7 @@
     // 新しい版に切り替わったら自動で読み込み直す（記録の入力中は閉じるまで待つ）
     // ログインの更新（トークンの入れ替え）の途中で読み込み直すとログアウトになることがあるので、終わるのを待ってから
     let had = !!navigator.serviceWorker.controller, waiting = false, going = false;
-    const busy = () => { const w = document.getElementById("sheetWrap"); return (w && !w.hidden) || !!document.querySelector(".pview:not([hidden])") || document.visibilityState !== "visible"; };
+    const busy = () => { const w = document.getElementById("sheetWrap"); return (w && !w.hidden) || !!document.querySelector(".pview:not([hidden]),.twel,.tfin,.tcam,.tcoach") || document.visibilityState !== "visible"; };
     const reload = async () => { if (going) return; going = true; if (sb) { try { await within(sb.auth.getSession(), 5000); } catch {} } await new Promise(r => setTimeout(r, 800)); location.reload(); };
     const go = () => { if (busy()) { if (!waiting) { waiting = true; setInterval(() => { if (!busy()) reload(); }, 1500); } return; } reload(); };
     navigator.serviceWorker.addEventListener("controllerchange", () => { if (!had) { had = true; return; } setTimeout(go, 1500); });
