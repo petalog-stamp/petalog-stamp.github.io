@@ -1046,6 +1046,26 @@ html.tcv-on #toast{z-index:95}
 .stand-ask{margin-top:8px;display:flex;flex-direction:column;gap:6px;background:var(--ai-soft);border-radius:12px;padding:10px 12px;font-size:13px}
 .stand-ask small{color:var(--muted);font-size:11.5px;line-height:1.6}
 .mapq{font-size:16px}
+/* パック: ぺたろぐの印・ふちのギザギザ・光る切り取り線（なぞって開ける） */
+.pk-mark{position:relative;width:46%;aspect-ratio:1;border-radius:50%;border:5px solid #C8412E;box-shadow:inset 0 0 0 3px rgba(255,248,225,.55),inset 0 0 0 5px #C8412E;display:grid;place-items:center;transform:rotate(-9deg);mix-blend-mode:multiply;opacity:.92}
+.pk-mark b{font:400 clamp(17px,5.6vw,24px)/1 "Dela Gothic One","Zen Kaku Gothic New",sans-serif;color:#C8412E;letter-spacing:.02em}
+.pk.k-digi .pk-mark{border-color:#E8FBFF;box-shadow:inset 0 0 0 3px rgba(18,58,102,.5),inset 0 0 0 5px #E8FBFF;mix-blend-mode:normal}.pk.k-digi .pk-mark b{color:#E8FBFF}
+.pk-top::before{content:"";position:absolute;inset:0;border-radius:inherit;background:repeating-linear-gradient(90deg,rgba(60,40,0,.14) 0 2px,transparent 2px 6px)}
+.pk-crimp{position:absolute;left:0;right:0;bottom:0;height:7%;background:repeating-linear-gradient(90deg,rgba(60,40,0,.14) 0 2px,transparent 2px 6px)}
+.pk-pack{touch-action:none;cursor:grab}
+.pk-tear{position:absolute;left:3%;right:3%;top:calc(13% - 2px);height:4px;z-index:3;border-radius:2px;background:repeating-linear-gradient(90deg,rgba(255,255,255,.95) 0 7px,transparent 7px 12px);box-shadow:0 0 12px 3px rgba(255,236,170,.75);animation:pkTear 1.4s ease-in-out infinite;transition:opacity .2s}
+.pk-tear b{position:absolute;left:0;top:-1px;bottom:-1px;width:var(--p,0%);background:linear-gradient(90deg,#FFF6D0,#fff);border-radius:3px;box-shadow:0 0 16px 6px rgba(255,240,180,.95)}
+.pk-tear.back b{transition:width .25s}
+@keyframes pkTear{0%,100%{box-shadow:0 0 10px 2px rgba(255,236,170,.55)}50%{box-shadow:0 0 18px 6px rgba(255,236,170,.95)}}
+.pk-fing{position:absolute;top:50%;left:6%;width:38px;height:38px;margin:-19px 0 0 -19px;border-radius:50%;background:rgba(255,255,255,.35);border:3px solid #fff;box-shadow:0 2px 10px rgba(0,0,0,.35);animation:pkFing 1.9s cubic-bezier(.45,0,.3,1) infinite}
+@keyframes pkFing{0%{left:6%;opacity:0;transform:scale(.8)}15%{opacity:1;transform:scale(.72)}75%{left:94%;opacity:1;transform:scale(.72)}90%,100%{left:96%;opacity:0;transform:scale(1)}}
+.pk.s-swipe .pk-fing,.pk.s-open .pk-fing{display:none}
+.pk.s-swipe .pk-pack{animation:none;cursor:grabbing}
+.pk.s-swipe .pk-top{transform:rotate(calc(var(--lift,0deg) * -1)) translateY(calc(var(--lift,0deg) * -.6px))}
+.pk.s-open .pk-tear{opacity:0}
+/* iPhoneでは、裏返したときに表の部品（ロゴやタブ）が透けて見えることがあるので、見えていない面は隠す */
+.pk-f{transition:visibility 0s .22s}.pk-in.flip .pk-f{visibility:hidden}
+.pk-b{visibility:hidden;transition:visibility 0s .22s}.pk-in.flip .pk-b{visibility:visible}
 
 /* ================= はじめてのツアー ================= */
 :root{--t-paper:#F2ECDF;--t-ink:#1F2D5C;--t-shu:#C8412E;--t-shu2:#A93322;--t-gold:#B8902F;--t-mute:#5E5A52}
@@ -1246,6 +1266,77 @@ html.tour-lock,html.tour-lock body{overflow:hidden}
 }
 .twel,.twel *,.tfin,.tfin *,.tcoach,.tcoach *,.tcam,.tcam *,.tpop,.tpop *,.tnudge{box-sizing:border-box}
 .tj-go{width:100%}
+/* 案内カード: 押してほしい物のそばに、しっぽ付きで */
+.tc-tail{display:none}
+.tcoach[data-pos=anchor] .tc-tail{display:block;position:absolute;left:var(--tx,50%);width:18px;height:18px;background:var(--card);transform:translateX(-50%) rotate(45deg);border-radius:3px}
+.tcoach[data-pos=anchor][data-tail=up] .tc-tail{top:-8px;box-shadow:-2px -2px 3px rgba(12,22,52,.06)}
+.tcoach[data-pos=anchor][data-tail=down] .tc-tail{bottom:-8px;box-shadow:2px 2px 3px rgba(12,22,52,.08)}
+.tcoach[data-pos=anchor]{animation:tbob .5s cubic-bezier(.3,1.3,.4,1)}
+@keyframes tbob{0%{opacity:0;transform:translateX(-50%) scale(.94)}100%{opacity:1;transform:translateX(-50%)}}
+.tcoach p.tc-ok span{flex:1}
+.tc-feats{list-style:none;margin:8px 0 0;padding:0;display:grid;gap:6px}
+.tc-feats.grid{grid-template-columns:1fr 1fr}
+.tc-feats li{display:flex;gap:8px;align-items:center;font-size:12.5px;line-height:1.45;color:var(--ink);background:var(--surface);border-radius:10px;padding:7px 9px}
+.tc-feats li svg{flex:none;width:20px;height:20px;fill:none;stroke:var(--shu);stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.tc-feats li.hot{background:linear-gradient(110deg,#FFF3C9,#FFE29A);color:#4A3608;box-shadow:inset 0 0 0 1px rgba(184,144,47,.5)}
+.tc-feats li.hot svg{stroke:#8A6512}
+.tc-feats li.hot b{font-size:13px}
+.tc-feats .tn-book{width:18px;height:26px}.tc-feats .tn-book b{width:9px;height:9px;left:3px;top:4px;border-width:1.5px}
+.tc-route{margin-top:8px;border-radius:12px;background:var(--surface);padding:10px 12px}
+.tc-route>b{display:flex;align-items:center;gap:8px;font-size:13.5px}
+.tc-route>b small{font-size:10.5px;font-weight:700;color:var(--muted);border:1px solid var(--line);border-radius:99px;padding:0 7px}
+.tc-route ol{list-style:none;margin:8px 0;padding:0;display:grid;gap:6px;position:relative}
+.tc-route li{display:flex;gap:10px;align-items:center;font-size:13px;font-weight:700}
+.tc-route li i{flex:none;width:22px;height:22px;border-radius:50%;background:var(--ai);color:#fff;font:700 12px/22px "Zen Kaku Gothic New",sans-serif;text-align:center;font-style:normal}
+.tc-route li small{display:block;font-weight:500;font-size:11.5px;color:var(--muted)}
+.tc-nav{display:flex;align-items:center;justify-content:center;gap:6px;width:100%;height:40px;border:0;border-radius:10px;background:var(--ai);color:#fff;font:700 13.5px "Zen Kaku Gothic New",sans-serif;cursor:pointer}
+.tc-nav svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round}
+/* ぐるっと囲む（地図の上に描く） */
+.tlasso{position:absolute;inset:0;width:100%;height:100%;z-index:650;pointer-events:none;overflow:visible}
+.tlasso .lz{fill:rgba(200,65,46,.07);stroke:#C8412E;stroke-width:4;stroke-linecap:round;stroke-linejoin:round;filter:drop-shadow(0 0 4px rgba(200,65,46,.4))}
+.tlasso .rt{fill:none;stroke:#2B4C9B;stroke-width:5;stroke-linecap:round;stroke-linejoin:round}
+.tlasso .no{opacity:0;transform-box:fill-box;transform-origin:center}
+.tlasso.go .no{animation:tnum .4s cubic-bezier(.3,1.5,.4,1) var(--d) forwards}
+@keyframes tnum{0%{opacity:0;transform:scale(.3)}100%{opacity:1;transform:scale(1)}}
+.tlasso .no circle{fill:#2B4C9B;stroke:#fff;stroke-width:3}
+.tlasso .no text{fill:#fff;font:700 13px "Zen Kaku Gothic New",sans-serif;text-anchor:middle}
+.tlasso .fg{fill:rgba(200,65,46,.28);stroke:#fff;stroke-width:3;filter:drop-shadow(0 2px 6px rgba(0,0,0,.35));transition:opacity .3s}
+.tlasso .fg.off{opacity:0}
+/* 登録画面: 無料の数・キャンペーン */
+.tj-free{position:relative;overflow:hidden;margin:0 40px 12px 0;border-radius:14px;padding:10px 12px;background:#F4EFE4;color:var(--t-ink);transform:scale(.96);opacity:.0;transition:transform .5s cubic-bezier(.3,1.4,.4,1),opacity .3s}
+.tj-free.pop{transform:none;opacity:1}
+.tj-free b{display:block;font-size:14.5px;line-height:1.45}
+.tj-free small{display:block;font-size:12px;color:var(--t-mute);margin-top:2px}
+.tj-free.camp{background:linear-gradient(115deg,#C8A24E 0%,#FFF0BE 22%,#E2B85A 44%,#FBE3A0 66%,#C59B45 100%);color:#3D2A04;box-shadow:0 6px 18px rgba(184,144,47,.35),inset 0 0 0 1px rgba(255,255,255,.5)}
+.tj-free.camp small{color:#5C4310}
+.tj-tag{display:inline-block;font-size:11px;font-weight:700;color:#fff;background:var(--t-shu);border-radius:99px;padding:2px 9px;margin-bottom:4px;transform:rotate(-2deg)}
+.tj-shine{position:absolute;inset:-40%;background:linear-gradient(105deg,transparent 42%,rgba(255,255,255,.8) 50%,transparent 58%);transform:translateX(-120%);pointer-events:none}
+.tj-free.pop .tj-shine{animation:tshine 1.4s ease .2s}
+@keyframes tshine{to{transform:translateX(120%)}}
+.tj-nick{display:grid;gap:4px}.tj-nick span{font-size:12px;color:var(--t-mute)}
+.tj-nick[hidden]{display:none}
+.tj-or{display:flex;align-items:center;gap:10px;margin:10px 0 8px;color:var(--t-mute);font-size:12px}
+.tj-or::before,.tj-or::after{content:"";flex:1;height:1px;background:#E1D9C8}
+.tj-or[hidden]{display:none}
+.tj-google{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;height:50px;border:1.5px solid #D9D1C0;border-radius:99px;background:#fff;color:#1B2130;font:700 15px "Zen Kaku Gothic New",sans-serif;cursor:pointer}
+.tj-google svg{width:20px;height:20px}
+.tj-google[hidden]{display:none}
+@media (max-height:760px){.tj-free{padding:8px 10px;margin-bottom:8px}.tj-free b{font-size:13.5px}}
+/* 設定の下の小さなリンク */
+.set-foot{display:flex;flex-direction:column;align-items:center;gap:2px;padding:10px 0 calc(16px + env(safe-area-inset-bottom,0px))}
+.set-link{background:none;border:0;color:var(--muted);font:500 13px "Zen Kaku Gothic New",sans-serif;text-decoration:underline;text-underline-offset:3px;padding:8px;cursor:pointer}
+.set-link.faint{font-size:11.5px;opacity:.65;margin-top:18px}
+
+/* 登録画面が出たら、上はコンパクトに（判子と最後の2行だけ） */
+.tfin.p2 .tfin-rally{display:none}
+.tfin.fan.p2 .tfin-h span:nth-child(-n+3){display:none}
+.tfin.p2 .tfin-hanko{width:72px;height:72px;border-width:5px;box-shadow:inset 0 0 0 3px var(--t-paper),inset 0 0 0 5px var(--t-shu)}
+.tfin.p2 .tfin-hanko span{font-size:15px}
+.tj-perks{grid-template-columns:repeat(3,1fr);gap:6px}
+.tj-perks li{flex-direction:column;text-align:center;gap:4px}
+.tj-perks li i{width:34px;height:34px}
+.tj-perks b{font-size:12.5px}.tj-perks small{display:none}
+@media (max-height:760px){.tfin.p2 .tfin-hanko{display:none}.tfin.fan.p2 .tfin-h span:nth-child(4){display:none}}
 </style>
 
 <div id="app">
@@ -1398,10 +1489,10 @@ function imgFor(url) { if (!url) return null; let im = imgCache.get(url); if (!i
 const fmtCm = mm => mm ? (mm / 10).toFixed(1) + "cm" : "";
 const norm = s => String(s || "").replace(/[\s　]/g, "").replace(/駅$/, "").replace(/ヶ/g, "ケ");
 
-const GENRES = ["駅","空港","道の駅","インターチェンジ","イベント","施設"];
-const GCOL = { "駅":"#2B4C9B","空港":"#1F6F82","道の駅":"#5F7F1E","インターチェンジ":"#B0641A","イベント":"#C0396A","施設":"#2F7A4F","御朱印":"#B8322A" };
+const GENRES = ["駅","空港","港","道の駅","インターチェンジ","施設","イベント"];
+const GCOL = { "駅":"#2B4C9B","空港":"#1F6F82","港":"#2A7FB5","道の駅":"#5F7F1E","インターチェンジ":"#B0641A","イベント":"#C0396A","施設":"#2F7A4F","御朱印":"#B8322A" };
 const OLD_CAT = { "観光地":"施設","商業施設":"施設","博物館・美術館":"施設","寺社":"施設","鉄道・乗り物":"駅","乗り物":"駅","その他":"施設" };
-const catNorm = c => GENRES.includes(c) || c === "御朱印" ? c : OLD_CAT[c] || (/道の駅/.test(c || "") ? "道の駅" : /インター|^IC$|ＩＣ/.test(c || "") ? "インターチェンジ" : /空港/.test(c || "") ? "空港" : /駅/.test(c || "") ? "駅" : /イベント|祭|フェス/.test(c || "") ? "イベント" : "施設");
+const catNorm = c => GENRES.includes(c) || c === "御朱印" ? c : OLD_CAT[c] || (/道の駅/.test(c || "") ? "道の駅" : /インター|^IC$|ＩＣ/.test(c || "") ? "インターチェンジ" : /空港/.test(c || "") ? "空港" : /港|フェリー|桟橋|マリーナ/.test(c || "") ? "港" : /駅/.test(c || "") ? "駅" : /イベント|祭|フェス/.test(c || "") ? "イベント" : "施設");
 const gcol = g => GCOL[g] || `hsl(${Math.round(hash(g) * 360)} 45% 42%)`;
 
 /* ================= washi texture ================= */
@@ -3868,7 +3959,7 @@ function applyAI(r, force) {
   const set = (id, v) => { const el = $(id); if (!el || v == null || v === "") return; if (force || !el.value) el.value = v; };
   set("#f_name", r.name); set("#f_place", r.place);
   const c = sheetCtx;
-  if (r.cat && $("#f_cat") && (force || !c.catTouched)) $("#f_cat").value = catNorm(r.cat);
+  if (r.cat && $("#f_cat") && (force || !c.catTouched)) { const t = (r.name || "") + (r.place || ""); $("#f_cat").value = catNorm((r.cat === "施設" || !GENRES.includes(r.cat)) && /港|フェリー|桟橋|マリーナ/.test(t) && !/空港/.test(t) ? "港" : r.cat); }
   if (typeof r.lat === "number" && typeof r.lng === "number" && (force || c.d.lat == null)) setLoc(+r.lat.toFixed(5), +r.lng.toFixed(5), "AIの推定（施設の代表位置）");
   setTimeout(realFitNote, 0); if ($("#f_size") && typeof r.size_cm === "number" && r.size_cm > 0.5 && r.size_cm < 30 && (force || !$("#f_size").value)) { $("#f_size").value = (+r.size_cm).toFixed(1); c.d.sizeSrc = "ai"; $("#sizeSrc").hidden = false; $("#sizeSrc").textContent = "AIの見積もり"; }
   PlacePick.mark(); refreshRallySel();
@@ -4473,6 +4564,7 @@ async function updateExisting(t) {
 }
 async function commitSave(c, d) {
   const fixLoc = locFixOf(c, d);
+  if (c.mode === "add" && Store.mode === "cloud" && !Plan.campaign() && stamps.length >= Plan.free) { Plan.full(); return; }
   if (c.mode === "add" && !(+d.no > 0 && Numbers.vacant().includes(+d.no))) d.no = Numbers.next();   // 新しい番号（空き番号を選んだときはその番号）
   const btn = $("#saveBtn"); if (btn) { btn.disabled = true; btn.innerHTML = `<span class="spin"></span> 保存中`; }
   try {
@@ -4484,6 +4576,7 @@ async function commitSave(c, d) {
     d.share = wantShare(d); await Store.saveStamp(d);
   } catch (e) {
     if (btn) { btn.disabled = false; btn.textContent = "もう一度保存"; }
+    if (e && /stamp_limit/.test(e.message || "")) { Plan.full(); return; }
     toast(e && e.code === "quota_exceeded" ? "保存できる数の上限に達しました。" : "保存できませんでした。通信を確かめてもう一度どうぞ。", 4500); return;
   }
   try { if (d.share) await Store.pubPut(pubView(d), await thumbOf(d.cut), Profile.nick); else if (Store.mode === "cloud" && (c.mode !== "add" || (c.orig && c.orig.share))) await Store.pubDel(d.id); MapV.pubs = null; } catch { toast("みんなの地図への反映はできませんでした"); }
@@ -4510,37 +4603,19 @@ $("#addBtn").onclick = () => openStamp("add");
 /* ================= settings / backup ================= */
 function openSettings() {
   sheetCtx = { mode: "settings" };
+  const cloud = !!window.PetalogCloud, inn = cloud && PetalogCloud.loggedIn && PetalogCloud.loggedIn(), y = new Date().getFullYear();
   openSheet(`<div class="sheet-head"><h2>設定</h2><button class="btn small ghost" type="button" data-close>閉じる</button></div>
-    ${window.PetalogCloud ? PetalogCloud.settingsHTML() : ""}
+    <div class="sec" id="yrSec"><button class="btn" type="button" id="yrOpen">✨ ${y}年のぺたろぐ（まとめ画像）</button></div>
     ${Privacy.html()}
-    ${YahooLS.html()}
-    <div class="sec"><h4>イベント・路線</h4><div id="setEv"></div><div class="row2" style="margin-top:8px"><input id="setEvIn" class="search grow" maxlength="30" placeholder="イベントを追加（例: 謎解き）"><button class="btn small primary" type="button" id="setEvAdd">追加</button></div><p class="cap">路線は、記録画面の「イベント・路線」→「＋ 路線を登録する」か、特集の路線ページから登録できます。</p></div>
-    <div class="sec"><h4>大きさの基準物</h4><div id="setRef"></div><p class="cap">「写真で測る」の画面から追加できます。</p></div>
     <div class="sec"><h4>「ぜんぶ」の背景</h4><div class="papers" id="setFall">${["washi", "plain", "grid", "dot", "kraft", "cork", "seigaiha"].map(k => `<button type="button" data-fb="${k}" aria-pressed="${(Profile.fallBg || "washi") === k}"><i style="background-image:url(${Paper.previewURL(k)})"></i>${PAPERS[k]}</button>`).join("")}<label class="pbtn" aria-pressed="${Profile.fallBg === "photo"}"><i style="background-image:url(${Paper.previewURL("photo")})"></i>写真<input type="file" id="setFallPh" accept="image/*" style="position:absolute;width:1px;height:1px;opacity:0"></label></div></div>
-    <div class="sec"><h4>バックアップ</h4><p class="cap">${Store.mode === "cloud" ? "記録はあなたのアカウントに保存されています。念のためファイルにも書き出せます。" : "記録はこの端末（このブラウザ）の中だけに保存されています。機種変更やブラウザのデータ削除に備えて、ときどき書き出してください。"}</p>
-      <div class="row2"><button class="btn small" type="button" id="bkOut">ファイルに書き出す</button><label class="btn small" style="position:relative">ファイルから読み込む<input type="file" id="bkIn" accept="application/json,.json" style="position:absolute;width:1px;height:1px;opacity:0"></label></div></div>
-    ${inClaude || window.PetalogCloud ? "" : `<div class="sec"><h4>AI判定（任意）</h4><p class="cap">AnthropicのAPIキーを入れると、スタンプの場所の推定と大きさの見積もりが使えます。キーはこの端末の中だけに保存されます。共用の端末では入れないでください。</p>
-      <div class="row2"><input id="keyIn" type="password" class="search grow" placeholder="${apiKey() ? "設定済み（入れ直すと上書き）" : "sk-ant-..."}" autocomplete="off"><button class="btn small primary" type="button" id="keySave">保存</button>${apiKey() ? `<button class="btn small" type="button" id="keyDel">消す</button>` : ""}</div></div>`}`);
-  const lists = () => {
-    $("#setEv").innerHTML = Profile.events.length || Profile.lines.length ? Profile.events.map((e, i) => `<div class="setrow"><span>${esc(e)} <small>イベント · ${list().filter(s => s.event === e).length} まい</small></span><button class="xbtn" type="button" data-evd="${i}">一覧から外す</button></div>`).join("")
-      + Profile.lines.map((id, i) => { const r = RALLY_BY_ID.get(id); return r ? `<div class="setrow"><span>${esc(r.name)} <small>路線 · ${list().filter(s => lineIdOf(s) === id).length} まい</small></span><button class="xbtn" type="button" data-lnd="${i}">一覧から外す</button></div>` : ""; }).join("") : `<p class="cap">まだありません。スタンプの記録画面からも作れます。</p>`;
-    $("#setRef").innerHTML = Profile.refs.length ? Profile.refs.map((r, i) => `<div class="setrow"><span>${esc(r.n)} <small>${r.cm}cm</small></span><button class="xbtn" type="button" data-rfd="${i}">消す</button></div>`).join("") : `<p class="cap">まだありません。</p>`;
-  };
-  lists();
-  $("#sheet").onclick = e => {
-    const a = e.target.closest("[data-evd]"); if (a) { Profile.events.splice(+a.dataset.evd, 1); Profile.save(); lists(); return; }
-    const ln = e.target.closest("[data-lnd]"); if (ln) { Profile.lines.splice(+ln.dataset.lnd, 1); Profile.save(); lists(); return; }
-    const b = e.target.closest("[data-rfd]"); if (b) { Profile.refs.splice(+b.dataset.rfd, 1); Profile.save(); lists(); }
-  };
-  $("#setEvAdd").onclick = () => { const v = $("#setEvIn").value.trim(); if (!v) return; if (!Profile.events.includes(v)) { Profile.events.push(v); Profile.save(); } $("#setEvIn").value = ""; lists(); };
-  $("#bkOut").onclick = exportBackup;
+    ${cloud ? PetalogCloud.settingsHTML() : ""}
+    <div class="set-foot"><button class="set-link" type="button" id="tourAgain">使い方ツアーをもう一度見る</button>${inn ? `<button class="set-link faint" type="button" id="acDel">アカウントの削除</button>` : ""}</div>`);
+  $("#yrOpen").onclick = () => YearSum.open(y);
   $("#setFall").onclick = e => { const b = e.target.closest("[data-fb]"); if (!b) return; Profile.fallBg = b.dataset.fb; Profile.save(); applyFallBg(); document.querySelectorAll("#setFall [data-fb], #setFall .pbtn").forEach(x => x.setAttribute("aria-pressed", x === b)); };
   $("#setFallPh").onchange = async e => { const f = e.target.files[0]; if (!f) return; try { const cv = await fileToCanvas(f, 2000); const ph = makePhoto(cv, [[1600, 0.84], [1300, 0.8], [1000, 0.76]]); if (!ph) throw 0; await Store.putPhoto("fallbg", ph.url); Profile.fallBg = "photo"; await Profile.save(); await applyFallBg(); openSettings(); toast("「ぜんぶ」の背景を変えました"); } catch { toast("この写真は使えませんでした", 3200); } };
-  $("#bkIn").onchange = e => { const f = e.target.files[0]; if (f) importBackup(f); };
-  const ks = $("#keySave"); if (ks) ks.onclick = () => { const v = $("#keyIn").value.trim(); if (!/^sk-ant-/.test(v)) { toast("sk-ant- で始まるキーを入れてください"); return; } lsSet("petalog.apikey", v); toast("APIキーを保存しました"); openSettings(); };
-  const kd = $("#keyDel"); if (kd) kd.onclick = () => { try { localStorage.removeItem("petalog.apikey"); } catch {} toast("APIキーを消しました"); openSettings(); };
-  if (window.PetalogCloud) PetalogCloud.wireSettings();
-  Privacy.wire(); YahooLS.wire(); YearSum.btn(); HQ.settings();
+  $("#tourAgain").onclick = () => { closeSheet(); Tour.start({ preview: true }); };
+  if (cloud) PetalogCloud.wireSettings();
+  Privacy.wire();
 }
 $("#setBtn").onclick = openSettings;
 async function exportBackup() {
@@ -4878,6 +4953,7 @@ const PlacePick = {
   choose(o, fromSearch) {
     if (!o) return; const fp = $("#f_place"); if (!fp) return; fp.value = o.n;
     const fn = $("#f_name"); if (fn && !fn.value.trim() && !o.addr) fn.value = o.n;
+    { const t = (o.n || "") + (o.name || "") + (o.place || ""); if ((!o.cat || o.cat === "施設") && /港|フェリー|桟橋|マリーナ/.test(t) && !/空港/.test(t)) o.cat = "港"; }   // AIは「港」を知らないので名前から
     const fc = $("#f_cat"); if (fc && o.cat && GENRES.includes(o.cat) && this.c && !this.c.catTouched) fc.value = o.cat;
     this.mark(); refreshRallySel(); if (!fromSearch) toast(`場所を「${o.n}」にしました`, 1800);
   }
@@ -4889,10 +4965,11 @@ const Privacy = {
   keys: [["place", "場所"], ["date", "日付"], ["event", "イベント・路線"]],
   async load() {
     if (Store.mode !== "cloud") return;
-    try { const p = await Store.getMeta("privacy"); if (p) { this.saved = true; for (const k of ["public", ...this.keys.map(x => x[0])]) if (typeof p[k] === "boolean") this[k] = p[k]; } } catch {}
+    try { const p = await Store.getMeta("privacy"); if (p) { this.saved = true; if (typeof p.public === "boolean") this.public = p.public; if (this.keys.some(([k]) => p[k] === false)) this.dirty = true; } } catch {}
+    this.keys.forEach(([k]) => { this[k] = true; });   // 公開するなら、場所・日付・イベントはいつも見せる（見せる項目は選ばない）
   },
   data() { const o = { public: this.public }; this.keys.forEach(([k]) => { o[k] = this[k]; }); return o; },
-  async save() { await Store.putMeta("privacy", this.data()); this.saved = true; },
+  async save() { await Store.putMeta("privacy", this.data()); this.saved = true; this.dirty = false; },
   html() {
     if (!window.PetalogCloud) return "";
     if (Store.mode !== "cloud") return `<div class="sec"><h4>公開</h4><p class="cap" style="margin-top:0">ログインすると、自分のコレクションをみんなに見せたり、ほかの人のコレクションを見たりできます。</p></div>`;
@@ -4900,9 +4977,7 @@ const Privacy = {
       <label class="toggle"><input type="checkbox" id="pvPub"${this.public ? " checked" : ""}><span><b>コレクションを公開する</b><br><small>ほかの人が「トレカ → みんな」のランキングから、あなたのトレカとスタンプジャーナルを見られます。</small></span></label>
       <div class="pvbox" id="pvBox"${this.public ? "" : " hidden"}>
         <div class="row2"><span class="lab">ニックネーム</span><input id="pvNick" class="search grow" maxlength="20" value="${esc(Profile.nick)}" placeholder="例: えきすたん" autocomplete="nickname"></div>
-        <div class="pvlab">見せる項目</div>
-        <div class="pvchecks">${this.keys.map(([k, n]) => `<label class="pvck"><input type="checkbox" data-pk="${k}"${this[k] ? " checked" : ""}><span>${n}</span></label>`).join("")}</div>
-        <p class="cap">スタンプの画像・名前・ジャンル・大きさは、公開中のトレカなら見えます。トレカごとに「このトレカを公開」を外すと、そのトレカだけ非公開になります。場所を見せると、みんなの地図にもピンが出ます。</p>
+        <p class="cap">公開中のトレカは、スタンプの画像・名前・ジャンル・大きさ・場所・日付がみんなに見え、みんなの地図にもピンが出ます。裏面の写真とメモは見えません。トレカごとに「このトレカを公開」を外すと、そのトレカだけ非公開になります。</p>
       </div></div>`;
   },
   wire() {
@@ -4915,9 +4990,9 @@ const Privacy = {
   note() {
     if (Store.mode !== "cloud") return window.PetalogCloud ? "ログインすると、みんなに見せられるようになります。" : "このトレカを、みんなに見せる対象にします。";
     if (!this.public) return "いまはコレクション全体を非公開にしています（右上の設定 → 公開）。";
-    const k = this.keys.filter(([x]) => this[x]).map(([, n]) => n); return `ランキングとコレクションに出ます。画像・名前のほか ${k.length ? k.join("・") : "なし"} も見えます（設定で変えられます）。`;
+    return "ランキングとコレクション、みんなの地図に出ます（裏面の写真とメモは見えません）。";
   },
-  firstSync() { if (Store.mode !== "cloud" || this.saved || (window.PetalogCloud && PetalogCloud.isOffline && PetalogCloud.isOffline())) return; this.save().then(() => syncShares(true)).catch(() => {}); }
+  firstSync() { if (Store.mode !== "cloud" || (this.saved && !this.dirty) || (window.PetalogCloud && PetalogCloud.isOffline && PetalogCloud.isOffline())) return; this.save().then(() => syncShares(true)).catch(() => {}); }
 };
 const wantShare = s => Store.mode === "cloud" && !!window.PetalogCloud && Privacy.public && Privacy.place && !!s && !s.priv && !s.sample && s.type !== "goshuin";
 const pubView = s => Privacy.date ? s : { ...s, date: "" };
@@ -5660,10 +5735,10 @@ const YahooLS = {
   n: 0, id: "", warned: false,
   // the app's own Client ID (it is sent with every search from the browser, so it is not a secret)
   APP: "dmVyPTIwMjUwNyZpZD0xSjRnbWliZElhJmhhc2g9T1RoaU1tSXdOVE5qWWpNeE5tUTJNUQ",
-  key() { return this.id || lsGet("petalog.yahooId") || this.APP; },
+  key() { return this.cfg || this.APP; },   // みんな同じID（本部のサイトで変えられる）
   async load() { try { const m = await Store.getMeta("yahoo"); if (m && m.id) { this.id = m.id; lsSet("petalog.yahooId", m.id); } } catch {} },
   async save(id) { this.id = id; this.warned = false; lsSet("petalog.yahooId", id); try { await Store.putMeta("yahoo", { id }); } catch {} },
-  warn() { if (this.warned) return; this.warned = true; toast("Yahoo!の検索につながりませんでした。電波か、設定のClient IDを確かめてください（いまは無料の地図データでさがします）", 6000); },
+  warn() { if (this.warned) return; this.warned = true; toast("Yahoo!の検索につながりませんでした（いまは無料の地図データでさがします）", 5000); },
   credit() { return `<a class="ycredit" href="https://developer.yahoo.co.jp/sitemap/" target="_blank" rel="noopener">Webサービス by Yahoo! JAPAN</a>`; },
   ask(params) {
     return new Promise((res, rej) => {
@@ -5680,7 +5755,7 @@ const YahooLS = {
     return ((j && j.Feature) || []).map(f => {
       const c = String((f.Geometry && f.Geometry.Coordinates) || "").split(","); const lng = +c[0], lat = +c[1]; if (!isFinite(lat) || !isFinite(lng)) return null;
       const P = f.Property || {}; const g = (P.Genre || []).map(x => x.Name).join(" "); const name = f.Name || "";
-      const cat = /道の駅/.test(name + g) ? "道の駅" : /空港/.test(g) ? "空港" : /インター|ＩＣ|IC|ジャンクション|SA|PA|サービスエリア|パーキングエリア/.test(g) ? "インターチェンジ" : /駅/.test(g) && /駅$/.test(name) ? "駅" : "施設";
+      const cat = /道の駅/.test(name + g) ? "道の駅" : /空港/.test(g) ? "空港" : /港|フェリー|桟橋|マリーナ/.test(name + g) && !/空港/.test(name + g) ? "港" : /インター|ＩＣ|IC|ジャンクション|SA|PA|サービスエリア|パーキングエリア/.test(g) ? "インターチェンジ" : /駅/.test(g) && /駅$/.test(name) ? "駅" : "施設";
       const km = ctr ? kmBetween(ctr.lat, ctr.lng, lat, lng) : null;
       return { t: name, sub: [km != null ? fmtKm(km) : "", P.Address || "", (P.Genre && P.Genre[0] && P.Genre[0].Name) || ""].filter(Boolean).join(" · "), lat, lng, z: 18, name, cat, genre: (P.Genre && P.Genre[0] && P.Genre[0].Name) || "", km, yahoo: true, id: f.Gid || f.Id || name + lat };
     }).filter(Boolean);
@@ -5750,6 +5825,7 @@ const PrintCard = {
     const A = artOf(s), front = await loadImg(A.url), cut = A.sheet ? await loadImg(s.cut) : front;
     // 裏の写真: 追加した写真（新しい順に最大4枚）。なければスタンプの元になった写真
     const keys = (s.scenes || []).slice(-4), added = [];
+    if (s.sample && typeof SamplePh !== "undefined") for (const u of await SamplePh.of(s)) { const im = await loadImg(u).catch(() => null); if (im) { im._key = "sc:demo"; added.push(im); } }   // サンプルの裏面: 記念写真とスタンプ台
     for (const k of keys) { const u = await Store.getPhoto("sc_" + s.id + "_" + k).catch(() => null); if (u) { const im = await loadImg(u).catch(() => null); if (im) { im._key = "sc:" + k; added.push(im); } } }
     let photos = added;
     if (!photos.length) { let u = s.hasPhoto ? await Store.getPhoto("ph_" + s.id, s.id).catch(() => null) : null, key = "ph"; if (!u && s._sheet) { u = s._sheet; key = "sh"; } const im = u ? await loadImg(u).catch(() => null) : null; if (im) im._key = key; photos = im ? [im] : []; }
@@ -6118,6 +6194,7 @@ const TC = { W: 63, H: 88, hd: 7, ft: 6.2, wx: 2.2, ww: 58.6, wh: 74.8, top: 5.6
 const GICON = {
   "駅": "M12 2C8 2 4 2.5 4 6v9.5A3.5 3.5 0 0 0 7.5 19L6 20.5v.5h2.2l2-2h3.6l2 2H18v-.5L16.5 19a3.5 3.5 0 0 0 3.5-3.5V6c0-3.5-4-4-8-4zM7.5 17a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3zM11 10H6V6h5zm2 0V6h5v4zm3.5 7a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3z",
   "空港": "M21 16v-2l-8-5V3.5a1.5 1.5 0 0 0-3 0V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5z",
+  "港": "M12 2a3 3 0 0 0-1 5.83V9H8v2h3v8.9A7 7 0 0 1 5.07 14H7.5L4 10.5.5 14h2.55A9.01 9.01 0 0 0 12 22a9.01 9.01 0 0 0 8.95-8h2.55L20 10.5 16.5 14h2.43A7 7 0 0 1 13 19.9V11h3V9h-3V7.83A3 3 0 0 0 12 2zm0 2a1 1 0 1 1 0 2 1 1 0 0 1 0-2z",
   "道の駅": "M3 11 12 4l9 7v1.5h-2V21h-5v-6h-4v6H5v-8.5H3z",
   "インターチェンジ": "M11 2h2v5.2l5.3 5.3-1.4 1.4L13 10V22h-2V10l-3.9 3.9-1.4-1.4L11 7.2z",
   "イベント": "M12 2l2.9 6.9L22 9.5l-5.5 4.8L18.2 22 12 18.3 5.8 22l1.7-7.7L2 9.5l7.1-.6z",
@@ -6542,11 +6619,12 @@ const Pack = {
       const el = document.createElement("div"); el.className = "pk k-" + kind; el.setAttribute("role", "dialog"); el.setAttribute("aria-label", "トレカをゲット");
       const front = cardHTML(s, s._no != null ? s._no : PrintCard.no(s)).replace(/^<button type="button"/, "<div").replace(/<\/button>$/, "</div>");
       el.innerHTML = `<canvas class="pk-fx"></canvas><div class="pk-rays"></div><div class="pk-glow"></div>
-        <div class="pk-stage"><div class="pk-pack"><div class="pk-top"><i></i></div><div class="pk-body"><span class="pk-shine"></span><span class="pk-logo">ぺたろぐ</span><span class="pk-sub">STAMP CARD${kind === "ovl" ? " · 重ね押し" : kind === "digi" ? " · DIGITAL" : ""}</span><span class="pk-gx" style="--g:${gcol(catNorm(s.cat))}"></span></div></div>
+        <div class="pk-stage"><div class="pk-pack"><div class="pk-top"><i></i></div><div class="pk-body"><span class="pk-shine"></span><span class="pk-mark"><b>ぺたろぐ</b></span><span class="pk-sub">STAMP CARD${kind === "ovl" ? " · 重ね押し" : kind === "digi" ? " · DIGITAL" : ""}</span><span class="pk-gx" style="--g:${gcol(catNorm(s.cat))}"></span><span class="pk-crimp" aria-hidden="true"></span></div>
+          <div class="pk-tear" aria-hidden="true"><b></b><i class="pk-fing"></i></div></div>
           <div class="pk-card"><div class="pk-in"><div class="pk-f">${front}<span class="pk-holo"></span></div><div class="pk-b" style="--g:${gcol(catNorm(s.cat))}"><div class="tcv-wait"><span class="spin"></span><small>プチ情報を書いています…</small></div></div></div></div></div>
         <div class="pk-title" aria-live="polite"></div>
         <div class="pk-acts">${o.oneBtn ? `<button class="btn primary" type="button" data-pk="close">${esc(o.oneBtn)}</button>` : `<button class="btn" type="button" data-pk="close">とじる</button><button class="btn primary" type="button" data-pk="view">トレカを見る</button>`}</div>
-        <div class="pk-tap">タップで開ける</div>`;
+        <div class="pk-tap">光る線を、指でなぞって開けよう</div>`;
       document.body.appendChild(el); document.documentElement.classList.add("tcv-on");
       const $e = q => el.querySelector(q), card = $e(".pk-card"), inner = $e(".pk-in"), title = $e(".pk-title");
       const fx = Sparks($e(".pk-fx"), kind);
@@ -6560,19 +6638,28 @@ const Pack = {
         try { if (Trivia.can(s) && !Trivia.text(s)) await Trivia.get(s).catch(() => {}); const u = await CardView.backURL(findStamp(s.id) || s); if (!closed) b.innerHTML = `<img src="${u}" alt="裏面">`; }
         catch (_) { if (!closed) b.innerHTML = `<div class="tcv-wait"><small>裏面はトレカの画面で見られます</small></div>`; }
       };
-      const open = () => { if (stage >= 1) return; stage = 1; el.classList.add("s-open"); fx.burst(kind === "std" ? 70 : 120); tm.forEach(clearTimeout); tm = [];
+      const open = () => { if (stage >= 1) return; stage = 1; prog(1); el.classList.add("s-open"); fx.burst(kind === "std" ? 70 : 120); tm.forEach(clearTimeout); tm = []; if (navigator.vibrate) try { navigator.vibrate(12); } catch (_) {}
         at(380, () => { el.classList.add("s-rise"); }); at(1050, () => { stage = 2; el.classList.add("s-show"); setTitle(); fx.ring(); }); at(2500, flip); };
       const flip = () => { if (closed) return; flipped = !flipped; inner.classList.toggle("flip", flipped); el.classList.add("s-done"); if (flipped && !paintBack.done) { paintBack.done = true; paintBack(); } };
       const close = view => { if (closed) return; closed = true; tm.forEach(clearTimeout); fx.stop(); el.classList.add("s-out"); setTimeout(() => { el.remove(); if (!document.querySelector(".tcv:not([hidden])")) document.documentElement.classList.remove("tcv-on"); done(); if (view) { CardView.open(s.id); CardView.base = 180; } }, reduce ? 0 : 260); };
+      // パックの上の光る線を、指でなぞると開く（なかなかできないときは、しばらくするとタップでも開ける）
+      let sw = null, tapOK = false; const pack = $e(".pk-pack"), tear = $e(".pk-tear");
+      const prog = p => { tear.style.setProperty("--p", (p * 100).toFixed(1) + "%"); pack.style.setProperty("--lift", (p * 7).toFixed(2) + "deg"); };
+      pack.addEventListener("pointerdown", e => { if (stage !== 0) return; sw = { x: e.clientX, w: pack.getBoundingClientRect().width, id: e.pointerId }; el.classList.add("s-swipe"); try { pack.setPointerCapture(e.pointerId); } catch (_) {} });
+      pack.addEventListener("pointermove", e => { if (!sw || stage !== 0) return; const p = Math.max(0, Math.min(1, Math.abs(e.clientX - sw.x) / (sw.w * 0.62))); prog(p); if (p >= 1) { sw = null; el.classList.remove("s-swipe"); open(); } });
+      const up = () => { if (!sw) return; sw = null; el.classList.remove("s-swipe"); if (stage === 0) { tear.classList.add("back"); prog(0); setTimeout(() => tear.classList.remove("back"), 260); } };
+      pack.addEventListener("pointerup", up); pack.addEventListener("pointercancel", up);
+      el.tabIndex = -1; el.addEventListener("keydown", e => { if (stage === 0 && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); open(); } });
       el.addEventListener("click", e => {
         const a = e.target.closest("[data-pk]"); if (a) return close(a.dataset.pk === "view");
-        if (stage === 0) return open(); if (stage === 1) return;
+        if (stage === 0) { if (tapOK) open(); return; } if (stage === 1) return;
         if (e.target.closest(".pk-card")) { tm.forEach(clearTimeout); tm = []; flip(); return; }
         if (el.classList.contains("s-done")) close(false);
       });
       requestAnimationFrame(() => el.classList.add("s-in"));
       if (reduce) { open(); return; }
-      at(500, () => el.classList.add("s-shake")); at(2300, open);   // 揺れて光ってから、自動で開く（タップすればすぐ開く）
+      at(500, () => el.classList.add("s-shake")); at(9000, () => { tapOK = true; $e(".pk-tap").textContent = "なぞるのがむずかしいときは、タップでも開けます"; });
+      setTimeout(() => { try { el.focus({ preventScroll: true }); } catch (_) {} }, 50);
     });
   }
 };
@@ -7190,14 +7277,44 @@ const TOUR_PUBS = [
 ];
 const TOUR_DEMO = { name: "ぺたろぐ駅", sub: "PETALOG STA.", ink: "#C23B2E", motif: "train", shape: "circle" };
 
+const TICO = {   // 案内カードの中の小さな絵（線）
+  lock: '<rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/>',
+  print: '<path d="M7 9V3h10v6"/><rect x="3" y="9" width="18" height="8" rx="2"/><path d="M7 14h10v7H7z"/>',
+  photo: '<rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="9" cy="10" r="2"/><path d="m21 16-5-5-9 8"/>',
+  text: '<path d="M5 6h14M12 6v13M9 19h6"/>',
+  square: '<rect x="4" y="4" width="16" height="16" rx="2"/><path d="M4 15l5-4 4 3 3-2 4 3"/>',
+  route: '<circle cx="6" cy="18" r="2.2"/><circle cx="18" cy="6" r="2.2"/><path d="M8 18h6a3 3 0 0 0 0-6h-4a3 3 0 0 1 0-6h6"/>',
+};
+const tI = k => `<svg viewBox="0 0 24 24" aria-hidden="true">${TICO[k] || ""}</svg>`;
+
+// 無料で登録できる数とキャンペーン（本部のサイトで変えられる。ここは読めなかったときの値）
+const Plan = {
+  free: 50, until: Date.parse("2026-11-01T00:00:00+09:00"),
+  campaign() { return Date.now() < this.until; },
+  untilText() { const d = new Date(this.until - 1); return `${d.getMonth() + 1}月${d.getDate()}日`; },
+  daysLeft() { return Math.max(1, Math.ceil((this.until - Date.now()) / 864e5)); },
+  full() { sheetCtx = { mode: "plan" }; openSheet(`<div class="sheet-head"><h2>登録できる数がいっぱいです</h2><button class="btn small ghost" type="button" data-close>閉じる</button></div>
+    <div class="sec"><p class="cap" style="margin-top:0">無料で登録できるのは ${this.free}まい までです。もっとたくさん登録できるプランを準備しています。いま登録してあるトレカは、これまでどおり見たり編集したりできます。</p></div>`); },
+  set(cfg) { if (!cfg) return; const f = parseInt(cfg.free_stamps, 10); if (f > 0) this.free = f; const u = Date.parse(cfg.campaign_until || ""); if (isFinite(u)) this.until = u; },
+};
+
 const Tour = {
-  on: false, i: -1, did: {}, preview: false, el: {}, tickT: 0, saved: null, demo: null,
+  on: false, i: -1, bi: 0, did: {}, got: new Set(), preview: false, el: {}, tickT: 0, saved: null, demo: null,
   STEPS: [
-    { k: "fall", v: "fall", pos: "top", t: "押したスタンプが、ここに集まる", b: "スタンプを指でつまんで、ぽーんと投げてみて。", ok: "いいね！ スマホを傾けると、スタンプが転がります。" },
-    { k: "card", v: "book", pos: "bottom", t: "1まいずつ、トレカになる", b: "好きなトレカをタップして開いてみよう。", b2: "トレカをタップすると裏返ります。", ok: "裏面には、その場所のプチ情報。本物を登録すると、AIが書いてくれます。" },
-    { k: "map", v: "map", pos: "bottom", t: "押した場所が、地図になる", b: "青いピンがあなた、朱色のピンはみんなが見つけたスタンプ。ネット検索には出てこない、地元だけのレアスタンプが見つかるかも…？ 朱色のピンをタップ！", ok: "旅先で「近くにスタンプないかな？」と探せます。" },
-    { k: "journal", v: "board", pos: "bottom", t: "ノートに貼って、飾る", b: "スタンプジャーナルをタップして開いてみよう。", b2: "ページをめくって、中を見てみて。", ok: "トラベラーズノートのサイズで作れば、印刷してそのまま貼れます。", tn: 1 },
-    { k: "camera", v: "fall", pos: "top", t: "さあ、1まい登録してみよう", b: "スタンプを撮るだけで、切り抜き・名前の読み取りまで自動です。ここではデモで体験できます。", cta: "カメラを開く（デモ）" },
+    { k: "fall", v: "fall", t: "押したスタンプが、ここに集まる", ok: "スマホの傾きに合わせて、スタンプがころころ転がります。", beats: [
+      { b: "スタンプを指でつまんで、ぽーんと投げてみて。", pos: "top", aim: "pile", gest: "drag", until: "drag" },
+      { b: "「傾きで動かす」を押して、スマホを傾けてみて。", anchor: "#tiltBtn", aim: "anchor", until: "tilt" }] },
+    { k: "card", v: "book", t: "1まいずつ、トレカになる", beats: [
+      { b: "好きなトレカをタップして開いてみよう。", pos: "bottom", aim: "card1", until: "open" },
+      { b: "トレカをタップして、裏返してみて。", pos: "low", aim: "tcv", until: "flip" }] },
+    { k: "map", v: "map", t: "押した場所が、地図になる", beats: [
+      { b: "青いピンがあなた、赤いピンはみんなが見つけたスタンプ。ネット検索には出てこない、地元だけのレアスタンプが見つかるかも…？ 赤いピンをタップしてみて！", pos: "bottom", aim: "rarepin", until: "pin" },
+      { b: "行きたいスタンプを、指でぐるっと囲むと…", pos: "bottom", cta: "ぐるっと囲んでみる", act: "lasso", until: "route" }] },
+    { k: "journal", v: "board", t: "ノートに貼って、飾る", beats: [
+      { b: "スタンプジャーナルをタップして開いてみよう。", pos: "bottom", aim: "book", until: "openbook" },
+      { b: "ページをめくって、中を見てみて。", pos: "bottom", until: "page" }] },
+    { k: "camera", v: "fall", t: "さあ、1まい登録してみよう", beats: [
+      { b: "スタンプを撮るだけで、切り抜き・名前の読み取りまで自動です。ここではデモで体験できます。", pos: "top", cta: "カメラを開く（デモ）", ico: "camera", act: "camera", until: "camera" }] },
   ],
   // ---------- はじまり ----------
   auto() {   // ログインしていない人が開いたとき（cloud.js の afterBoot から）。何か出したら true
@@ -7209,8 +7326,9 @@ const Tour = {
   loggedIn() { return !!(window.PetalogCloud && PetalogCloud.loggedIn && PetalogCloud.loggedIn()); },
   ev(s, n) { try { Track.ev("tour", { s, ...(n != null ? { n } : {}) }); } catch (_) {} },
   start(o = {}) {
-    if (this.on) return; this.on = true; this.preview = !!o.preview || this.loggedIn(); this.i = -1; this.did = {};
-    lsSet("petalog.pinchHint", "1"); try { document.fonts.load('400 30px "Dela Gothic One"', "ぺたろぐ押したスタンプが、旅のコレクションになる。さぁあなたの集めをでもっと素敵な趣味にアップデート！ツアーはここまで"); document.fonts.load('600 30px "Klee One"', "0123456789.はじめての1まい"); } catch (_) {} if (typeof closeSheet === "function") closeSheet(); if (CardView.el) CardView.close(true);
+    if (this.on) return; this.on = true; this.preview = !!o.preview || this.loggedIn(); this.i = -1; this.did = {}; this.got = new Set();
+    lsSet("petalog.pinchHint", "1"); try { document.fonts.load('400 30px "Dela Gothic One"', "ぺたろぐ押したスタンプが、旅のコレクションになる。さぁあなたの集めをでもっと素敵な趣味にアップデート！ツアーはここまで10月31日登録し放題キャンペーン何まいでも無料50"); document.fonts.load('600 30px "Klee One"', "0123456789.はじめての1まい"); } catch (_) {}
+    if (typeof closeSheet === "function") closeSheet(); if (CardView.el) CardView.close(true);
     this.sandbox(true); this.hooks(); this.ev("start");
     this.welcome();
   },
@@ -7229,25 +7347,26 @@ const Tour = {
       Books.save = S.save; stamps = S.stamps; Books.data = S.books; Books.sample = S.bs; Books.mode = S.bm === "edit" ? "shelf" : S.bm; Books.cur = S.bc; Board.data = null;
       MapV.pubs = S.pubs; MapV.mode = S.mm || "me"; MapV.shown = S.shown; try { MapV.setMode(MapV.mode); } catch (_) {}
       if (this.demo) { SAMPLES = SAMPLES.filter(s => s !== this.demo); this.demo = null; }
+      if (Sensor.on) try { Sensor.disable(); } catch (_) {}
       Book.idx = 0; refreshAll(); show("fall");
     }
   },
   hooks() {
     if (this.hooked) return; this.hooked = true; const T = this;
-    const fs = Fall.setup; Fall.setup = function () { const r = fs.apply(this, arguments); if (r && this.mc && window.Matter) Matter.Events.on(this.mc, "startdrag", () => { if (T.on) T.mark("fall"); }); return r; };
-    const sh = Fall.shake; Fall.shake = function () { if (T.on) T.mark("fall"); return sh.apply(this, arguments); };
-    const co = CardView.open; CardView.open = function () { const r = co.apply(this, arguments); if (T.on) { T.sub("card"); T.place(); } return r; };
-    const cc = CardView.close; CardView.close = function () { const r = cc.apply(this, arguments); if (T.on) setTimeout(() => T.place(), 300); return r; };
+    const fs = Fall.setup; Fall.setup = function () { const r = fs.apply(this, arguments); if (r && this.mc && window.Matter) Matter.Events.on(this.mc, "startdrag", () => { if (T.on) T.hit("drag"); }); return r; };
+    const sh = Fall.shake; Fall.shake = function () { if (T.on) T.hit("drag"); return sh.apply(this, arguments); };
+    const se = Sensor.enable; Sensor.enable = function () { const r = se.apply(this, arguments); if (T.on) setTimeout(() => T.hit("tilt"), 300); return r; };
+    const co = CardView.open; CardView.open = function () { const r = co.apply(this, arguments); if (T.on) { T.hit("open"); T.layout(); } return r; };
+    const cc = CardView.close; CardView.close = function () { const r = cc.apply(this, arguments); if (T.on) setTimeout(() => T.layout(), 300); return r; };
     const op = MapV.openPubs; MapV.openPubs = function (ids) { if (T.on) return T.pubPop(ids); return op.apply(this, arguments); };
     const om = MapV.openMine; if (om) MapV.openMine = function () { if (T.on && T.cur && T.cur.k === "map") { toast("青いピンは、あなたが押したスタンプです（いまはサンプル）"); return; } return om.apply(this, arguments); };
-    const ft = MapV.foot; MapV.foot = function () { if (T.on && this.mode === "all") { const f = $("#mapFoot"); if (f) f.innerHTML = `<span class="tour-mapnote">朱色のピンは、ほかの人が見つけたスタンプ（いまはサンプル）。ログインすると、本物のみんなの記録が見られます。</span>`; return; } return ft.apply(this, arguments); };
+    const ft = MapV.foot; MapV.foot = function () { if (T.on && this.mode === "all") { const f = $("#mapFoot"); if (f) f.innerHTML = `<span class="tour-mapnote">赤いピンは、ほかの人が見つけたスタンプ（いまはサンプル）。ログインすると、本物のみんなの記録が見られます。</span>`; return; } return ft.apply(this, arguments); };
     const rd = MapV.render; MapV.render = function () { const r = rd.apply(this, arguments); if (T.on) { const sg = $("#mapSeg"); if (sg) sg.hidden = false; } return r; };
-    const ob = Books.openBook; Books.openBook = function () { const r = ob.apply(this, arguments); if (T.on) T.sub("journal"); return r; };
+    const ob = Books.openBook; Books.openBook = function () { const r = ob.apply(this, arguments); if (T.on) T.hit("openbook"); return r; };
     const tro = Trust.of; Trust.of = function (g) { if (T.on && g && g.top && String(g.top._id || "").startsWith("tp")) return { trust: 3 }; return tro.apply(this, arguments); };
-    const yb = YearSum.btn; YearSum.btn = function () { const r = yb.apply(this, arguments); T.settingsBtn(); return r; };
     // ツアー中の「＋ 追加」は、デモの登録へ
     $("#addBtn").addEventListener("click", e => { if (!T.on) return; e.stopImmediatePropagation(); e.preventDefault(); if (T.i >= 0) T.go(T.STEPS.findIndex(s => s.k === "camera")); }, true);
-    addEventListener("resize", () => { if (T.on) T.place(); });
+    addEventListener("resize", () => { if (T.on) T.layout(); });
   },
   // ---------- ようこそ ----------
   welcome() {
@@ -7266,62 +7385,97 @@ const Tour = {
     this.paper(el); document.body.appendChild(el); this.el.wel = el; document.documentElement.classList.add("tour-lock");
     const fit = () => { const cp = el.querySelector(".twel-copy"); if (cp) el.style.setProperty("--ch", cp.offsetHeight + "px"); }; fit(); addEventListener("resize", fit);
     requestAnimationFrame(() => el.classList.add("in"));
-    el.querySelector("#twGo").onclick = () => { this.ev("go"); el.classList.add("out"); setTimeout(() => { el.remove(); document.documentElement.classList.remove("tour-lock"); this.go(0); }, 420); };
+    el.querySelector("#twGo").onclick = () => { this.ev("go"); el.classList.add("out"); setTimeout(() => { el.remove(); this.el.wel = null; document.documentElement.classList.remove("tour-lock"); this.go(0); }, 420); };
     el.querySelector("#twLogin").onclick = () => { this.ev("login0"); el.remove(); this.el.wel = null; this.stop(); this.join({ login: true }); };
   },
   // ---------- 案内カード ----------
   get cur() { return this.STEPS[this.i]; },
+  get beat() { const st = this.cur; return st && st.beats[Math.min(this.bi, st.beats.length - 1)]; },
   paper(el) { try { if (!this._wu) this._wu = Paper.washi().toDataURL("image/png"); const p = el.querySelector(".twel-paper"); if (p) p.style.backgroundImage = `url(${this._wu})`; } catch (_) {} },
   go(i) {
-    if (!this.on) return; this.popClose(); if (CardView.el && !CardView.el.hidden) CardView.close(true); if (typeof closeSheet === "function" && $("#sheetWrap") && !$("#sheetWrap").hidden) closeSheet();
+    if (!this.on) return; this.popClose(); this.lassoClear(); if (CardView.el && !CardView.el.hidden) CardView.close(true); if (typeof closeSheet === "function" && $("#sheetWrap") && !$("#sheetWrap").hidden) closeSheet();
     if (i >= this.STEPS.length) return this.finale();
-    this.i = i; const st = this.cur; this.subOn = false; this.ev("step", i + 1);
+    this.i = i; this.bi = 0; const st = this.cur; this.ev("step", i + 1);
     if (st.k === "map") { MapV.pubs = this.pubs(); MapV.mode = "all"; MapV.shown = true; }
     else if (MapV.mode === "all") { MapV.mode = "me"; }
     if (st.k === "journal") { Books.mode = "shelf"; Books.cur = null; }
     show(st.v);
-    if (st.k === "map") setTimeout(() => { try { MapV.setMode("all"); MapV.map && MapV.map.invalidateSize({ animate: false }); MapV.map && MapV.map.fitBounds([[35.12, 138.72], [35.98, 139.98]], { padding: [24, 24] }); } catch (_) {} setTimeout(() => this.place(), 700); }, 120);
-    this.card(); this.place(); clearInterval(this.tickT); this.tickT = setInterval(() => this.tick(), 250);
+    if (st.k === "map") setTimeout(() => { try { MapV.setMode("all"); MapV.map && MapV.map.invalidateSize({ animate: false }); MapV.map && MapV.map.fitBounds([[35.12, 138.72], [35.98, 139.98]], { padding: [24, 24] }); } catch (_) {} setTimeout(() => this.layout(), 700); }, 120);
+    this.skipGot(); this.card(); this.layout(); clearInterval(this.tickT); this.tickT = setInterval(() => this.tick(), 250);
+  },
+  skipGot() { const st = this.cur; while (st && this.bi < st.beats.length && this.got.has(st.k + ":" + st.beats[this.bi].until)) this.bi++; if (st && this.bi >= st.beats.length) this.did[st.k] = true; },
+  // できたこと（ドラッグした・トレカを開いた・裏返した…）を受け取って、次の段へ進む
+  hit(flag) {
+    if (!this.on || !this.cur) return; const st = this.cur; this.got.add(st.k + ":" + flag); if (this.did[st.k]) return;
+    const b = this.beat; if (!b || b.until !== flag) { if (st.beats.some(x => x.until === flag)) { /* 先にできた → その段まで来たら飛ばす */ } return; }
+    this.bi++; this.skipGot();
+    if (this.bi >= st.beats.length) { this.did[st.k] = true; this.card(); const li = this.el.card && this.el.card.querySelectorAll(".tc-rally li")[this.i]; if (li) li.classList.add("press"); }
+    else this.card();
+    this.layout();
   },
   card() {
-    let c = this.el.card; const st = this.cur, n = this.STEPS.length;
+    let c = this.el.card; const st = this.cur, n = this.STEPS.length, b = this.beat;
     if (!c) { c = this.el.card = document.createElement("div"); c.className = "tcoach"; c.setAttribute("role", "dialog"); c.setAttribute("aria-live", "polite"); document.body.appendChild(c);
       c.addEventListener("click", e => { const a = e.target.closest("[data-t]"); if (!a) return; const k = a.dataset.t;
-        if (k === "next") this.go(this.i + 1); else if (k === "cta") this.camera(); else if (k === "x") this.quit(); else if (k === "login") { this.ev("login", this.i + 1); this.stop(); this.join({ login: true }); } }); }
-    const done = !!this.did[st.k], body = this.subOn && st.b2 && !done ? st.b2 : st.b;
-    c.dataset.pos = st.pos; c.classList.toggle("done", done);
-    c.innerHTML = `<div class="tc-top"><ol class="tc-rally" aria-label="すすみぐあい ${this.i + 1} / ${n}">${this.STEPS.map((s, k) => `<li class="${this.did[s.k] ? "got" : ""}${k === this.i ? " now" : ""}">${tIco(s.k)}</li>`).join("")}</ol>
+        if (k === "next") this.go(this.i + 1); else if (k === "act") this.act(this.beat && this.beat.act); else if (k === "x") this.quit();
+        else if (k === "nav") toast("デモなので開きません。本物では、地図アプリでこの順番の道案内が始まります", 3600);
+        else if (k === "login") { this.ev("login", this.i + 1); this.stop(); this.join({ login: true }); } }); }
+    const done = !!this.did[st.k];
+    c.classList.toggle("done", done); c.dataset.k = st.k;
+    c.innerHTML = `<i class="tc-tail" aria-hidden="true"></i><div class="tc-top"><ol class="tc-rally" aria-label="すすみぐあい ${this.i + 1} / ${n}">${this.STEPS.map((s, k) => `<li class="${this.did[s.k] ? "got" : ""}${k === this.i ? " now" : ""}">${tIco(s.k)}</li>`).join("")}</ol>
         <button class="tc-x" type="button" data-t="x" aria-label="ツアーを終わる">✕</button></div>
-      <h3>${esc(st.t)}</h3><p>${esc(body)}</p>${done && st.ok ? `<p class="tc-ok"><i aria-hidden="true">✓</i>${esc(st.ok)}</p>` : ""}
-      ${st.tn && done ? `<div class="tc-tn" aria-hidden="true"><span class="tn-book"><i></i><b></b></span><span>トラベラーズノート<br><small>1ページ・見開きの大きさに対応</small></span></div>` : ""}
+      <h3>${esc(st.t)}</h3>${done ? this.okHTML(st) : `<p>${esc(b.b)}</p>`}
       <div class="tc-acts"><button class="tc-login" type="button" data-t="login">ログインはこちら</button>
-        ${st.cta ? `<button class="tc-next cta" type="button" data-t="cta">${tIco("camera")}${esc(st.cta)}</button>` : `<button class="tc-next${done ? " ready" : ""}" type="button" data-t="next">${done ? "つぎへ" : "とばす"}</button>`}</div>`;
+        ${!done && b.cta ? `<button class="tc-next cta" type="button" data-t="act">${b.ico ? tIco(b.ico) : tI("route")}${esc(b.cta)}</button>` : `<button class="tc-next${done ? " ready" : ""}" type="button" data-t="next">つぎへ</button>`}</div>`;
   },
-  sub(k) { if (!this.on || !this.cur || this.cur.k !== k) return; if (!this.subOn) { this.subOn = true; this.card(); } },
-  mark(k) {
-    if (!this.on || !this.cur || this.cur.k !== k || this.did[k]) return; this.did[k] = true; this.card();
-    const li = this.el.card && this.el.card.querySelectorAll(".tc-rally li")[this.i]; if (li) { li.classList.add("press"); }
-    this.place();
+  okHTML(st) {
+    const ok = t => `<p class="tc-ok"><i aria-hidden="true">✓</i><span>${t}</span></p>`;
+    if (st.k === "card") return ok("裏面は、そのスタンプを手に入れた人だけが読めるプチ情報。記念写真やスタンプ台の写真も入れられます。")
+      + `<ul class="tc-feats"><li>${tI("lock")}<span>裏面はみんなには非公開。行った場所のアルバムにもなります</span></li><li class="hot">${tI("print")}<span><b>コンビニや家のプリンターで、本物のトレカに印刷できる！</b></span></li></ul>`;
+    if (st.k === "map") { const R = this.route || []; return ok("回る順番と道のりが、すぐにわかります。スタンプハンターの味方です。")
+      + `<div class="tc-route"><b>スタンプめぐりのルート<small>デモ</small></b><ol>${R.map((p, k) => `<li><i>${k + 1}</i><span>${esc(p.name)}<small>${k ? esc(p.leg) : "スタート"}</small></span></li>`).join("")}</ol>
+        <button class="tc-nav" type="button" data-t="nav">${tI("route")}地図アプリで道案内</button></div>`; }
+    if (st.k === "journal") return ok("スタンプのほかに、写真や文字も自由に貼れます。")
+      + `<ul class="tc-feats grid"><li>${tI("photo")}<span>写真</span></li><li>${tI("text")}<span>文字</span></li><li><span class="tn-book" aria-hidden="true"><i></i><b></b></span><span>トラベラーズノートのサイズ（印刷してそのまま貼れる）</span></li><li>${tI("square")}<span>インスタ投稿用の正方形</span></li></ul>`;
+    if (st.k === "fall") return ok(esc(st.ok));
+    return "";
   },
+  act(a) { if (a === "camera") this.camera(); else if (a === "lasso") this.lasso(); },
   tick() {
     if (!this.on || !this.cur) return; const st = this.cur, c = this.el.card; if (!c) return;
     const sheetOpen = $("#sheetWrap") && !$("#sheetWrap").hidden, tcv = CardView.el && !CardView.el.hidden;
     c.classList.toggle("hide", !!sheetOpen || !!document.querySelector(".pk") || !!this.el.cam);
-    if (st.k === "card" && tcv && Math.round(CardView.base / 180) % 2 !== 0) this.mark("card");
-    if (st.k === "journal" && Books.mode === "book" && Book.idx > 0) this.mark("journal");
-    c.dataset.pos = st.k === "card" && tcv ? "low" : st.pos;
-    if (this._sp !== (tcv ? 1 : 0) + (Books.mode === "book" ? 2 : 0)) { this._sp = (tcv ? 1 : 0) + (Books.mode === "book" ? 2 : 0); this.place(); }
+    if (st.k === "card" && tcv && Math.round(CardView.base / 180) % 2 !== 0) this.hit("flip");
+    if (st.k === "journal" && Books.mode === "book" && Book.idx > 0) this.hit("page");
+    const sig = [this.i, this.bi, tcv ? 1 : 0, Books.mode, this.did[st.k] ? 1 : 0].join(); if (sig !== this._sig) { this._sig = sig; this.layout(); }
+    if (c.dataset.pos === "anchor") this.layout();
   },
-  // 指の丸（どこをさわればいいか）
-  place() {
-    if (!this.on || !this.cur) { this.dot(null); return; } const st = this.cur, tcv = CardView.el && !CardView.el.hidden;
-    let r = null, kind = "tap";
-    if (st.k === "fall" && !this.did.fall) { const w = $("#fallWrap"); if (w) { const b = w.getBoundingClientRect(); r = { x: b.left + b.width * 0.5, y: b.top + b.height * 0.8 }; kind = "drag"; } }
-    else if (st.k === "card" && !this.did.card) { if (tcv) { const b = CardView.el.querySelector("#tcvCard").getBoundingClientRect(); r = { x: b.left + b.width * 0.5, y: b.top + b.height * 0.55 }; } else { const e = $("#cards [data-open]"); if (e) { const b = e.getBoundingClientRect(); r = { x: b.left + b.width / 2, y: b.top + b.height / 2 }; } } }
-    else if (st.k === "map" && !this.did.map && MapV.map) { const h = (MapV.pinHits || []).find(p => p.pub && this.rare.has(p.pub)) || (MapV.pinHits || []).find(p => p.pub); if (h) { const b = MapV.map.getContainer().getBoundingClientRect(); r = { x: b.left + h.px, y: b.top + h.py }; } }
-    else if (st.k === "journal" && !this.did.journal && Books.mode === "shelf") { const e = document.querySelector("#shelfBox [data-book]"); if (e) { const b = e.getBoundingClientRect(); r = { x: b.left + b.width / 2, y: b.top + b.height / 2 }; } }
-    this.dot(r, kind);
+  // 案内カードの置き場所（押してほしい物のそばに、しっぽ付きで）と、指の丸
+  layout() {
+    const c = this.el.card; if (!this.on || !this.cur || !c) { this.dot(null); return; }
+    const st = this.cur, b = this.beat, done = !!this.did[st.k], tcv = CardView.el && !CardView.el.hidden;
+    let pos = done ? (st.k === "card" && tcv ? "low" : st.k === "fall" ? "top" : "bottom") : b.pos || "bottom";
+    const anc = !done && b.anchor ? $(b.anchor) : null; c.style.top = c.style.bottom = "";
+    if (anc && anc.getBoundingClientRect().width) {
+      const r = anc.getBoundingClientRect(), h = c.offsetHeight, below = r.bottom + 14 + h < innerHeight - 70;
+      pos = "anchor"; c.dataset.tail = below ? "up" : "down";
+      if (below) c.style.top = (r.bottom + 14) + "px"; else c.style.top = Math.max(8, r.top - 14 - h) + "px";
+      const cr = c.getBoundingClientRect(); c.style.setProperty("--tx", Math.max(22, Math.min(cr.width - 22, r.left + r.width / 2 - cr.left)) + "px");
+    }
+    c.dataset.pos = pos;
+    // 指の丸
+    let p = null, kind = "tap";
+    if (!done && b) {
+      if (b.aim === "pile") { const w = $("#fallWrap"); if (w) { const q = w.getBoundingClientRect(); p = { x: q.left + q.width * 0.5, y: q.top + q.height * 0.8 }; kind = "drag"; } }
+      else if (b.aim === "anchor" && anc) { const q = anc.getBoundingClientRect(); p = { x: q.left + q.width / 2, y: q.top + q.height / 2 }; }
+      else if (b.aim === "card1" && !tcv) { const e = $("#cards [data-open]"); if (e) { const q = e.getBoundingClientRect(); p = { x: q.left + q.width / 2, y: q.top + q.height / 2 }; } }
+      else if (b.aim === "tcv" && tcv) { const q = CardView.el.querySelector("#tcvCard").getBoundingClientRect(); p = { x: q.left + q.width * 0.5, y: q.top + q.height * 0.4 }; }
+      else if (b.aim === "rarepin" && MapV.map && !this.el.pop) { const h = (MapV.pinHits || []).find(x => x.pub && this.rare.has(x.pub)) || (MapV.pinHits || []).find(x => x.pub); if (h) { const q = MapV.map.getContainer().getBoundingClientRect(); p = { x: q.left + h.px, y: q.top + h.py }; } }
+      else if (b.aim === "book" && Books.mode === "shelf") { const e = document.querySelector("#shelfBox [data-book]"); if (e) { const q = e.getBoundingClientRect(); p = { x: q.left + q.width / 2, y: q.top + q.height / 2 }; } }
+    }
+    this.dot(p, kind);
   },
+  place() { this.layout(); },
   dot(r, kind) {
     let d = this.el.dot; if (!r) { if (d) d.hidden = true; return; }
     if (!d) { d = this.el.dot = document.createElement("div"); d.className = "tdot"; d.setAttribute("aria-hidden", "true"); d.innerHTML = "<i></i>"; document.body.appendChild(d); }
@@ -7336,29 +7490,51 @@ const Tour = {
     return this._pubs;
   },
   pubPop(ids) {
-    const p = (this._pubs || []).find(x => x._id === (ids || [])[0]); if (!p) return; this.popClose(); this.mark("map");
+    const p = (this._pubs || []).find(x => x._id === (ids || [])[0]); if (!p) return; this.popClose(); this.hit("pin");
     const rare = this.rare.has(p._id), el = document.createElement("div"); el.className = "tpop"; el.setAttribute("role", "dialog");
     el.innerHTML = `<div class="tpop-in"><img src="${p.thumb}" alt=""><div><span class="tpop-tag">みんなの記録・サンプル</span><b>${esc(p.name)}</b><small>${esc(p.pref)}</small>
       ${rare ? `<p class="tpop-rare">★ ネットにほとんど情報がない、レアなスタンプ</p>` : `<p>置き場所のメモや「まだあった？」も、みんなで共有できます。</p>`}</div>
       <button class="tc-x" type="button" aria-label="とじる">✕</button></div>`;
     document.body.appendChild(el); this.el.pop = el; requestAnimationFrame(() => el.classList.add("in"));
     el.querySelector(".tc-x").onclick = () => this.popClose();
+    clearTimeout(this._popT); this._popT = setTimeout(() => this.popClose(), 5200);
   },
-  popClose() { if (this.el.pop) { this.el.pop.remove(); this.el.pop = null; } },
+  popClose() { clearTimeout(this._popT); if (this.el.pop) { this.el.pop.remove(); this.el.pop = null; } },
+  // ぐるっと囲む → 回る順番と道のり（デモ: 指が囲んで、ルートが引かれる）
+  async lasso() {
+    if (this._lassoBusy || !MapV.map) return; this._lassoBusy = true; this.popClose(); this.ev("lasso");
+    const m = MapV.map, P = this.pubs(), pick = ["坂の上の図書館", "古民家カフェ", "灯台の岬"].map(n => P.find(p => p.name === n)).filter(Boolean);
+    const ch = this.el.card ? this.el.card.offsetHeight : 240;
+    const mb = m.getContainer().getBoundingClientRect(), under = Math.max(ch + 60, mb.bottom - innerHeight * 0.42);   // 案内カードが大きくなっても見えるように、上のほうに寄せる
+    try { m.fitBounds(pick.map(p => [p.lat, p.lng]), { paddingTopLeft: [80, 70], paddingBottomRight: [80, Math.min(mb.height - 160, under)], maxZoom: 12, animate: true }); } catch (_) {}
+    await sleep(900); if (!this.on) return;
+    const box = m.getContainer(), W = box.clientWidth, H = box.clientHeight, pt = p => m.latLngToContainerPoint([p.lat, p.lng]);
+    const S = pick.map(p => { const q = pt(p); return { x: q.x, y: q.y - 22 }; });
+    const cx = S.reduce((t, q) => t + q.x, 0) / S.length, cy = S.reduce((t, q) => t + q.y, 0) / S.length;
+    const R = Math.max(70, ...S.map(q => Math.hypot(q.x - cx, q.y - cy) + 46));
+    const pts = []; for (let k = 0; k <= 36; k++) { const a = -Math.PI / 2 + k / 36 * Math.PI * 2.08, w = 1 + 0.12 * Math.sin(a * 3 + 1); pts.push([cx + Math.cos(a) * R * w * 1.05, cy + Math.sin(a) * R * w * 0.92]); }
+    const d = "M" + pts.map(q => q[0].toFixed(1) + " " + q[1].toFixed(1)).join(" L");
+    const route = "M" + S.map(q => q.x.toFixed(1) + " " + q.y.toFixed(1)).join(" L");
+    const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg"); svg.setAttribute("class", "tlasso"); svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
+    svg.innerHTML = `<path class="lz" d="${d}"/><path class="rt" d="${route}"/>${S.map((q, k) => `<g class="no" style="--d:${1700 + k * 260}ms"><circle cx="${q.x}" cy="${q.y - 26}" r="12"/><text x="${q.x}" y="${q.y - 22}">${k + 1}</text></g>`).join("")}<circle class="fg" r="16" cx="${pts[0][0]}" cy="${pts[0][1]}"/>`;
+    box.appendChild(svg); this.el.lasso = svg;
+    const lz = svg.querySelector(".lz"), L = lz.getTotalLength(), fg = svg.querySelector(".fg"); lz.style.strokeDasharray = L; lz.style.strokeDashoffset = L;
+    const rt = svg.querySelector(".rt"), RL = rt.getTotalLength(); rt.style.strokeDasharray = RL; rt.style.strokeDashoffset = RL;
+    const t0 = performance.now(), dur = 1300;
+    await new Promise(res => { const f = now => { const t = Math.min(1, (now - t0) / dur), e = t < .5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2; lz.style.strokeDashoffset = L * (1 - e); const q = lz.getPointAtLength(L * e); fg.setAttribute("cx", q.x); fg.setAttribute("cy", q.y); if (t < 1 && this.on) requestAnimationFrame(f); else res(); }; requestAnimationFrame(f); });
+    fg.classList.add("off"); svg.classList.add("go"); rt.style.transition = "stroke-dashoffset 1.1s ease .35s"; requestAnimationFrame(() => { rt.style.strokeDashoffset = 0; });
+    let tot = 0; this.route = pick.map((p, k) => { const km = k ? kmBetween(pick[k - 1].lat, pick[k - 1].lng, p.lat, p.lng) * 1.3 : 0; tot += km; const min = Math.round(km / 32 * 60); return { name: p.name, leg: `車で約${min >= 60 ? Math.floor(min / 60) + "時間" + (min % 60 ? (min % 60) + "分" : "") : min + "分"}（${km.toFixed(0)}km）` }; });
+    await sleep(1800); this._lassoBusy = false; if (!this.on) return; this.hit("route");
+  },
+  lassoClear() { if (this.el.lasso) { this.el.lasso.remove(); this.el.lasso = null; } this._lassoBusy = false; },
   // ---------- 終わり ----------
   quit() { this.ev("x", this.i + 1); this.stop(); this.join({ quit: true }); },
   stop() {
-    if (!this.on) return; this.on = false; clearInterval(this.tickT); this.popClose();
+    if (!this.on) return; this.on = false; clearInterval(this.tickT); this.popClose(); this.lassoClear();
     ["card", "dot", "cam"].forEach(k => { if (this.el[k]) { this.el[k].remove(); this.el[k] = null; } });
     if (this.el.wel) { this.el.wel.remove(); this.el.wel = null; } if (!this.el.join) document.documentElement.classList.remove("tour-lock");
     if (CardView.el && !CardView.el.hidden) CardView.close(true);
     this.sandbox(false); this.i = -1; if (!this.preview) lsSet("petalog.tourDone", "1");
-  },
-  openLogin() { if (window.PetalogCloud && PetalogCloud.openLogin) PetalogCloud.openLogin(false); else toast("いまはログインできません。時間をおいて開き直してください"); },
-  settingsBtn() {
-    if (!$("#sheet") || (sheetCtx && sheetCtx.mode !== "settings") || $("#tourSec")) return; const y = $("#yrSec") || $("#sheet .sheet-head"); if (!y) return;
-    y.insertAdjacentHTML("afterend", `<div class="sec" id="tourSec"><button class="btn" type="button" id="tourAgain">ぺたろぐの使い方ツアーを見る</button></div>`);
-    $("#tourAgain").onclick = () => { closeSheet(); this.start({ preview: true }); };
   },
 };
 // ---------- 1まい登録してみる（カメラのデモ。本当には撮らない・保存しない） ----------
@@ -7426,43 +7602,50 @@ Object.assign(Tour, {
     const fx = this.confetti(el.querySelector(".tfin-fx"));
     setTimeout(() => { el.classList.add("slam"); if (navigator.vibrate) try { navigator.vibrate(18); } catch (_) {} fx.burst(); }, reduce ? 0 : 1050);
     setTimeout(() => this.showPanel(el), reduce ? 0 : 3300);
+    setTimeout(() => { const f = el.querySelector(".tj-free"); if (f && el.isConnected) { f.classList.add("pop"); fx.burst(f); } }, reduce ? 0 : 3900);
   },
   join(o = {}) { const el = this.joinEl({ ...o, fanfare: false }); setTimeout(() => this.showPanel(el, o.login), 80); },
   joinEl(o) {
-    this.closeJoin(); const logged = this.loggedIn(), canAuth = !!(window.PetalogCloud && PetalogCloud.auth);
+    this.closeJoin(); const logged = this.loggedIn(), canAuth = !!(window.PetalogCloud && PetalogCloud.auth), camp = Plan.campaign();
     const el = document.createElement("div"); el.className = "tfin" + (o.fanfare ? " fan" : " lite"); el.setAttribute("role", "dialog"); el.setAttribute("aria-label", "ぺたろぐをはじめる");
     el.innerHTML = `<div class="twel-paper"></div><canvas class="tfin-fx" aria-hidden="true"></canvas>
       <div class="tfin-stage"><ol class="tfin-rally" aria-hidden="true"></ol>
         <div class="tfin-hanko" aria-hidden="true"><span>ぺたろぐ</span></div>
         <h2 class="tfin-h">${o.fanfare ? `<span>さぁ、</span><span>あなたのスタンプ集めを</span><span>ぺたろぐで</span><span>もっと素敵な趣味に</span><span class="up">アップデート！！</span>` : `<span>あなたのスタンプ集めを、</span><span class="up">ぺたろぐで。</span>`}</h2></div>
-      <div class="tjoin" hidden>${logged ? `<button class="tc-x" type="button" data-j="x" aria-label="とじる">✕</button><h3>ツアーはここまで</h3><p class="tj-sub">いつでも設定の「ぺたろぐの使い方ツアーを見る」から見直せます。</p><button class="tj-go" type="button" data-j="x">とじる</button>`
+      <div class="tjoin" hidden>${logged ? `<button class="tc-x" type="button" data-j="x" aria-label="とじる">✕</button><h3>ツアーはここまで</h3><p class="tj-sub">いつでも設定の「使い方ツアーをもう一度見る」から見直せます。</p><button class="tj-go" type="button" data-j="x">とじる</button>`
         : `<button class="tc-x" type="button" data-j="x" aria-label="とじる">✕</button>
+        <div class="tj-free${camp ? " camp" : ""}">${camp ? `<span class="tj-tag">キャンペーン</span><b>${Plan.untilText()}まで、何まいでも無料で登録できます</b><small>あと${Plan.daysLeft()}日。ふだんも${Plan.free}まいまでは無料です</small>` : `<b>${Plan.free}まいまで、無料で登録できます</b><small>登録も、ふだんの利用も無料です</small>`}<i class="tj-shine" aria-hidden="true"></i></div>
         <h3 data-h>無料で登録して、はじめる</h3>
         <ul class="tj-perks"><li><i aria-hidden="true">${tIco("journal")}</i><span><b>記録が消えない</b><small>機種変更しても、PCからでも同じコレクション</small></span></li>
           <li><i aria-hidden="true">${tIco("map")}</i><span><b>みんなの地図</b><small>ほかの人が見つけたスタンプの場所がわかる</small></span></li>
           <li><i aria-hidden="true">${tIco("camera")}</i><span><b>AIがお手伝い</b><small>スタンプの名前の読み取りと、裏面のプチ情報</small></span></li></ul>
-        ${canAuth ? `<form class="tj-form" novalidate><input class="tj-in" type="email" name="email" autocomplete="email" inputmode="email" autocapitalize="off" spellcheck="false" placeholder="メールアドレス" required>
+        ${canAuth ? `<form class="tj-form" novalidate>
+          <label class="tj-nick"><input class="tj-in" type="text" name="nick" maxlength="20" autocomplete="nickname" placeholder="ニックネーム（みんなの地図に出る名前）" aria-label="ニックネーム"></label>
+          <input class="tj-in" type="email" name="email" autocomplete="email" inputmode="email" autocapitalize="off" spellcheck="false" placeholder="メールアドレス" required>
           <div class="tj-pw"><input class="tj-in" type="password" name="pw" autocomplete="new-password" placeholder="パスワード（8文字以上）" minlength="8" required><button type="button" data-j="eye" aria-pressed="false">表示</button></div>
           <button class="tj-go" type="submit">登録してはじめる</button><p class="tj-msg" role="status"></p></form>
+          <div class="tj-or" hidden><span>または</span></div><button class="tj-google" type="button" data-j="google" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="#EA4335" d="M12 10.2v3.9h5.5c-.24 1.4-1.7 4.1-5.5 4.1-3.3 0-6-2.7-6-6.1s2.7-6.1 6-6.1c1.9 0 3.1.8 3.8 1.5l2.6-2.5C16.8 3.4 14.6 2.4 12 2.4 6.7 2.4 2.4 6.7 2.4 12s4.3 9.6 9.6 9.6c5.5 0 9.2-3.9 9.2-9.4 0-.6-.1-1.1-.2-1.6H12z"/></svg>Googleで続ける</button>
           <div class="tj-links"><button type="button" data-j="mode">アカウントをお持ちの方はログイン</button><button type="button" data-j="forgot" hidden>パスワードを忘れたとき</button></div>`
           : `<p class="tj-msg">いまはログインの仕組みに接続できません。時間をおいて開き直してください。</p>`}
-        <button class="tj-skip" type="button" data-j="skip">ログインしないで使う（この端末だけに保存）</button>
-        ${o.fanfare ? "" : `<button class="tj-again" type="button" data-j="again">もう一度ツアーを見る</button>`}`}</div>`;
+        ${o.fanfare ? "" : `<button class="tj-again" type="button" data-j="again">使い方ツアーを見る</button>`}`}</div>`;
     this.paper(el); document.body.appendChild(el); this.el.join = el; document.documentElement.classList.add("tour-lock");
     requestAnimationFrame(() => el.classList.add("in"));
+    if (canAuth && !logged && PetalogCloud.providers) PetalogCloud.providers().then(p => { if (p && p.google && el.isConnected) { el.querySelector(".tj-google").hidden = false; el.querySelector(".tj-or").hidden = false; } }).catch(() => {});
     let mode = "up";
     const setMode = m => { mode = m; const f = el.querySelector(".tj-form"); if (!f) return; el.querySelector("[data-h]").textContent = m === "up" ? "無料で登録して、はじめる" : "ログイン";
       f.querySelector(".tj-go").textContent = m === "up" ? "登録してはじめる" : "ログイン"; f.pw.autocomplete = m === "up" ? "new-password" : "current-password";
       el.querySelector("[data-j=mode]").textContent = m === "up" ? "アカウントをお持ちの方はログイン" : "はじめての方は登録"; el.querySelector("[data-j=forgot]").hidden = m === "up";
-      el.querySelector(".tj-perks").hidden = m !== "up"; f.querySelector(".tj-msg").textContent = ""; };
+      el.querySelector(".tj-perks").hidden = m !== "up"; el.querySelector(".tj-nick").hidden = m !== "up"; f.querySelector(".tj-msg").textContent = "";
+      const p = el.querySelector(".tjoin"); if (p && el.classList.contains("p2")) el.style.setProperty("--jh", p.offsetHeight + "px"); };
     this.setJoinMode = setMode;
+    const nickOf = () => { const f = el.querySelector(".tj-form"); return f ? f.nick.value.trim().slice(0, 20) : ""; };
     el.addEventListener("click", async e => {
       const b = e.target.closest("[data-j]"); if (!b) return; const k = b.dataset.j, f = el.querySelector(".tj-form");
       if (k === "x") { this.ev("joinx"); this.closeJoin(); if (!logged && !this.preview) toast("右上の⚙から、いつでもログイン・登録できます", 3400); }
-      else if (k === "skip") { this.ev("skip"); if (window.PetalogCloud && PetalogCloud.skipLogin) PetalogCloud.skipLogin(); this.closeJoin(); toast("この端末だけに保存します。あとから右上の⚙でログインできます", 3800); }
       else if (k === "again") { this.closeJoin(); this.start({ preview: false }); }
       else if (k === "mode") setMode(mode === "up" ? "in" : "up");
       else if (k === "eye") { const p = f.pw, on = p.type === "password"; p.type = on ? "text" : "password"; b.textContent = on ? "隠す" : "表示"; b.setAttribute("aria-pressed", String(on)); }
+      else if (k === "google") { this.ev("google"); const nk = nickOf(); if (nk) lsSet("petalog.pendingNick", nk); lsSet("petalog.afterJoin", "1"); b.disabled = true; const r = await PetalogCloud.google(); if (r && r.error) { b.disabled = false; f.querySelector(".tj-msg").textContent = r.error; lsSet("petalog.afterJoin", ""); } }
       else if (k === "forgot") { const m = f.querySelector(".tj-msg"), em = f.email.value.trim(); if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(em)) { m.textContent = "上の欄にメールアドレスを入れてから押してください。"; return; }
         b.disabled = true; const r = await PetalogCloud.forgot(em); b.disabled = false; m.textContent = r ? "パスワードを決め直すためのメールを送りました。メールのリンクを開いてください。" : "いまはメールを送れませんでした。時間をおいて試してください。"; }
     });
@@ -7472,7 +7655,7 @@ Object.assign(Tour, {
       if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) { m.textContent = "メールアドレスの形が正しくないようです。"; return; }
       if (pw.length < 8) { m.textContent = "パスワードは8文字以上にしてください。"; return; }
       go.disabled = true; go.innerHTML = `<span class="spin"></span> ${mode === "up" ? "登録中" : "ログイン中"}`; this.ev(mode === "up" ? "signup" : "login2");
-      if (mode === "up") lsSet("petalog.afterJoin", "1");
+      if (mode === "up") { lsSet("petalog.afterJoin", "1"); const nk = nickOf(); if (nk) lsSet("petalog.pendingNick", nk); }
       const r = await PetalogCloud.auth(mode, email, pw);
       go.disabled = false; go.textContent = mode === "up" ? "登録してはじめる" : "ログイン";
       if (r && r.ok) { m.textContent = mode === "up" ? "登録しました！ ぺたろぐを開いています…" : "ログインしました。読み込み直します…"; go.disabled = true; return; }
@@ -7484,24 +7667,26 @@ Object.assign(Tour, {
   showPanel(el, login) {
     if (!el.isConnected) return; const p = el.querySelector(".tjoin"); p.hidden = false; if (login && this.setJoinMode) this.setJoinMode("in");
     requestAnimationFrame(() => { el.style.setProperty("--jh", p.offsetHeight + "px"); el.classList.add("p2"); });
+    if (!el.classList.contains("fan")) setTimeout(() => { const f = el.querySelector(".tj-free"); if (f) f.classList.add("pop"); }, 450);
   },
   closeJoin() { const el = this.el.join; if (!el) return; this.el.join = null; if (el._fx) el._fx.stop(); el.classList.remove("in"); setTimeout(() => el.remove(), 320); if (!this.on) document.documentElement.classList.remove("tour-lock"); },
   // ミニスタンプの紙ふぶき
   confetti(cv) {
     const x = cv.getContext("2d"), dpr = Math.min(2, devicePixelRatio || 1), ims = SAMPLES.filter(s => s.type !== "goshuin" && s.cut).map(s => imgFor(s.cut)).filter(Boolean);
     const P = []; let raf = 0, run = true; const size = () => { cv.width = innerWidth * dpr; cv.height = innerHeight * dpr; }; size();
-    const add = (n, burst) => { const r = this.el.join && this.el.join.querySelector(".tfin-hanko"), b = r ? r.getBoundingClientRect() : { left: innerWidth / 2, top: innerHeight / 3, width: 0, height: 0 };
+    const add = (n, burst, from) => { const r = from || (this.el.join && this.el.join.querySelector(".tfin-hanko")), b = r ? r.getBoundingClientRect() : { left: innerWidth / 2, top: innerHeight / 3, width: 0, height: 0 };
       for (let i = 0; i < n; i++) { const a = -Math.PI / 2 + (Math.random() - 0.5) * 2.6, v = burst ? 7 + Math.random() * 9 : 0;
         P.push({ im: ims[(Math.random() * ims.length) | 0], x: burst ? b.left + b.width / 2 : Math.random() * innerWidth, y: burst ? b.top + b.height / 2 : -40, vx: Math.cos(a) * v, vy: burst ? Math.sin(a) * v : 1 + Math.random() * 1.5, r: Math.random() * 6, vr: (Math.random() - 0.5) * 0.2, s: 26 + Math.random() * 24, life: 1 }); } };
     const tick = () => { x.setTransform(dpr, 0, 0, dpr, 0, 0); x.clearRect(0, 0, innerWidth, innerHeight); x.globalCompositeOperation = "multiply";
       for (let i = P.length - 1; i >= 0; i--) { const p = P[i]; p.vy += 0.22; p.vx *= 0.985; p.vy = Math.min(p.vy, 5.5); p.x += p.vx; p.y += p.vy; p.r += p.vr; if (p.y > innerHeight + 60) { P.splice(i, 1); continue; }
         if (p.im && p.im.complete && p.im.naturalWidth) { x.save(); x.translate(p.x, p.y); x.rotate(p.r); x.globalAlpha = 0.92; const ar = p.im.naturalWidth / p.im.naturalHeight; x.drawImage(p.im, -p.s / 2, -p.s / ar / 2, p.s, p.s / ar); x.restore(); } }
       if (run || P.length) raf = requestAnimationFrame(tick); };
-    const api = { burst: () => { add(46, true); let k = 0; const t = setInterval(() => { if (!run || ++k > 14) return clearInterval(t); add(3, false); }, 220); }, stop: () => { run = false; P.length = 0; cancelAnimationFrame(raf); removeEventListener("resize", size); } };
+    const api = { burst: from => { add(from ? 30 : 46, true, from); let k = 0; const t = setInterval(() => { if (!run || ++k > 14) return clearInterval(t); add(3, false); }, 220); }, stop: () => { run = false; P.length = 0; cancelAnimationFrame(raf); removeEventListener("resize", size); } };
     raf = requestAnimationFrame(tick); addEventListener("resize", size); if (this.el.join) this.el.join._fx = api; return api;
   },
   // 登録したあと、はじめて開いたとき: 「＋ 追加」を指さす
   nudge() {
+    const pn = lsGet("petalog.pendingNick"); if (pn && this.loggedIn()) { lsSet("petalog.pendingNick", ""); if (!Profile.nick) { Profile.nick = pn; Profile.save().then(() => { try { syncShares(true); } catch (_) {} }).catch(() => {}); } }
     if (!lsGet("petalog.afterJoin")) return; lsSet("petalog.afterJoin", ""); if (!this.loggedIn() || stamps.length) return;
     const b = $("#addBtn"); if (!b) return; const r = b.getBoundingClientRect(), el = document.createElement("div"); el.className = "tnudge"; el.setAttribute("role", "status");
     el.innerHTML = `<b>ようこそ！</b>ここから本物の1まい目を登録しよう`; el.style.top = (r.bottom + 12) + "px"; el.style.right = Math.max(10, innerWidth - r.right - 6) + "px";
@@ -7510,6 +7695,66 @@ Object.assign(Tour, {
     el.onclick = off; b.addEventListener("click", off, { once: true }); setTimeout(off, 9000);
   },
 });
+
+// ---------- サンプルのトレカの裏面に入れる写真（イラスト）: みんなでピースの記念写真と、スタンプ台 ----------
+const SamplePh = {
+  cache: new Map(),
+  rnd(seed) { let x = Math.floor(hash(seed) * 2147483646) + 1; return () => (x = (x * 16807) % 2147483647) / 2147483647; },
+  people(s) {
+    const W = 900, H = 640, c = mkCanvas(W, H), x = c.getContext("2d"), R = this.rnd(s.id + "p");
+    const sky = x.createLinearGradient(0, 0, 0, H * 0.62); sky.addColorStop(0, "#9FD3F0"); sky.addColorStop(1, "#E3F3FB"); x.fillStyle = sky; x.fillRect(0, 0, W, H);
+    x.fillStyle = "rgba(255,255,255,.85)"; [[150, 90, 60], [700, 70, 46], [520, 130, 38]].forEach(([a, b, r]) => { x.beginPath(); x.arc(a, b, r, 0, 7); x.arc(a + r, b + 8, r * 0.8, 0, 7); x.arc(a - r, b + 10, r * 0.7, 0, 7); x.fill(); });
+    // 建物（駅舎ふう）。色はスタンプのインク
+    const ink = s.ink || "#2B4C9B"; x.fillStyle = mixHex(ink, "#ffffff", 0.55); x.fillRect(120, 200, 660, 230); x.fillStyle = mixHex(ink, "#ffffff", 0.3);
+    x.beginPath(); x.moveTo(90, 210); x.lineTo(450, 120); x.lineTo(810, 210); x.closePath(); x.fill();
+    x.fillStyle = "#ffffff"; x.beginPath(); x.arc(450, 175, 26, 0, 7); x.fill(); x.strokeStyle = mixHex(ink, "#000000", 0.2); x.lineWidth = 4; x.beginPath(); x.moveTo(450, 175); x.lineTo(450, 158); x.moveTo(450, 175); x.lineTo(463, 182); x.stroke();
+    x.fillStyle = "rgba(255,255,255,.75)"; for (let i = 0; i < 6; i++) x.fillRect(160 + i * 100, 250, 56, 70);
+    x.fillStyle = mixHex(ink, "#000000", 0.15); x.fillRect(395, 330, 110, 100);
+    x.fillStyle = "#E8DCC4"; x.fillRect(0, 430, W, H - 430); x.fillStyle = "#D9CBB0"; for (let i = 0; i < 12; i++) x.fillRect(i * 80, 430, 2, H - 430);
+    // 3人（ピース）
+    const skins = ["#F4CDAE", "#EBC09A", "#F7D6BC"], hair = ["#3A2A20", "#1E1B1A", "#6B4A2E"], shirts = ["#E4573D", "#3E7CC0", "#F2B33D", "#4FA36B", "#9B5BB5"];
+    [[260, 1], [450, 0], [640, 2]].forEach(([cx, k], n) => {
+      const sh = shirts[(Math.floor(R() * 5) + n) % 5], top = 300 + (n === 1 ? -14 : 0);
+      x.fillStyle = "#3B3F4A"; x.beginPath(); x.roundRect ? x.roundRect(cx - 38, top + 190, 32, 120, 12) : x.rect(cx - 38, top + 190, 32, 120); x.fill(); x.beginPath(); x.roundRect ? x.roundRect(cx + 6, top + 190, 32, 120, 12) : x.rect(cx + 6, top + 190, 32, 120); x.fill();
+      x.fillStyle = sh; x.beginPath(); x.roundRect ? x.roundRect(cx - 62, top + 70, 124, 150, 40) : x.rect(cx - 62, top + 70, 124, 150); x.fill();
+      // ピースの腕（片方は上に）
+      const side = n === 2 ? -1 : 1; x.strokeStyle = sh; x.lineWidth = 30; x.lineCap = "round"; x.beginPath(); x.moveTo(cx + side * 50, top + 100); x.lineTo(cx + side * 92, top + 30); x.stroke();
+      x.strokeStyle = sh; x.beginPath(); x.moveTo(cx - side * 50, top + 100); x.lineTo(cx - side * 64, top + 200); x.stroke();
+      x.fillStyle = skins[k]; x.beginPath(); x.arc(cx + side * 98, top + 8, 17, 0, 7); x.fill();
+      x.strokeStyle = skins[k]; x.lineWidth = 9; x.beginPath(); x.moveTo(cx + side * 94, top - 2); x.lineTo(cx + side * 86, top - 40); x.moveTo(cx + side * 104, top - 2); x.lineTo(cx + side * 114, top - 38); x.stroke();
+      x.fillStyle = skins[k]; x.beginPath(); x.arc(cx, top + 30, 48, 0, 7); x.fill();
+      x.fillStyle = hair[k]; x.beginPath(); x.arc(cx, top + 22, 50, Math.PI * 1.02, Math.PI * 1.98); x.fill(); if (k === 2) { x.beginPath(); x.arc(cx + 44, top + 40, 16, 0, 7); x.fill(); }
+      x.fillStyle = "#2A2420"; x.beginPath(); x.arc(cx - 16, top + 34, 5, 0, 7); x.arc(cx + 16, top + 34, 5, 0, 7); x.fill();
+      x.strokeStyle = "#B4483A"; x.lineWidth = 4; x.beginPath(); x.arc(cx, top + 46, 14, 0.15 * Math.PI, 0.85 * Math.PI); x.stroke();
+      x.fillStyle = "rgba(240,120,120,.35)"; x.beginPath(); x.arc(cx - 28, top + 50, 8, 0, 7); x.arc(cx + 28, top + 50, 8, 0, 7); x.fill();
+    });
+    return c.toDataURL("image/jpeg", 0.86);
+  },
+  stand(s, cut) {
+    const W = 900, H = 640, c = mkCanvas(W, H), x = c.getContext("2d");
+    x.fillStyle = "#EFE7D8"; x.fillRect(0, 0, W, H); x.fillStyle = "#E4D9C4"; for (let i = 0; i < 9; i++) x.fillRect(0, i * 46, W, 2);
+    // 「記念スタンプ」の札
+    x.fillStyle = "#7A5530"; x.fillRect(612, 150, 12, 170); x.fillStyle = "#FFFDF6"; x.strokeStyle = "#C8412E"; x.lineWidth = 6; x.beginPath(); x.roundRect ? x.roundRect(510, 60, 220, 110, 12) : x.rect(510, 60, 220, 110); x.fill(); x.stroke();
+    x.fillStyle = "#C8412E"; x.font = "700 40px 'Zen Kaku Gothic New','Hiragino Sans',sans-serif"; x.textAlign = "center"; x.textBaseline = "middle"; x.fillText("記念スタンプ", 620, 103); x.font = "500 20px 'Zen Kaku Gothic New',sans-serif"; x.fillStyle = "#6A5A48"; x.fillText("ご自由にどうぞ", 620, 142);
+    // 台
+    const tb = x.createLinearGradient(0, 330, 0, H); tb.addColorStop(0, "#C99A68"); tb.addColorStop(1, "#A97B4C"); x.fillStyle = tb; x.fillRect(0, 330, W, H - 330); x.fillStyle = "rgba(0,0,0,.12)"; x.fillRect(0, 330, W, 8);
+    // スタンプ台（インク）
+    x.fillStyle = "#2B2B30"; x.beginPath(); x.roundRect ? x.roundRect(560, 380, 250, 150, 16) : x.rect(560, 380, 250, 150); x.fill(); x.fillStyle = mixHex(s.ink || "#2B4C9B", "#000000", 0.25); x.beginPath(); x.roundRect ? x.roundRect(578, 396, 214, 118, 10) : x.rect(578, 396, 214, 118); x.fill();
+    // ゴム印
+    x.fillStyle = "#8A5A30"; x.beginPath(); x.roundRect ? x.roundRect(400, 300, 70, 150, 14) : x.rect(400, 300, 70, 150); x.fill(); x.fillStyle = "#A8743F"; x.beginPath(); x.ellipse(435, 300, 46, 18, 0, 0, 7); x.fill(); x.fillStyle = "#333"; x.fillRect(388, 440, 94, 22);
+    // スタンプジャーナルと押したスタンプ
+    x.save(); x.translate(200, 470); x.rotate(-0.08); x.fillStyle = "#FFFFFF"; x.shadowColor = "rgba(0,0,0,.2)"; x.shadowBlur = 10; x.fillRect(-150, -110, 300, 210); x.shadowBlur = 0;
+    x.strokeStyle = "rgba(120,100,80,.35)"; x.lineWidth = 2; x.setLineDash([8, 6]); x.strokeRect(-120, -88, 240, 166); x.setLineDash([]);
+    if (cut) { const k = 150 / Math.max(cut.width, cut.height); x.globalCompositeOperation = "multiply"; x.globalAlpha = 0.9; x.drawImage(cut, -cut.width * k / 2, -cut.height * k / 2 - 6, cut.width * k, cut.height * k); }
+    x.restore();
+    return c.toDataURL("image/jpeg", 0.86);
+  },
+  async of(s) {
+    if (!s || !s.sample || s.id === "sample_demo") return []; if (this.cache.has(s.id)) return this.cache.get(s.id);
+    let cut = null; try { cut = await loadImg(s.cut); } catch (_) {}
+    const out = [this.people(s), this.stand(s, cut)]; this.cache.set(s.id, out); return out;
+  },
+};
 
 /* ================= boot ================= */
 addEventListener("resize", () => { Book.layout(); if (view === "fall") { Fall.dirty = true; Fall.stop(); Fall.start(); } if (view === "map") MapV.draw(); });
@@ -7526,6 +7771,7 @@ document.addEventListener("contextmenu", e => { if (!e.target.closest("input,tex
   await Books.load();
   ready = true; Book.idx = 0; MapV.shown = false;
   refreshAll(); show(view);
+  if (window.PetalogCloud && PetalogCloud.config) PetalogCloud.config().then(cf => { Plan.set(cf); if (cf && cf.yahoo_appid) YahooLS.cfg = cf.yahoo_appid; }).catch(() => {});
   if (!Tour.fromURL()) { if (window.PetalogCloud) PetalogCloud.afterBoot(); else Tour.auto(); }
   setTimeout(() => Tour.nudge(), 1200);
   setTimeout(() => Privacy.firstSync(), 2500); loadSheets(); setTimeout(trimOld, 6000); setTimeout(() => Zukan.backfill(), 9000); Walk.init(); Track.init(); setTimeout(() => Numbers.ensure(), 1500);

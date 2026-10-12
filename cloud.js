@@ -599,14 +599,14 @@
     },
     settingsHTML() {
       if (!sb) return `<div class="sec"><h4>アカウント</h4><p class="cap">いまはログインの仕組みに接続できません。時間をおいて開き直してください。</p></div>`;
-      if (!attached) return `<div class="sec"><h4>アカウント</h4><p class="cap" style="margin-top:0">いまは記録がこの端末の中だけに保存されています。ログインすると、アカウントに保存されて機種変更しても消えず、みんなの地図とAI推定も使えます。</p>
-        <button class="btn small primary" type="button" id="acIn" style="margin-top:8px">ログイン / 新規登録</button></div>`;
-      return `<div class="sec"><h4>アカウント</h4><p class="cap" style="margin-top:0">ログイン中：<b>${H(user.email || "")}</b><br>記録はこのアカウントに保存されています。ほかのスマホやPCでも、同じメールアドレスでログインすれば見られます。</p>
-        <p class="cap" id="acAi"></p><div id="acMove"></div>
-        <div class="row2" style="margin-top:8px"><button class="btn small" type="button" id="acOut">ログアウト</button><button class="btn small ghost" type="button" id="acDel">アカウントを削除…</button></div></div>`;
+      if (!attached) return `<div class="sec"><h4>アカウント</h4><p class="cap" style="margin-top:0">いまは記録がこの端末の中だけに保存されています。登録すると、機種変更しても消えず、みんなの地図とAIのお手伝いも使えます。</p>
+        <button class="btn small primary" type="button" id="acIn" style="margin-top:8px">ログイン / 無料で登録</button></div>`;
+      return `<div class="sec"><h4>アカウント</h4><p class="cap" style="margin-top:0">ログイン中：<b>${H(user.email || "")}</b><br>記録はこのアカウントに保存されています。ほかのスマホやPCでも、同じアカウントでログインすれば見られます。</p>
+        <div id="acMove"></div>
+        <div class="row2" style="margin-top:8px"><button class="btn small" type="button" id="acOut">ログアウト</button></div></div>`;
     },
     wireSettings() {
-      const i = $("#acIn"); if (i) i.onclick = () => openLogin(false);
+      const i = $("#acIn"); if (i) i.onclick = () => { if (typeof Tour !== "undefined") { closeSheet(); Tour.join({}); } else openLogin(false); };
       const o = $("#acOut"); if (o) o.onclick = async () => {
         o.disabled = true; await Cache.del("kv", AUTH_BK);
         await sb.auth.signOut().catch(() => {});
@@ -614,11 +614,6 @@
         location.reload();
       };
       const d = $("#acDel"); if (d) d.onclick = openDelete;
-      const a = $("#acAi");
-      if (a && attached) callFn("ai", { task: "status" }).then((j) => {
-        if (!$("#acAi")) return;
-        $("#acAi").textContent = j.ready ? `AI推定：今日 ${j.used} / ${j.limit} 回${j.month_limit ? `（今月のアプリ全体 ${j.month_used} / ${j.month_limit} 回）` : ""}` : "AI推定：準備中";
-      }).catch(() => {});
       if ($("#acMove") && attached) localCount().then((n) => {
         const box = $("#acMove"); if (!box || !n) return;
         box.innerHTML = `<p class="cap">この端末に、ログイン前の記録が ${n} まい残っています。</p><button class="btn small" type="button" id="acMv">アカウントに移す</button>`;
@@ -641,6 +636,24 @@
     },
     async forgot(email) { if (!sb) return false; const { error } = await sb.auth.resetPasswordForEmail(email, { redirectTo: location.origin + location.pathname }); return !error; },
     skipLogin() { ls.set(LS_SKIP, "1"); },
+    // Googleでログイン（Supabase の設定で Google を有効にしたときだけボタンを出す）
+    async providers() {
+      if (!sb) return {}; if (this._prov) return this._prov;
+      try { const r = await fetch(`${CFG.url}/auth/v1/settings`, { headers: { apikey: CFG.key } }); const j = await r.json(); this._prov = (j && j.external) || {}; } catch { this._prov = {}; }
+      return this._prov;
+    },
+    async google() {
+      if (!sb) return { error: "いまはログインの仕組みに接続できません。" };
+      try { const { error } = await sb.auth.signInWithOAuth({ provider: "google", options: { redirectTo: location.origin + location.pathname } }); if (error) throw error; ls.set(LS_SKIP, ""); return { ok: true }; }
+      catch (e) { return { error: authError(e) }; }
+    },
+    // アプリ全体の設定（無料の数・キャンペーン・Yahoo!のID）。だれでも読める
+    async config() {
+      if (!sb) return null; if (this._cfg) return this._cfg;
+      try { const { data } = await within(sb.from("app_config").select("key,value"), 6000); const o = {}; (data || []).forEach(r => { o[r.key] = r.value; }); this._cfg = o; ls.set("petalog.cfg", JSON.stringify(o)); return o; }
+      catch { try { return JSON.parse(ls.get("petalog.cfg") || "null"); } catch { return null; } }
+    },
+    openDelete,
   };
 
   // app shell stays on the phone: opens even when the network or GitHub is unreachable
