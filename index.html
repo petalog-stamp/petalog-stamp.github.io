@@ -1361,6 +1361,41 @@ html.tour-lock,html.tour-lock body{overflow:hidden}
 .tlimit-in{max-width:340px;background:var(--card);color:var(--ink);border-radius:18px;padding:20px;box-shadow:0 18px 50px rgba(0,0,0,.35);text-align:center}
 .tlimit-in b{display:block;font-size:17px;margin-bottom:8px}.tlimit-in p{font-size:13.5px;line-height:1.7;margin:0 0 6px}
 .tlimit-in .btn{margin-top:10px;width:100%}
+/* 案内カード: 指で上下にずらす・小さくする */
+.tcoach{touch-action:none;-webkit-user-select:none;user-select:none}
+.tcoach.drag{transition:none;box-shadow:0 22px 54px rgba(12,22,52,.32),0 0 0 1px rgba(0,0,0,.05)}
+.tc-grab{display:block;width:40px;height:4px;border-radius:99px;background:var(--line);margin:-5px auto 7px;cursor:grab}
+.tcoach.drag .tc-grab{background:var(--muted)}
+.tc-tbtn{display:flex;gap:6px;flex:none}
+.tc-min{width:32px;height:32px;border-radius:50%;border:0;background:var(--surface);color:var(--muted);cursor:pointer;flex:none;display:grid;place-items:center;padding:0}
+.tc-min svg,.tc-exp svg{width:17px;height:17px;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+.tc-mini{display:none}
+.tcoach.mini{width:auto;transform:none;padding:5px;border-radius:99px;animation:tminin .28s cubic-bezier(.3,1.3,.4,1);transition:opacity .2s}
+.tcoach.tracing h3{display:none}
+.tcoach.mini>:not(.tc-mini){display:none}
+.tcoach.mini .tc-mini{display:flex;align-items:center;gap:5px}
+.tcoach.mini.hide{transform:translateY(10px)}
+.tcoach.mini .tc-next{padding:9px 16px}
+.tc-exp{display:inline-flex;align-items:center;gap:3px;border:0;background:var(--surface);color:var(--ink);font:700 13px "Zen Kaku Gothic New",sans-serif;padding:9px 13px 9px 9px;border-radius:99px;cursor:pointer}
+@keyframes tminin{0%{opacity:0;transform:scale(.85)}100%{opacity:1;transform:none}}
+.tcoach p.tc-trace{color:var(--ink);font-weight:700}
+/* ぐるっと囲む: まん中のうすい丸を、指でなぞる */
+.tlasso.trace{pointer-events:auto;touch-action:none;cursor:crosshair}
+.tlasso .gd{fill:rgba(255,255,255,.22);stroke:rgba(200,65,46,.6);stroke-width:5;stroke-linecap:round;stroke-dasharray:1 12;transition:opacity .3s}
+.tlasso .st circle{fill:#C8412E;stroke:#fff;stroke-width:3}
+.tlasso .sl{fill:#C8412E;font:700 12.5px "Zen Kaku Gothic New",sans-serif;text-anchor:middle;paint-order:stroke;stroke:#fff;stroke-width:4px;stroke-linejoin:round}
+.tlasso .st{transition:opacity .3s}
+.tlasso .hint{fill:rgba(200,65,46,.26);stroke:#fff;stroke-width:3;filter:drop-shadow(0 2px 6px rgba(0,0,0,.3));transition:opacity .2s}
+.tlasso.drawing .hint,.tlasso.done .hint,.tlasso.done .st,.tlasso.drawing .sl{opacity:0}
+.tlasso.done .gd{opacity:.25}
+.tlasso.trace .lz{fill:none}
+.tlasso.done .lz{fill:rgba(200,65,46,.1)}
+.tlasso .lz.fail{opacity:0;transition:opacity .7s}
+.tlasso.fade{opacity:0;transition:opacity .3s}
+#mapWrap.tour-mlock .map-zoom{display:none}
+@media (prefers-reduced-motion:reduce){.tlasso .hint{display:none}}
+.tcoach p.tc-trace.again{color:var(--shu);animation:twig .45s ease}
+@keyframes twig{0%,100%{transform:none}20%{transform:translateX(-5px)}45%{transform:translateX(5px)}70%{transform:translateX(-3px)}}
 </style>
 
 <div id="app">
@@ -6346,7 +6381,6 @@ const CardView = {
   step(t) {
     if (!this.el || this.el.hidden) return;
     const g = this.drag, idle = t - this.last;
-    if (!g && idle > 7000 && Math.round(this.base / 180) % 2 !== 0) { this.base -= 180; this.last = t; }   // しばらくさわらないと表にもどる
     const cs = this.items[this.i], bk = !this.front && !!cs && !cs.other && !cs._pub && Math.round(this.base / 180) % 2 !== 0;
     if (bk !== this._bk || cs !== this._bks) { this._bk = bk; this._bks = cs; this.el.classList.toggle("bk", bk);   // 裏を見ているときだけ「直す」「写真の位置」
       if (cs) { this.el.querySelector("#tcvFix").hidden = !Trivia.can(cs); this.el.querySelector("#tcvCrop").hidden = !((cs.scenes && cs.scenes.length) || cs.hasPhoto || cs.sheet);
@@ -7371,6 +7405,8 @@ const TICO = {   // 案内カードの中の小さな絵（線）
   text: '<path d="M5 6h14M12 6v13M9 19h6"/>',
   square: '<rect x="4" y="4" width="16" height="16" rx="2"/><path d="M4 15l5-4 4 3 3-2 4 3"/>',
   route: '<circle cx="6" cy="18" r="2.2"/><circle cx="18" cy="6" r="2.2"/><path d="M8 18h6a3 3 0 0 0 0-6h-4a3 3 0 0 1 0-6h6"/>',
+  down: '<path d="m6 9 6 6 6-6"/>',
+  up: '<path d="m6 15 6-6 6 6"/>',
 };
 const tI = k => `<svg viewBox="0 0 24 24" aria-hidden="true">${TICO[k] || ""}</svg>`;
 
@@ -7403,7 +7439,7 @@ const Tour = {
       { b: "トレカをタップして、裏返してみて。", pos: "low", aim: "tcv", until: "flip" }] },
     { k: "map", v: "map", t: "押した場所が、地図になる", beats: [
       { b: "青いピンがあなた、赤いピンはみんなが見つけたスタンプ。ネット検索には出てこない、地元だけのレアスタンプが見つかるかも…？ 赤いピンをタップしてみて！", pos: "bottom", aim: "rarepin", until: "pin" },
-      { b: "行きたいスタンプを、指でぐるっと囲むと…", pos: "bottom", cta: "ぐるっと囲んでみる", act: "lasso", until: "route" }] },
+      { b: "行きたいスタンプを、指でぐるっと囲むと…", trace: "地図のまん中の、うすい丸の線を指でぐるっとなぞってみて。", pos: "bottom", cta: "ぐるっと囲んでみる", act: "lasso", until: "route" }] },
     { k: "journal", v: "board", t: "ノートに貼って、飾る", beats: [
       { b: "スタンプジャーナルをタップして開いてみよう。", pos: "bottom", aim: "book", until: "openbook" },
       { b: "ページをめくって、中を見てみて。", pos: "bottom", until: "page" }] },
@@ -7463,6 +7499,12 @@ const Tour = {
     // ツアー中の「＋ 追加」は、デモの登録へ
     $("#addBtn").addEventListener("click", e => { if (!T.on) return; e.stopImmediatePropagation(); e.preventDefault(); if (T.i >= 0) T.go(T.STEPS.findIndex(s => s.k === "camera")); }, true);
     addEventListener("resize", () => { if (T.on) T.layout(); });
+    // できたあとに画面のほかの所をさわったら、案内カードは小さく（「説明」「つぎへ」だけ）
+    document.addEventListener("pointerdown", e => {
+      const c = T.el.card; if (!T.on || !T.cur || !T.did[T.cur.k] || T.mini || !c || c.classList.contains("hide")) return;
+      if (c.contains(e.target) || (e.target.closest && e.target.closest(".tpop,.tcam,.pk,.tjoin,.tfin,.twel,.tlasso"))) return;
+      T.mini = true; T.layout();
+    }, true);
   },
   // ---------- ようこそ ----------
   welcome() {
@@ -7491,7 +7533,7 @@ const Tour = {
   go(i) {
     if (!this.on) return; this.popClose(); this.lassoClear(); if (CardView.el && !CardView.el.hidden) CardView.close(true); if (typeof closeSheet === "function" && $("#sheetWrap") && !$("#sheetWrap").hidden) closeSheet();
     if (i >= this.STEPS.length) return this.finale();
-    this.i = i; this.bi = 0; const st = this.cur; this.ev("step", i + 1);
+    this.i = i; this.bi = 0; this.mini = false; this.userTop = null; const st = this.cur; this.ev("step", i + 1);
     if (st.k === "map") { MapV.pubs = this.pubs(); MapV.mode = "all"; MapV.shown = true; }
     else if (MapV.mode === "all") { MapV.mode = "me"; }
     if (st.k === "journal") { Books.mode = "shelf"; Books.cur = null; }
@@ -7504,7 +7546,7 @@ const Tour = {
   hit(flag) {
     if (!this.on || !this.cur) return; const st = this.cur; this.got.add(st.k + ":" + flag); if (this.did[st.k]) return;
     const b = this.beat; if (!b || b.until !== flag) { if (st.beats.some(x => x.until === flag)) { /* 先にできた → その段まで来たら飛ばす */ } return; }
-    this.bi++; this.skipGot();
+    this.bi++; this.skipGot(); this.mini = false;   // 次の説明は、小さくしていても広げて見せる
     if (this.bi >= st.beats.length) { this.did[st.k] = true; this.card(); const li = this.el.card && this.el.card.querySelectorAll(".tc-rally li")[this.i]; if (li) li.classList.add("press"); }
     else this.card();
     this.layout();
@@ -7514,15 +7556,32 @@ const Tour = {
     if (!c) { c = this.el.card = document.createElement("div"); c.className = "tcoach"; c.setAttribute("role", "dialog"); c.setAttribute("aria-live", "polite"); document.body.appendChild(c);
       c.addEventListener("click", e => { const a = e.target.closest("[data-t]"); if (!a) return; const k = a.dataset.t;
         if (k === "next") this.go(this.i + 1); else if (k === "act") this.act(this.beat && this.beat.act); else if (k === "x") this.quit();
+        else if (k === "min") { this.mini = true; this.ev("mini", this.i + 1); this.layout(); }
+        else if (k === "expand") { this.mini = false; this.layout(); }
         else if (k === "nav") toast("デモなので開きません。本物では、地図アプリでこの順番の道案内が始まります", 3600);
-        else if (k === "login") { this.ev("login", this.i + 1); this.stop(); this.join({ login: true }); } }); }
-    const done = !!this.did[st.k];
-    c.classList.toggle("done", done); c.dataset.k = st.k;
-    c.innerHTML = `<i class="tc-tail" aria-hidden="true"></i><div class="tc-top"><ol class="tc-rally" aria-label="すすみぐあい ${this.i + 1} / ${n}">${this.STEPS.map((s, k) => `<li class="${this.did[s.k] ? "got" : ""}${k === this.i ? " now" : ""}">${tIco(s.k)}</li>`).join("")}</ol>
-        <button class="tc-x" type="button" data-t="x" aria-label="ツアーを終わる">✕</button></div>
-      <h3>${esc(st.t)}</h3>${done ? this.okHTML(st) : `<p>${esc(b.b)}</p>`}
-      <div class="tc-acts"><button class="tc-login" type="button" data-t="login">ログインはこちら</button>
-        ${!done && b.cta ? `<button class="tc-next cta" type="button" data-t="act">${b.ico ? tIco(b.ico) : tI("route")}${esc(b.cta)}</button>` : `<button class="tc-next${done ? " ready" : ""}" type="button" data-t="next">つぎへ</button>`}</div>`;
+        else if (k === "login") { this.ev("login", this.i + 1); this.stop(); this.join({ login: true }); } });
+      this.dragInit(c); }
+    const done = !!this.did[st.k], tracing = !done && this.tracing && b.trace;
+    c.classList.toggle("done", done); c.classList.toggle("tracing", !!tracing); c.dataset.k = st.k;
+    const nx = !done && b.cta && !this.tracing ? `<button class="tc-next cta" type="button" data-t="act">${b.ico ? tIco(b.ico) : tI("route")}${esc(b.cta)}</button>` : `<button class="tc-next${done ? " ready" : ""}" type="button" data-t="next">つぎへ</button>`;
+    c.innerHTML = `<i class="tc-tail" aria-hidden="true"></i><i class="tc-grab" aria-hidden="true"></i><div class="tc-top"><ol class="tc-rally" aria-label="すすみぐあい ${this.i + 1} / ${n}">${this.STEPS.map((s, k) => `<li class="${this.did[s.k] ? "got" : ""}${k === this.i ? " now" : ""}">${tIco(s.k)}</li>`).join("")}</ol>
+        <div class="tc-tbtn"><button class="tc-min" type="button" data-t="min" aria-label="案内を小さくする">${tI("down")}</button><button class="tc-x" type="button" data-t="x" aria-label="ツアーを終わる">✕</button></div></div>
+      <h3>${esc(st.t)}</h3>${done ? this.okHTML(st) : tracing ? `<p class="tc-trace${this.traceTry ? " again" : ""}">${esc(this.traceTry ? "おしい！ 指を離さずに、丸の線の上をぐるっと1周なぞってみてね。" : b.trace)}</p>` : `<p>${esc(b.b)}</p>`}
+      <div class="tc-acts"><button class="tc-login" type="button" data-t="login">ログインはこちら</button>${nx}</div>
+      <div class="tc-mini"><button class="tc-exp" type="button" data-t="expand" aria-label="案内を広げる">${tI("up")}説明</button>${nx}</div>`;
+    c.classList.toggle("mini", !!this.mini);
+  },
+  // 案内カードは、指で上下にずらせる（ずらした場所は、次の段階に進むまで覚えておく）
+  dragInit(c) {
+    let s = null;
+    c.addEventListener("pointerdown", e => { if (e.button > 0 || this.mini || (e.target.closest && e.target.closest("button,a,input"))) return; const r = c.getBoundingClientRect(); s = { id: e.pointerId, y: e.clientY, top: r.top, h: r.height, moved: false }; });
+    c.addEventListener("pointermove", e => {
+      if (!s || e.pointerId !== s.id) return; const dy = e.clientY - s.y;
+      if (!s.moved) { if (Math.abs(dy) < 6) return; s.moved = true; try { c.setPointerCapture(e.pointerId); } catch (_) {} c.classList.add("drag"); this.dot(null); }
+      const t = Math.max(8, Math.min(innerHeight - s.h - 8, s.top + dy)); this.userTop = t; c.dataset.pos = "free"; c.style.bottom = "auto"; c.style.top = t + "px"; e.preventDefault();
+    });
+    const end = e => { if (!s || (e && e.pointerId !== s.id)) return; const mv = s.moved; s = null; if (mv) { c.classList.remove("drag"); this.ev("drag", this.i + 1); this.layout(); } };
+    c.addEventListener("pointerup", end); c.addEventListener("pointercancel", end);
   },
   okHTML(st) {
     const ok = t => `<p class="tc-ok"><i aria-hidden="true">✓</i><span>${t}</span></p>`;
@@ -7550,15 +7609,16 @@ const Tour = {
     const c = this.el.card; if (!this.on || !this.cur || !c) { this.dot(null); return; }
     const st = this.cur, b = this.beat, done = !!this.did[st.k], tcv = CardView.el && !CardView.el.hidden;
     let pos = done ? (st.k === "card" && tcv ? "low" : st.k === "fall" ? "top" : "bottom") : b.pos || "bottom";
-    const anc = !done && b.anchor ? $(b.anchor) : null; c.style.top = c.style.bottom = "";
-    if (anc && anc.getBoundingClientRect().width) {
+    const anc = !done && b.anchor ? $(b.anchor) : null; c.style.top = c.style.bottom = c.style.left = ""; c.classList.toggle("mini", !!this.mini);
+    if (this.mini) { pos = "mini"; const [x, y] = this.miniSpot(c); c.style.left = x + "px"; c.style.top = y + "px"; }   // 小さくしたとき: 「説明」「つぎへ」だけ else if (this.userTop != null) { pos = "free"; c.style.top = Math.max(8, Math.min(innerHeight - c.offsetHeight - 8, this.userTop)) + "px"; }
+    else if (anc && anc.getBoundingClientRect().width) {
       const r = anc.getBoundingClientRect(), h = c.offsetHeight, below = r.bottom + 14 + h < innerHeight - 70;
       pos = "anchor"; c.dataset.tail = below ? "up" : "down";
       if (below) c.style.top = (r.bottom + 14) + "px"; else c.style.top = Math.max(8, r.top - 14 - h) + "px";
       const cr = c.getBoundingClientRect(); c.style.setProperty("--tx", Math.max(22, Math.min(cr.width - 22, r.left + r.width / 2 - cr.left)) + "px");
     }
     c.dataset.pos = pos;
-    this.room();
+    this.room(); clearTimeout(this._roomT); this._roomT = setTimeout(() => { if (this.on) this.room(); }, 340);   // 動き終わった位置でもう一度
     // 指の丸
     let p = null, kind = "tap";
     if (!done && b) {
@@ -7572,15 +7632,35 @@ const Tour = {
     this.dot(p, kind);
   },
   place() { this.layout(); },
+  // 小さい案内の置き場所: 右下 → 左下 → 右上 → 左上 の順に、ボタンやピンと重ならない所
+  miniSpot(c) {
+    const w = c.offsetWidth || 160, h = c.offsetHeight || 48, tb = document.querySelector(".tabs"), hd = document.querySelector("header");
+    const tq = tb && tb.getBoundingClientRect(), bot = tq && tq.height && tq.top < innerHeight ? tq.top : innerHeight, hq = hd && hd.getBoundingClientRect(), top = hq && hq.height ? Math.max(8, hq.bottom + 8) : 8;
+    const C = [[innerWidth - 10 - w, bot - 10 - h], [10, bot - 10 - h], [innerWidth - 10 - w, top], [10, top]];
+    c.style.visibility = "hidden"; const R = [];
+    for (const e of document.querySelectorAll("button,a[href],input,select,[data-open],[data-book]")) { if (c.contains(e)) continue; const r = e.getBoundingClientRect(); if (!r.width || !r.height || r.bottom < 0 || r.top > innerHeight) continue;
+      const t = document.elementFromPoint(Math.min(innerWidth - 1, Math.max(0, r.left + r.width / 2)), Math.min(innerHeight - 1, Math.max(0, r.top + r.height / 2))); if (t && (t === e || e.contains(t))) R.push([r.left, r.top, r.right, r.bottom]); }
+    c.style.visibility = "";
+    if (this.cur && this.cur.k === "map" && MapV.map) { const q = MapV.map.getContainer().getBoundingClientRect(); (MapV.pinHits || []).forEach(p => R.push([q.left + p.px - 16, q.top + p.py - 20, q.left + p.px + 16, q.top + p.py + 20])); }
+    let best = C[0], bo = Infinity;
+    for (const [x, y] of C) { let o = 0; for (const r of R) o += Math.max(0, Math.min(x + w, r[2]) - Math.max(x, r[0])) * Math.max(0, Math.min(y + h, r[3]) - Math.max(y, r[1])); if (o < bo) { bo = o; best = [x, y]; } if (!o) break; }
+    return best.map(Math.round);
+  },
   // 案内カードで見せたい物が隠れないように、トレカは小さく上へ、ジャーナルは本を小さくする
+  // （案内カードを小さくしたときは、元の大きさに戻す。指でずらしたときは、空いているほうに収める）
   room() {
-    const c = this.el.card, st = this.cur, tcv = CardView.el && !CardView.el.hidden, top = c ? c.getBoundingClientRect().top : innerHeight;
+    const c = this.el.card, st = this.cur, tcv = CardView.el && !CardView.el.hidden;
+    const cr = c && this.on && !this.mini && !c.classList.contains("hide") ? c.getBoundingClientRect() : null;
     const sl = CardView.el && CardView.el.querySelector(".tcv-slide");
-    if (sl) { if (this.on && st && st.k === "card" && tcv && c && c.dataset.pos === "low") { sl.style.scale = "1"; sl.style.translate = "0 0"; const b = sl.getBoundingClientRect(), avail = top - 60 - 12, k = Math.min(1, avail / b.height), cy = 60 + avail / 2;
-        sl.style.scale = k.toFixed(3); sl.style.translate = `0 ${(cy - (b.top + b.height / 2)).toFixed(0)}px`; } else { sl.style.scale = ""; sl.style.translate = ""; } }
+    if (sl) { sl.style.scale = ""; sl.style.translate = "";
+      if (cr && st && st.k === "card" && tcv) { const b = sl.getBoundingClientRect();
+        if (b.bottom > cr.top + 4 && b.top < cr.bottom - 4) {
+          const above = cr.top - 60 - 12, below = innerHeight - 12 - (cr.bottom + 12), up = above >= below, avail = Math.max(140, up ? above : below), y0 = up ? 60 : cr.bottom + 12;
+          const k = Math.min(1, avail / b.height), cy = y0 + avail / 2;
+          sl.style.scale = k.toFixed(3); sl.style.translate = `0 ${(cy - (b.top + b.height / 2)).toFixed(0)}px`; } } }
     const area = $("#bookArea");
-    if (area) { const on = this.on && st && st.k === "journal" && Books.mode === "book" && c; area.style.marginBottom = "";
-      if (on) { const b = area.getBoundingClientRect(), need = Math.max(0, b.bottom - top + 10); if (need) area.style.marginBottom = need + "px"; }
+    if (area) { const on = cr && st && st.k === "journal" && Books.mode === "book" && cr.top + cr.height / 2 > innerHeight / 2; area.style.marginBottom = "";
+      if (on) { const b = area.getBoundingClientRect(), need = Math.max(0, b.bottom - cr.top + 10); if (need) area.style.marginBottom = need + "px"; }
       if (this._room !== area.style.marginBottom) { this._room = area.style.marginBottom; try { Book.layout(); } catch (_) {} } }
   },
   dot(r, kind) {
@@ -7607,33 +7687,70 @@ const Tour = {
     clearTimeout(this._popT); this._popT = setTimeout(() => this.popClose(), 5200);
   },
   popClose() { clearTimeout(this._popT); if (this.el.pop) { this.el.pop.remove(); this.el.pop = null; } },
-  // ぐるっと囲む → 回る順番と道のり（デモ: 指が囲んで、ルートが引かれる）
-  async lasso() {
-    if (this._lassoBusy || !MapV.map) return; this._lassoBusy = true; this.popClose(); this.ev("lasso");
+  // ぐるっと囲む → 回る順番と道のり（デモ: 地図は止めて、まん中のうすい丸を自分の指でなぞる）
+  lasso() {
+    if (this.el.lasso || !MapV.map) return; this.popClose(); this.ev("lasso");
+    this.tracing = true; this.traceTry = 0; this.mini = false; this.card(); this.layout();
     const m = MapV.map, P = this.pubs(), pick = ["坂の上の図書館", "古民家カフェ", "灯台の岬"].map(n => P.find(p => p.name === n)).filter(Boolean);
-    const ch = this.el.card ? this.el.card.offsetHeight : 240;
-    const mb = m.getContainer().getBoundingClientRect(), under = Math.max(ch + 60, mb.bottom - innerHeight * 0.42);   // 案内カードが大きくなっても見えるように、上のほうに寄せる
-    try { m.fitBounds(pick.map(p => [p.lat, p.lng]), { paddingTopLeft: [80, 70], paddingBottomRight: [80, Math.min(mb.height - 160, under)], maxZoom: 12, animate: true }); } catch (_) {}
-    await sleep(900); if (!this.on) return;
-    const box = m.getContainer(), W = box.clientWidth, H = box.clientHeight, pt = p => m.latLngToContainerPoint([p.lat, p.lng]);
-    const S = pick.map(p => { const q = pt(p); return { x: q.x, y: q.y - 22 }; });
-    const cx = S.reduce((t, q) => t + q.x, 0) / S.length, cy = S.reduce((t, q) => t + q.y, 0) / S.length;
-    const R = Math.max(70, ...S.map(q => Math.hypot(q.x - cx, q.y - cy) + 46));
-    const pts = []; for (let k = 0; k <= 36; k++) { const a = -Math.PI / 2 + k / 36 * Math.PI * 2.08, w = 1 + 0.12 * Math.sin(a * 3 + 1); pts.push([cx + Math.cos(a) * R * w * 1.05, cy + Math.sin(a) * R * w * 0.92]); }
-    const d = "M" + pts.map(q => q[0].toFixed(1) + " " + q[1].toFixed(1)).join(" L");
-    const route = "M" + S.map(q => q.x.toFixed(1) + " " + q.y.toFixed(1)).join(" L");
-    const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg"); svg.setAttribute("class", "tlasso"); svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
-    svg.innerHTML = `<path class="lz" d="${d}"/><path class="rt" d="${route}"/>${S.map((q, k) => `<g class="no" style="--d:${1700 + k * 260}ms"><circle cx="${q.x}" cy="${q.y - 26}" r="12"/><text x="${q.x}" y="${q.y - 22}">${k + 1}</text></g>`).join("")}<circle class="fg" r="16" cx="${pts[0][0]}" cy="${pts[0][1]}"/>`;
+    this.mapLock(true);
+    const box = m.getContainer(), mb = box.getBoundingClientRect(), W = box.clientWidth, H = box.clientHeight;
+    const cr = this.el.card ? this.el.card.getBoundingClientRect() : { top: innerHeight };
+    const v0 = Math.max(0, -mb.top) + 34, v1 = Math.min(H, cr.top - 14 - mb.top);   // 地図の上（「ここから」の字の分あける）から、案内カードの上まで
+    const cx = W / 2, cy = Math.round((v0 + v1) / 2), R = Math.round(Math.max(72, Math.min(W * 0.36, (v1 - v0) / 2 - 22, 160)));
+    const k = R * 0.5;   // ピンは丸の内側（半分くらいの所）に入るように地図を合わせる。ピンの頭は点より上に描かれるので少し下げる
+    try { m.fitBounds(pick.map(p => [p.lat, p.lng]), { paddingTopLeft: [cx - k, cy - k + 14], paddingBottomRight: [W - cx - k, Math.max(0, H - cy - k - 14)], maxZoom: 12, animate: false }); } catch (_) {}
+    // なぞり始めの点は、ほかのピンと重ならない所に（なるべく上）
+    const pins = (MapV.pubs || []).filter(p => p.lat != null).map(p => { const q = m.latLngToContainerPoint([+p.lat, +p.lng]); return [q.x - 15, q.y - 42, q.x + 15, q.y]; });
+    const gap = (a, b) => Math.hypot(Math.max(0, b[0] - a[2], a[0] - b[2]), Math.max(0, b[1] - a[3], a[1] - b[3]));
+    let th = -Math.PI / 2, bs = -1e9;
+    for (let d = 0; d < 360; d += 10) { const a = (d - 90) * Math.PI / 180, sx = cx + R * Math.cos(a), sy = cy + R * Math.sin(a), box = [sx - 30, sy - 31, sx + 30, sy + 11];   // 「ここから」と点
+      const sc = Math.min(30, ...pins.map(q => gap(box, q))) - Math.min(d, 360 - d) * 0.05; if (sc > bs) { bs = sc; th = a; } }
+    const sx = +(cx + R * Math.cos(th)).toFixed(1), sy = +(cy + R * Math.sin(th)).toFixed(1), ox = +(cx - R * Math.cos(th)).toFixed(1), oy = +(cy - R * Math.sin(th)).toFixed(1);
+    const NS = "http://www.w3.org/2000/svg", svg = document.createElementNS(NS, "svg"); svg.setAttribute("class", "tlasso trace");
+    const ring = `M${sx} ${sy} A${R} ${R} 0 1 1 ${ox} ${oy} A${R} ${R} 0 1 1 ${sx} ${sy}`;
+    svg.innerHTML = `<path class="gd" d="${ring}"/><path class="lz" d=""/><g class="st"><circle cx="${sx}" cy="${sy}" r="8"/><text class="sl" x="${sx}" y="${sy - 16}">ここから</text></g>
+      <circle class="hint" r="16"><animateMotion dur="3.2s" repeatCount="indefinite" path="${ring}" keyPoints="0;0;1;1" keyTimes="0;.15;.85;1" calcMode="linear"/></circle>`;
     box.appendChild(svg); this.el.lasso = svg;
-    const lz = svg.querySelector(".lz"), L = lz.getTotalLength(), fg = svg.querySelector(".fg"); lz.style.strokeDasharray = L; lz.style.strokeDashoffset = L;
-    const rt = svg.querySelector(".rt"), RL = rt.getTotalLength(); rt.style.strokeDasharray = RL; rt.style.strokeDashoffset = RL;
-    const t0 = performance.now(), dur = 1300;
-    await new Promise(res => { const f = now => { const t = Math.min(1, (now - t0) / dur), e = t < .5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2; lz.style.strokeDashoffset = L * (1 - e); const q = lz.getPointAtLength(L * e); fg.setAttribute("cx", q.x); fg.setAttribute("cy", q.y); if (t < 1 && this.on) requestAnimationFrame(f); else res(); }; requestAnimationFrame(f); });
-    fg.classList.add("off"); svg.classList.add("go"); rt.style.transition = "stroke-dashoffset 1.1s ease .35s"; requestAnimationFrame(() => { rt.style.strokeDashoffset = 0; });
-    let tot = 0; this.route = pick.map((p, k) => { const km = k ? kmBetween(pick[k - 1].lat, pick[k - 1].lng, p.lat, p.lng) * 1.3 : 0; tot += km; const min = Math.round(km / 32 * 60); return { name: p.name, leg: `車で約${min >= 60 ? Math.floor(min / 60) + "時間" + (min % 60 ? (min % 60) + "分" : "") : min + "分"}（${km.toFixed(0)}km）` }; });
-    await sleep(1800); this._lassoBusy = false; if (!this.on) return; this.hit("route");
+    const lz = svg.querySelector(".lz"), pinPt = p => { const q = m.latLngToContainerPoint([p.lat, p.lng]); return [q.x, q.y - 14]; };
+    let pts = null, sweep = 0, last = 0, done = false;
+    const at = e => { const r = svg.getBoundingClientRect(); return [e.clientX - r.left, e.clientY - r.top]; };
+    const ang = p => Math.atan2(p[1] - cy, p[0] - cx);
+    const dOf = (A, close) => "M" + A.map(q => q[0].toFixed(1) + " " + q[1].toFixed(1)).join(" L") + (close ? " Z" : "");
+    const inside = A => pick.filter(p => { const q = pinPt(p); return inPoly(q[0], q[1], A); }).length;
+    const fail = () => { lz.classList.add("fail"); svg.classList.remove("drawing"); this.ev("lassoNG"); this.traceTry = (this.traceTry || 0) + 1; this.card(); this.layout(); };
+    const finish = async A => {
+      done = true; pts = null; svg.classList.remove("drawing"); svg.classList.add("done"); lz.setAttribute("d", dOf(A, true)); this.ev("lassoOK");
+      const S = pick.map(p => { const q = m.latLngToContainerPoint([p.lat, p.lng]); return { x: q.x, y: q.y - 22 }; });
+      const g = document.createElementNS(NS, "g"); g.innerHTML = `<path class="rt" d="${dOf(S.map(q => [q.x, q.y]))}"/>${S.map((q, k) => `<g class="no" style="--d:${700 + k * 260}ms"><circle cx="${q.x}" cy="${q.y - 26}" r="12"/><text x="${q.x}" y="${q.y - 22}">${k + 1}</text></g>`).join("")}`;
+      svg.appendChild(g); const rt = g.querySelector(".rt"), RL = rt.getTotalLength(); rt.style.strokeDasharray = RL; rt.style.strokeDashoffset = RL;
+      requestAnimationFrame(() => { svg.classList.add("go"); rt.style.transition = "stroke-dashoffset 1.1s ease .2s"; rt.style.strokeDashoffset = 0; });
+      this.route = pick.map((p, k) => { const km = k ? kmBetween(pick[k - 1].lat, pick[k - 1].lng, p.lat, p.lng) * 1.3 : 0, min = Math.round(km / 32 * 60); return { name: p.name, leg: `車で約${min >= 60 ? Math.floor(min / 60) + "時間" + (min % 60 ? (min % 60) + "分" : "") : min + "分"}（${km.toFixed(0)}km）` }; });
+      await sleep(1700); if (!this.on || this.el.lasso !== svg) return;
+      // 見せ終わったら地図はまた動かせる（動かしたら、描いた線は消える）
+      this.tracing = false; this.mapLock(false); svg.classList.remove("trace");
+      m.once("movestart", () => { if (this.el.lasso !== svg) return; svg.classList.add("fade"); setTimeout(() => { if (this.el.lasso === svg) { svg.remove(); this.el.lasso = null; } }, 320); });
+      this.hit("route");
+    };
+    svg.addEventListener("pointerdown", e => {
+      if (done) return; e.preventDefault(); try { svg.setPointerCapture(e.pointerId); } catch (_) {}
+      pts = [at(e)]; sweep = 0; last = ang(pts[0]); lz.classList.remove("fail"); lz.setAttribute("d", dOf(pts)); svg.classList.add("drawing");
+    });
+    svg.addEventListener("pointermove", e => {
+      if (!pts || done) return; const p = at(e), q = pts[pts.length - 1]; if (Math.hypot(p[0] - q[0], p[1] - q[1]) < 3) return;
+      pts.push(p); const a = ang(p); let d = a - last; if (d > Math.PI) d -= Math.PI * 2; if (d < -Math.PI) d += Math.PI * 2;
+      if (Math.hypot(p[0] - cx, p[1] - cy) > 16) sweep += d; last = a; lz.setAttribute("d", dOf(pts));
+      if (Math.abs(sweep) >= Math.PI * 2 * 0.97 && inside(pts) >= 2) finish(pts);   // 1周したら、指を離す前に決まる
+    });
+    const up = e => { if (!pts || done) return; const A = pts; pts = null; if (A.length > 8 && Math.abs(sweep) >= Math.PI * 2 * 0.78 && inside(A) >= 2) finish(A); else fail(); };
+    svg.addEventListener("pointerup", up); svg.addEventListener("pointercancel", () => { pts = null; svg.classList.remove("drawing"); });
   },
-  lassoClear() { if (this.el.lasso) { this.el.lasso.remove(); this.el.lasso = null; } this._lassoBusy = false; },
+  // なぞっている間は、地図を動かしたり拡大したりできないようにする
+  mapLock(on) {
+    const m = MapV.map; if (!m || !!this._locked === on) return; this._locked = on;
+    ["dragging", "touchZoom", "doubleClickZoom", "scrollWheelZoom", "boxZoom", "keyboard"].forEach(k => { try { if (m[k]) m[k][on ? "disable" : "enable"](); } catch (_) {} });
+    const w = $("#mapWrap"); if (w) w.classList.toggle("tour-mlock", on);
+  },
+  lassoClear() { if (this.el.lasso) { this.el.lasso.remove(); this.el.lasso = null; } this.tracing = false; this.mapLock(false); },
   // ---------- 終わり ----------
   quit() { this.ev("x", this.i + 1); this.stop(); this.join({ quit: true }); },
   stop() {
