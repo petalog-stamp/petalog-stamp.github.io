@@ -3843,7 +3843,19 @@ function parseTiff(v, t) {
   }
   return out;
 }
-async function exifOf(file) { if (!/jpe?g/i.test(file.type) && !/\.jpe?g$/i.test(file.name)) return null; try { return readExif(await file.slice(0, 256 * 1024).arrayBuffer()); } catch { return null; } }
+async function exifOf(file) {
+  try { const head = await file.slice(0, 256 * 1024).arrayBuffer(); const r = readExif(head); if (r) return r;
+    const big = file.size > head.byteLength ? await file.slice(0, Math.min(file.size, 24 * 1024 * 1024)).arrayBuffer() : head; return exifScan(big); } catch { return null; }
+}
+function exifScan(buf) {   // 「Exif\0\0」のすぐあとに TIFF の頭（II*\0 / MM\0*）があるところを探す
+  const u = new Uint8Array(buf), v = new DataView(buf);
+  for (let i = 0; i + 14 < u.length; i++) {
+    if (u[i] !== 0x45 || u[i + 1] !== 0x78 || u[i + 2] !== 0x69 || u[i + 3] !== 0x66 || u[i + 4] !== 0 || u[i + 5] !== 0) continue;
+    const t = i + 6, bo = v.getUint16(t); if (bo !== 0x4949 && bo !== 0x4D4D) continue; if (v.getUint16(t + 2, bo === 0x4949) !== 42) continue;
+    try { const r = parseTiff(v, t); if (r) return r; } catch (_) {}
+  }
+  return null;
+}
 
 /* ================= AI ================= */
 let aiState = { checked: false, ok: false };
@@ -4329,7 +4341,7 @@ function formHTML(d, ro) {
     <div class="pmap-wrap" id="pmapWrap"><div class="pmap" id="pmap"></div>
       <div class="pmhint" id="pmHint"${d.lat != null ? " hidden" : ""}>${ro ? "" : "地図をタップしてピンを立てる"}</div></div>
     <div class="locinfo" id="locInfo" style="margin-top:6px"></div>
-    ${ro ? "" : `<div class="row2" style="margin-top:6px"><button class="btn small" type="button" id="standBtn">📷 スタンプ台の写真で場所を入れる</button></div><div id="standAsk" hidden></div><div class="row2" style="margin-top:6px"><button class="btn small" type="button" id="exifBtn" hidden>写真の位置を使う</button><button class="btn small ghost" type="button" id="locClear" hidden>ピンを消す</button></div>`}
+    ${ro ? "" : `<div class="row2" style="margin-top:6px"><label class="btn small" id="standBtn" style="position:relative;cursor:pointer"><input type="file" id="standIn" accept="image/*" style="position:absolute;left:0;top:0;width:1px;height:1px;opacity:0">📷 スタンプ台の写真で場所を入れる</label></div><div id="standAsk" hidden></div><div class="row2" style="margin-top:6px"><button class="btn small" type="button" id="exifBtn" hidden>写真の位置を使う</button><button class="btn small ghost" type="button" id="locClear" hidden>ピンを消す</button></div>`}
     <label class="fld" style="margin-top:10px"><span>置き場所メモ（公開するとみんなに共有）</span><input id="f_spot" maxlength="80" value="${esc(d.spot || "")}" placeholder="例: 窓口の左の台"${dis}></label>
   </div>
   <div class="sec"><h4>写真</h4><div class="photos" id="photos"></div><p class="cap">スタンプの写真と、その場所の風景などを一緒に残せます。</p></div>
@@ -4646,7 +4658,7 @@ async function commitSave(c, d) {
   const mode = c.mode, q = c.queue, adj = c.adj;
   closeSheet(); refreshAll(); Others.rank = null;
   const reg = d.type !== "goshuin" && (mode === "add" || mode === "edit" || mode === "update") ? Zukan.register(d, c.design, false, fixLoc).catch(() => null) : null;
-  const packed = mode === "add" && d.type !== "goshuin" && !(q && q.i + 1 < q.boxes.length);
+  const packed = false;   // パックを開ける演出は、はじめてのツアーだけ（ふだんの登録では出さない）
   if (packed) Pack.play(d, { reg }).then(() => { if (ms) Party.show(ms); else { const r = rallyOf(rallyKeyOf(d)); if (r) toast(`${r.r.name} ${r.st.n}駅 をゲット！`); } });
   else if (ms) setTimeout(() => Party.show(ms), 420);
   if (q && mode !== "edit" && q.i + 1 < q.boxes.length) {
@@ -7284,20 +7296,27 @@ function locFixOf(c, d) {
   const o = c.mode === "add" ? null : c.orig; if (o && +o.lat === +d.lat && +o.lng === +d.lng) return false;
   return /スタンプ台の写真/.test(d.locSrc || "") || (c.mode === "edit" && d.locSrc === "地図でピン");
 }
+// スタンプ台の写真: ボタンの中の本物の選択欄を使う（iPhoneで、選んだあと何も起きないことがあったため）
 function wireStandPhoto() {
-  const c = sheetCtx, b = $("#standBtn"); if (!c || !b) return;
-  b.onclick = () => { const i = document.createElement("input"); i.type = "file"; i.accept = "image/*"; i.onchange = () => { if (i.files[0]) useStandPhoto(i.files[0]); }; i.click(); };
+  const c = sheetCtx, i = $("#standIn"); if (!c || !i) return;
+  i.onchange = () => { const f = i.files && i.files[0]; if (f) useStandPhoto(f); i.value = ""; };
 }
 async function useStandPhoto(f) {
   const c = sheetCtx, box = $("#standAsk"); if (!c || !box) return;
-  const ex = await exifOf(f).catch(() => null), ok = ex && ex.lat != null && ex.lng != null;
-  if (ok) { setLoc(+(+ex.lat).toFixed(6), +(+ex.lng).toFixed(6), "スタンプ台の写真（GPS）"); toast("スタンプ台の写真の位置から場所を入れました"); }
-  box.hidden = false;
-  box.innerHTML = `<div class="stand-ask">${ok ? `<b>✓ スタンプ台の写真の位置を入れました</b>` : `<b>この写真には場所の情報が入っていませんでした</b><small>カメラの位置情報がオフのときや、写真の選び方によっては位置が外れることがあります。地図をタップしてピンを立てても大丈夫です。</small>`}
+  box.hidden = false; box.innerHTML = `<div class="stand-ask"><b><span class="spin" style="display:inline-block;vertical-align:-2px;margin-right:6px"></span>写真の位置を読んでいます…</b></div>`;
+  let ex = null, err = "";
+  try { ex = await exifOf(f); } catch (e) { err = String(e && e.message || e).slice(0, 60); }
+  const ok = !!(ex && ex.lat != null && ex.lng != null);
+  if (ok) { try { setLoc(+(+ex.lat).toFixed(6), +(+ex.lng).toFixed(6), "スタンプ台の写真（GPS）"); } catch (e) { err = String(e && e.message || e).slice(0, 60); } toast("スタンプ台の写真の位置から場所を入れました"); }
+  try { Track.ev("stand_photo", { gps: ok ? 1 : 0, ty: String(f.type || "none").slice(0, 20), kb: Math.round((f.size || 0) / 1024), ...(ex && !ok ? { exif: 1 } : {}), ...(err ? { err } : {}) }); } catch (_) {}
+  if (sheetCtx !== c || !box.isConnected) return;
+  box.innerHTML = `<div class="stand-ask">${ok ? `<b>✓ スタンプ台の写真の位置を入れました</b>` : `<b>この写真には場所の情報が入っていませんでした</b><small>カメラの位置情報がオフのときや、LINEなどで送られた写真・スクリーンショットには、場所が入っていません。地図をタップしてピンを立てても大丈夫です。</small>`}
     <span>この写真を、スタンプの「写真」にも残しますか？</span><div class="row2"><button class="btn small primary" type="button" id="standKeep">残す</button><button class="btn small" type="button" id="standNo">残さない</button></div></div>`;
   $("#standNo").onclick = () => { box.hidden = true; box.innerHTML = ""; };
   $("#standKeep").onclick = async () => { try { const cv = await fileToCanvas(f, 1400); const p = makePhoto(cv); if (p) { c.newScenes.push({ k: uid("p").slice(1), url: p.url }); renderPhotos(); toast("写真に追加しました"); } } catch (_) { toast("この写真は追加できませんでした"); } box.hidden = true; box.innerHTML = ""; };
 }
+// うまくいかなかったこと（Promiseの失敗）も、原因を探せるように記録する
+addEventListener("unhandledrejection", e => { try { if (Track.errs++ < 5) Track.ev("js_error", { m: ("promise: " + String(e && e.reason && (e.reason.message || e.reason) || "")).slice(0, 90) }); } catch (_) {} });
 
 /* ---------- 「ぜんぶ」: 読み込み直したときや、裏でデータが更新されたときに、毎回スタンプを降らせ直さない ----------
    ・ふらす／絞り込み／大きさを変えたとき（drop）だけ、ぜんぶ降らせ直す
