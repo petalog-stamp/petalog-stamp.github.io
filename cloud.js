@@ -535,13 +535,13 @@
     ss.set(k, "1");
     sheetCtx = { mode: "move" };
     openSheet(`<div class="sheet-head"><h2>この端末の記録</h2><button class="btn small ghost" type="button" data-close>今はしない</button></div>
-      <div class="sec"><p class="cap" style="margin-top:0">ログインする前にこの端末へ保存した記録が <b>${n} まい</b> あります。アカウントに移しますか？<br>移すと、ほかのスマホやPCからも見られるようになります。</p>
+      <div class="sec"><p class="cap" style="margin-top:0">ログインする前にこの端末へ保存した記録が <b>${n} 枚</b> あります。アカウントに移しますか？<br>移すと、ほかのスマホやPCからも見られるようになります。</p>
       <button class="btn primary" type="button" id="mvGo" style="width:100%;margin-top:10px">アカウントに移す</button><p class="cap" id="mvMsg" role="status"></p></div>`);
     $("#mvGo").onclick = async () => {
       const b = $("#mvGo"); b.disabled = true;
       const r = await moveLocal(b);
       if (!r) { $("#mvMsg").textContent = "読み込めませんでした。"; b.disabled = false; b.textContent = "アカウントに移す"; return; }
-      $("#mvMsg").textContent = r.bad ? `${r.n} まい移しました。${r.bad} まいは移せませんでした（あとで設定からもう一度できます）。` : `${r.n} まい移しました。読み込み直します…`;
+      $("#mvMsg").textContent = r.bad ? `${r.n} 枚移しました。${r.bad} 枚は移せませんでした（あとで設定からもう一度できます）。` : `${r.n} 枚移しました。読み込み直します…`;
       if (!r.bad) setTimeout(() => location.reload(), 700); else { b.disabled = false; b.textContent = "もう一度試す"; }
     };
   }
@@ -616,8 +616,8 @@
       const d = $("#acDel"); if (d) d.onclick = openDelete;
       if ($("#acMove") && attached) localCount().then((n) => {
         const box = $("#acMove"); if (!box || !n) return;
-        box.innerHTML = `<p class="cap">この端末に、ログイン前の記録が ${n} まい残っています。</p><button class="btn small" type="button" id="acMv">アカウントに移す</button>`;
-        $("#acMv").onclick = async () => { const b = $("#acMv"); b.disabled = true; const r = await moveLocal(b); say(r && !r.bad ? `${r.n} まい移しました` : "一部移せませんでした。もう一度どうぞ"); if (r && !r.bad) setTimeout(() => location.reload(), 600); else { b.disabled = false; b.textContent = "アカウントに移す"; } };
+        box.innerHTML = `<p class="cap">この端末に、ログイン前の記録が ${n} 枚残っています。</p><button class="btn small" type="button" id="acMv">アカウントに移す</button>`;
+        $("#acMv").onclick = async () => { const b = $("#acMv"); b.disabled = true; const r = await moveLocal(b); say(r && !r.bad ? `${r.n} 枚移しました` : "一部移せませんでした。もう一度どうぞ"); if (r && !r.bad) setTimeout(() => location.reload(), 600); else { b.disabled = false; b.textContent = "アカウントに移す"; } };
       });
     },
     afterBoot() {

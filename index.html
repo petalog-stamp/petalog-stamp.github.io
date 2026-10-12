@@ -1406,7 +1406,7 @@ html.tour-lock,html.tour-lock body{overflow:hidden}
         <canvas id="fallCv"></canvas>
         <div class="fall-empty" id="fallEmpty" hidden></div>
         <div class="fall-hud">
-          <span class="count" id="fallCount">0まい</span>
+          <span class="count" id="fallCount">0枚</span>
           <button class="hudbtn" id="tiltBtn" type="button">傾きで動かす</button>
           <button class="hudbtn" id="tiltL" type="button" aria-label="左に傾ける">↺</button>
           <button class="hudbtn" id="tiltR" type="button" aria-label="右に傾ける">↻</button>
@@ -1706,7 +1706,7 @@ function setStatus() {
 function refreshAll() {
   setStatus();
   const L = list(); const prefs = new Set(L.map(s => s.pref).filter(Boolean));
-  $("#bookStat").innerHTML = ready ? `<b>${L.length}</b> まい · <b>${prefs.size}</b> 都道府県` : "";
+  $("#bookStat").innerHTML = ready ? `<b>${L.length}</b> 枚 · <b>${prefs.size}</b> 都道府県` : "";
   Grid.render(); if (typeof Gos !== "undefined") Gos.render();
   Fall.dirty = true; if (view === "fall") Fall.start();
   MapV.render(); Books.refresh(); Rally.render();
@@ -2035,7 +2035,7 @@ const Grid = {
     const items = sorted.filter(s => (this.g === "all" || (this.g === "__ovl" ? s.overlap : this.g === "__dig" ? isDigi(s) : catNorm(s.cat) === this.g)) && this.match(s) && (!toks.length || toks.every(t => hayOf(s).includes(t))));
     this.items = items; const nf = Object.keys(this.f).length;
     $("#gFilt").textContent = nf ? `絞り込み ${nf}` : "絞り込み"; $("#gFilt").classList.toggle("primary", nf > 0);
-    $("#gCount").innerHTML = (nf || toks.length || this.g !== "all") ? `<span>${items.length} まい見つかりました</span><button type="button" id="gClear">条件をクリア</button>` : "";
+    $("#gCount").innerHTML = (nf || toks.length || this.g !== "all") ? `<span>${items.length} 枚見つかりました</span><button type="button" id="gClear">条件をクリア</button>` : "";
     const cl = $("#gClear"); if (cl) cl.onclick = () => { this.f = {}; this.q = ""; this.g = "all"; $("#gSearch").value = ""; this.render(); };
     const box = $("#cards"); box.className = `cards c${this.cols}${this.selMode ? " selecting" : ""}`; box.style.setProperty("--cols", this.cols);
     box.innerHTML = !ready ? `<div class="empty" style="grid-column:1/-1"><span class="spin"></span></div>` : items.length ? Grid.withVacant(items, toks.length || nf || this.g !== "all").map(s => s.vac ? `<button type="button" class="card tc vac" data-vac="${s.vac}"><span class="vac-no">${Numbers.fmt(s.vac)}</span><span class="vac-t">空き番号</span><span class="vac-s">＋ ここに追加</span></button>` : cardHTML(s, Numbers.of(s), { cols: this.cols, picked: this.sel.has(s.id) })).join("")
@@ -2120,7 +2120,7 @@ const Fall = {
     const mouse = this.mouse || (this.mouse = M.Mouse.create(cv)); mouse.pixelRatio = this.dpr;
     this.mc = M.MouseConstraint.create(this.engine, { mouse, constraint: { stiffness: 0.2, render: { visible: false } } });
     M.Composite.add(this.engine.world, this.mc);
-    $("#fallCount").textContent = L.length + "まい";
+    $("#fallCount").textContent = L.length + "枚";
     const emp = $("#fallEmpty"); emp.hidden = L.length > 0;
     if (!ready) emp.innerHTML = `<span class="spin"></span>`; else if (!L.length) emp.innerHTML = this.month ? "この期間のスタンプはありません。" : this.filter === "today" ? "今日のスタンプはまだありません。<br>押したら「＋ 追加」へ。" : this.filter === "month" ? "今月のスタンプはまだありません。" : "スタンプを追加すると、ここに降ってきます。";
     this.dirty = false; this.lastSize = W + "x" + H;
@@ -2403,7 +2403,7 @@ const MapV = {
   go(lat, lng, z) { if (this.map) this.map.setView([lat, lng], z, { animate: true }); },
   foot() {
     const f = $("#mapFoot"); const L = list(); const no = L.filter(s => s.lat == null || s.lng == null).length;
-    if (this.mode === "me") { f.innerHTML = `<span>地図に ${L.length - no} まい${no ? ` · 場所が未設定 ${no} まい` : ""}。駅の名前のあたりをタップすると、道案内やスタンプの追加ができます。右の点線の丸ボタンでエリアを囲むと、まだのスタンプを回るルートを作ります。</span>${this.decided && !this.real ? `<span class="credit">この画面では外部の地図画像が読み込めないため、簡易地図で表示しています。</span>` : ""}`; return; }
+    if (this.mode === "me") { f.innerHTML = `<span>地図に ${L.length - no} 枚${no ? ` · 場所が未設定 ${no} 枚` : ""}。駅の名前のあたりをタップすると、道案内やスタンプの追加ができます。右の点線の丸ボタンでエリアを囲むと、まだのスタンプを回るルートを作ります。</span>${this.decided && !this.real ? `<span class="credit">この画面では外部の地図画像が読み込めないため、簡易地図で表示しています。</span>` : ""}`; return; }
     if (!this.pubs) { f.innerHTML = `<span><span class="spin"></span> みんなの記録を読み込み中…</span>`; return; }
     const others = this.pubs.filter(p => p.by !== Store.uid && !p.miss);
     f.innerHTML = `<div class="nick"><span>ニックネーム</span><input id="nickIn" maxlength="20" value="${esc(Profile.nick)}" placeholder="例: えきすたん"><button class="btn small" type="button" id="nickSave">保存</button><button class="btn small" type="button" id="pubReload">更新</button></div>
@@ -2468,13 +2468,13 @@ const MapV = {
     $("#mcAdd").onclick = () => { const name = it.kind === "st" ? o.n + "駅" : o.n; const pre = { name, place: name, cat: it.kind === "st" ? "駅" : o.k === "air" ? "空港" : /道の駅/.test(o.n) ? "道の駅" : "施設", lat: +o.lat.toFixed(6), lng: +o.lng.toFixed(6), pref: prefAt(o.lat, o.lng) || "", locSrc: it.kind === "st" ? "駅の位置" : "施設の位置" }; this.closeCard(); openStamp("add", null, pre); };
     const mr = $("#mcRally"); if (mr) mr.onclick = () => { const r = rallyChoices(o)[0]; if (!r) return; Rally.cur = r.id; Rally.hl = o.n; show("rally"); Rally.render(); };
   },
-  openMine(ids) {   // 自分のピン: 1まいならそのトレカ、何まいもあれば3列のトレカ（順番はばらばら）
+  openMine(ids) {   // 自分のピン: 1枚ならそのトレカ、何枚もあれば3列のトレカ（順番はばらばら）
     const ss = ids.map(findStamp).filter(Boolean); if (!ss.length) return; const top = ss[0];
     if (ss.length === 1) { CardView.open(top.id, { items: ss }); return; }
     const nm = top.place || top.name;
     CardGrid.open({ title: nm, items: shuffled(ss), at: top.lat != null ? { lat: +top.lat, lng: +top.lng } : null, add: { name: nm, place: top.place || nm, cat: catNorm(top.cat), lat: +(+top.lat).toFixed(6), lng: +(+top.lng).toFixed(6), pref: top.pref || prefAt(top.lat, top.lng) || "", locSrc: "地図で検索" } });
   },
-  async openPubs(ids) {   // みんなのピン: 表だけのトレカ。何まいもあれば3列（順番はばらばら）
+  async openPubs(ids) {   // みんなのピン: 表だけのトレカ。何枚もあれば3列（順番はばらばら）
     const P = ids.map(id => (this.pubs || []).find(p => p._id === id)).filter(Boolean); if (!P.length) return;
     const cards = await pubCards(P);
     if (cards.length === 1) { CardView.open(cards[0].id, { items: cards, front: true }); return; }
@@ -2482,7 +2482,7 @@ const MapV = {
   },
   showGroup(ids) {
     const ss = ids.map(findStamp).filter(Boolean); if (!ss.length) return; const top = ss[0], card = $("#mapCard"), nm = top.place || top.name;
-    card.innerHTML = `<div class="mc-h"><b>${esc(nm)}</b><span class="mc-n">${ss.length}まい</span><button class="icon-btn" type="button" id="mcX" aria-label="閉じる" style="width:30px;height:30px;font-size:14px">✕</button></div>
+    card.innerHTML = `<div class="mc-h"><b>${esc(nm)}</b><span class="mc-n">${ss.length}枚</span><button class="icon-btn" type="button" id="mcX" aria-label="閉じる" style="width:30px;height:30px;font-size:14px">✕</button></div>
       <div class="mc-grp">${ss.map(s => `<button type="button" data-open="${s.id}"><i><img src="${esc(s.cut || "")}" alt=""></i><span>${esc(s.name)}</span><small>${esc((s.date || "").replace(/-/g, "."))}</small></button>`).join("")}</div>
       <div class="row2"><button class="btn small primary" type="button" id="mcAdd">ここのスタンプを追加</button><a class="btn small" href="${gmapsDir(top.lat, top.lng)}" target="_blank" rel="noopener">道案内</a></div>`;
     card.hidden = false; $("#mcX").onclick = () => this.closeCard();
@@ -3110,12 +3110,12 @@ const safeName = t => String(t || "").replace(/[\\/:*?"<>|\s]+/g, "_").replace(/
 function numbering() { return new Map(list().map(s => [s.id, Numbers.of(s)])); }
 async function deliverFiles(files, box) {
   const canShare = !!(navigator.canShare && navigator.share && (() => { try { return navigator.canShare({ files }); } catch { return false; } })());
-  box.innerHTML = `${canShare ? `<button class="btn primary" type="button" id="exShare">写真に保存・共有（${files.length}まい）</button>` : ""}<button class="btn${canShare ? "" : " primary"}" type="button" id="exDl">${files.length > 1 ? `${files.length}まいダウンロード` : "ダウンロード"}</button>
-    <p class="cap" style="flex-basis:100%;margin:6px 0 0">${canShare ? "「写真に保存・共有」から「画像を保存」を選ぶと、1まいずつ写真アプリに入ります。" : files.length > 1 ? "1まいずつ別のファイルで保存されます。ブラウザに「複数のダウンロード」を聞かれたら許可してください。" : ""}</p>`;
+  box.innerHTML = `${canShare ? `<button class="btn primary" type="button" id="exShare">写真に保存・共有（${files.length}枚）</button>` : ""}<button class="btn${canShare ? "" : " primary"}" type="button" id="exDl">${files.length > 1 ? `${files.length}枚ダウンロード` : "ダウンロード"}</button>
+    <p class="cap" style="flex-basis:100%;margin:6px 0 0">${canShare ? "「写真に保存・共有」から「画像を保存」を選ぶと、1枚ずつ写真アプリに入ります。" : files.length > 1 ? "1枚ずつ別のファイルで保存されます。ブラウザに「複数のダウンロード」を聞かれたら許可してください。" : ""}</p>`;
   const sh = $("#exShare"); if (sh) sh.onclick = async () => { try { await navigator.share({ files }); toast("保存しました"); } catch (e) { if (!e || e.name !== "AbortError") toast("共有できませんでした。「ダウンロード」を試してください", 3600); } };
   $("#exDl").onclick = async () => {
     for (const f of files) { const a = document.createElement("a"); a.href = URL.createObjectURL(f); a.download = f.name; document.body.appendChild(a); a.click(); const u = a.href; setTimeout(() => { URL.revokeObjectURL(u); a.remove(); }, 4000); await sleep(400); }
-    toast(files.length > 1 ? `${files.length}まい保存しました` : "保存しました");
+    toast(files.length > 1 ? `${files.length}枚保存しました` : "保存しました");
   };
 }
 function openExport(o) {
@@ -3123,7 +3123,7 @@ function openExport(o) {
   const st = { fmt: lsGet("petalog.exFmt") || "card", bg: lsGet("petalog.exBg") || "clear", pbg: "paper" };
   sheetCtx = { mode: "export" }; const ctx = sheetCtx;
   const sz = isPage ? PAGE_SIZES[o.page.size] || PAGE_SIZES.a4 : null;
-  openSheet(`<div class="sheet-head"><h2>画像で保存${isPage ? "" : S.length > 1 ? `（${S.length}まい）` : ""}</h2><button class="btn small ghost" type="button" data-close>閉じる</button></div>
+  openSheet(`<div class="sheet-head"><h2>画像で保存${isPage ? "" : S.length > 1 ? `（${S.length}枚）` : ""}</h2><button class="btn small ghost" type="button" data-close>閉じる</button></div>
     <div class="exprev" id="exPrev"><span class="spin"></span></div>
     <div class="exopts">${isPage
       ? `<div class="row2"><span class="lab">背景</span><div class="seg" id="exPbg"><button type="button" data-v="paper" aria-pressed="true">紙もいっしょに</button><button type="button" data-v="clear" aria-pressed="false">透明にする</button></div></div>`
@@ -3143,7 +3143,7 @@ function openExport(o) {
     const b = isPage ? pageBounds(o.page) : null;
     $("#exNote").textContent = isPage
       ? `${sz.n}${o.page.size === "inf" ? "（貼ったところ全体）" : ""}・${Math.round(b.W * Math.min(sz.px, 4096 / Math.max(b.W, b.H)))}×${Math.round(b.H * Math.min(sz.px, 4096 / Math.max(b.W, b.H)))}px の画像を作ります。${st.pbg === "clear" ? "紙を消して、スタンプと文字だけを透明な背景（PNG）で保存します。" : ""}`
-      : st.fmt === "card" ? "トレカの大きさ（63×88mm・300dpi）の画像を、1まいずつ作ります。そのまま印刷すればトレカサイズになります。"
+      : st.fmt === "card" ? "トレカの大きさ（63×88mm・300dpi）の画像を、1枚ずつ作ります。そのまま印刷すればトレカサイズになります。"
       : (st.bg === "clear" ? "スタンプだけを、背景を透明にした画像（PNG）で作ります。" : "スタンプの大きさに合わせた、白い背景の画像を作ります。") + (S.some(s => s.sizeMm) ? " 大きさが記録されているスタンプは、300dpiで印刷すると実物と同じ大きさになります。" : "");
     $("#exActs").innerHTML = `<button class="btn primary" type="button" id="exGo">画像をつくる</button>`; $("#exGo").onclick = go;
     preview();
@@ -3185,7 +3185,7 @@ function setSelMode(on) {
 function renderSelBar() {
   const bar = $("#selBar"); bar.hidden = !Grid.selMode; if (!Grid.selMode) return;
   const n = Grid.sel.size, samp = !stamps.length;
-  bar.innerHTML = `<b>${n} まい選択中</b><button class="btn small" type="button" id="sAll">${Grid.items && Grid.items.length && Grid.items.every(s => Grid.sel.has(s.id)) ? "全部はずす" : "表示中を全部"}</button><button class="btn small primary" type="button" id="sSave"${n ? "" : " disabled"}>画像で保存</button>${samp ? "" : `<button class="btn small shu" type="button" id="sDel"${n ? "" : " disabled"}>削除</button>`}`;
+  bar.innerHTML = `<b>${n} 枚選択中</b><button class="btn small" type="button" id="sAll">${Grid.items && Grid.items.length && Grid.items.every(s => Grid.sel.has(s.id)) ? "全部はずす" : "表示中を全部"}</button><button class="btn small primary" type="button" id="sSave"${n ? "" : " disabled"}>画像で保存</button>${samp ? "" : `<button class="btn small shu" type="button" id="sDel"${n ? "" : " disabled"}>削除</button>`}`;
   $("#sAll").onclick = () => { const all = Grid.items.every(s => Grid.sel.has(s.id)); Grid.items.forEach(s => all ? Grid.sel.delete(s.id) : Grid.sel.add(s.id)); Grid.render(); renderSelBar(); };
   $("#sSave").onclick = () => openExport({ ids: [...Grid.sel] });
   const d = $("#sDel"); if (d) d.onclick = () => confirmDelete([...Grid.sel].map(findStamp).filter(Boolean), () => setSelMode(false));
@@ -3193,10 +3193,10 @@ function renderSelBar() {
 function confirmDelete(L, after) {
   if (!L.length) return; sheetCtx = { mode: "confirmdel" };
   openSheet(`<div class="sheet-head"><h2>削除</h2><button class="btn small ghost" type="button" data-close>やめる</button></div>
-    <div class="sec"><p style="margin:0 0 10px">${L.length > 1 ? `${L.length}まいの` : `「${esc(L[0].name)}」の`}記録と写真を削除します。スタンプジャーナルのページからもはがれます。<b>元には戻せません。</b></p>
-    <div class="delthumbs">${L.slice(0, 24).map(s => `<img src="${s.cut}" alt="">`).join("")}${L.length > 24 ? `<span>ほか${L.length - 24}まい</span>` : ""}</div>
+    <div class="sec"><p style="margin:0 0 10px">${L.length > 1 ? `${L.length}枚の` : `「${esc(L[0].name)}」の`}記録と写真を削除します。スタンプジャーナルのページからもはがれます。<b>元には戻せません。</b></p>
+    <div class="delthumbs">${L.slice(0, 24).map(s => `<img src="${s.cut}" alt="">`).join("")}${L.length > 24 ? `<span>ほか${L.length - 24}枚</span>` : ""}</div>
     <div class="acts"><button class="btn" type="button" data-close>やめる</button><button class="btn shu" type="button" id="cdYes">削除する</button></div></div>`);
-  $("#cdYes").onclick = async () => { const b = $("#cdYes"); b.disabled = true; b.innerHTML = `<span class="spin"></span> 削除中`; const n = await deleteStamps(L); closeSheet(); toast(`${n}まい削除しました`); after && after(); };
+  $("#cdYes").onclick = async () => { const b = $("#cdYes"); b.disabled = true; b.innerHTML = `<span class="spin"></span> 削除中`; const n = await deleteStamps(L); closeSheet(); toast(`${n}枚削除しました`); after && after(); };
 }
 async function deleteStamps(L) {
   let n = 0; const done = [];
@@ -4282,7 +4282,7 @@ function formHTML(d, ro) {
     ${gos ? "" : `<label class="fld"><span>ジャンル</span><select id="f_cat" aria-label="ジャンル"${dis}>${GENRES.map(g => `<option${g === cat ? " selected" : ""}>${g}</option>`).join("")}</select></label><label class="fld"><span>種類</span><select id="f_medium" aria-label="リアルかデジタルか"${dis}><option value="real"${digi ? "" : " selected"}>リアルスタンプ</option><option value="digital"${digi ? " selected" : ""}>デジタルスタンプ</option></select></label>`}
     <label class="fld full"><span>押した日</span><input id="f_date" type="date" value="${esc(d.date || "")}"${dis}></label>
     ${!ro && !gos && Numbers.vacant().length ? (() => { const ed = stamps.some(x => x.id === d.id), cur = ed ? Numbers.of(d) : 0, sel = ed ? cur : (+d.no || Numbers.next()); return `<label class="fld full"><span>トレカ番号</span><select id="f_no">${Numbers.options(cur).map(([n, t]) => `<option value="${n}"${n === sel ? " selected" : ""}>${t}</option>`).join("")}</select></label>`; })() : ""}
-    ${gos ? "" : `<label class="toggle ovltog full"><input type="checkbox" id="f_overlap"${d.overlap ? " checked" : ""}${dis}><span><b>重ね押し</b><br><small>2つ以上のスタンプを重ねて押した特別な1まい。トレカ一覧の「重ね押し」に入ります。</small><em class="ovlhint" id="ovlHint" hidden>インクが2色以上あります。重ね押しならチェックを入れてください。</em></span></label>${ro ? "" : sheetBoxHTML(d)}`}
+    ${gos ? "" : `<label class="toggle ovltog full"><input type="checkbox" id="f_overlap"${d.overlap ? " checked" : ""}${dis}><span><b>重ね押し</b><br><small>2つ以上のスタンプを重ねて押した特別な1枚。トレカ一覧の「重ね押し」に入ります。</small><em class="ovlhint" id="ovlHint" hidden>インクが2色以上あります。重ね押しならチェックを入れてください。</em></span></label>${ro ? "" : sheetBoxHTML(d)}`}
     <div class="fld full"><span>イベント・路線</span><select id="f_evl" aria-label="イベント・路線"${dis}>${evlOptions(d)}</select><div class="evlhint" id="evlHint"></div>
       <div class="row2" id="evNewBox" style="margin-top:6px" hidden><input id="f_evNew" class="grow ninput" maxlength="30" placeholder="例: 謎解き"><button class="btn small primary" type="button" id="evAdd">追加</button></div>
       <div class="evsug" id="evSug" hidden>${["謎解き", "デート", "旅行", "ひとり旅", "スタンプラリー", "ドライブ", "推し活"].filter(e => !Profile.allEvents().includes(e)).map(e => `<button type="button" data-evs="${e}">${e}</button>`).join("")}</div>
@@ -4679,7 +4679,7 @@ async function importBackup(file) {
   } else if (!Books.sample && j.board && Array.isArray(j.board.items) && j.board.items.length) {
     const b = Books.mkBook("読み込んだスタンプジャーナル"); b.pages.push(Books.mkPage({ size: j.board.paper === "inf" ? "inf" : "a4", items: j.board.items })); Books.data.books.push(b); Books.save(true);
   }
-  closeSheet(); refreshAll(); toast(`${n} まい読み込みました`);
+  closeSheet(); refreshAll(); toast(`${n} 枚読み込みました`);
 }
 
 /* ================= v10: 場所ピッカー・イベントと路線・公開設定・みんなのコレクション・白い紙で拡大・達成のお祝い ================= */
@@ -5169,9 +5169,9 @@ const Others = {
       $("#oRe").onclick = () => this.loadRank(); return;
     }
     const R = this.rank || [];
-    box.innerHTML = `<div class="ohead"><div><b>ランキング</b><small>公開しているコレクションを、まい数の多い順に</small></div><button class="btn small" type="button" id="oRe">更新</button></div>
+    box.innerHTML = `<div class="ohead"><div><b>ランキング</b><small>公開しているコレクションを、枚数の多い順に</small></div><button class="btn small" type="button" id="oRe">更新</button></div>
       ${Privacy.public ? "" : `<p class="cap opriv">あなたのコレクションは非公開なので、ランキングには出ていません（右上の設定 → 公開）。</p>`}
-      ${R.length ? `<ol class="rank">${R.map((r, i) => `<li><button type="button" class="rrow2${r.user_id === Store.uid ? " me" : ""}" data-u="${esc(r.user_id)}"><span class="rkn rk${i < 3 ? i + 1 : 0}">${i + 1}</span><span class="rnm"><b>${esc(r.nick || "名無しのコレクター")}${r.user_id === Store.uid ? "<em>あなた</em>" : ""}</b><small>${r.n} まい</small></span><span class="rth">${(r.thumbs || []).slice(0, 4).map(p => `<img alt="" data-cp="${esc(p)}" src="${this.cutNow(p)}">`).join("")}</span><span class="chev" aria-hidden="true">›</span></button></li>`).join("")}</ol>` : `<div class="empty">まだ誰も公開していません。</div>`}`;
+      ${R.length ? `<ol class="rank">${R.map((r, i) => `<li><button type="button" class="rrow2${r.user_id === Store.uid ? " me" : ""}" data-u="${esc(r.user_id)}"><span class="rkn rk${i < 3 ? i + 1 : 0}">${i + 1}</span><span class="rnm"><b>${esc(r.nick || "名無しのコレクター")}${r.user_id === Store.uid ? "<em>あなた</em>" : ""}</b><small>${r.n} 枚</small></span><span class="rth">${(r.thumbs || []).slice(0, 4).map(p => `<img alt="" data-cp="${esc(p)}" src="${this.cutNow(p)}">`).join("")}</span><span class="chev" aria-hidden="true">›</span></button></li>`).join("")}</ol>` : `<div class="empty">まだ誰も公開していません。</div>`}`;
     $("#oRe").onclick = () => this.loadRank();
     box.onclick = e => { const b = e.target.closest("[data-u]"); if (b) this.open(b.dataset.u); };
   },
@@ -5190,7 +5190,7 @@ const Others = {
     const box = this.box(); const r = this.user; if (!box || !r) return; const me = r.user_id === Store.uid;
     const L = [...this.stamps].sort((p, q) => (q.date || "").localeCompare(p.date || "") || (q.created || 0) - (p.created || 0));
     const numOf = new Map([...this.stamps].sort((p, q) => (p.date || "9999").localeCompare(q.date || "9999") || (p.created || 0) - (q.created || 0)).map((s, i) => [s.id, +s.no > 0 ? +s.no : i + 1])); this.stamps.forEach(s => { s._no = numOf.get(s.id); });
-    box.innerHTML = `<div class="ouser"><button class="btn small" type="button" id="oBack">‹ ランキング</button><div class="oname"><b>${esc(r.nick || "名無しのコレクター")}</b>${me ? "<em>あなた</em>" : ""}<small>${this.uLoading ? "" : L.length + " まい"}</small></div></div>
+    box.innerHTML = `<div class="ouser"><button class="btn small" type="button" id="oBack">‹ ランキング</button><div class="oname"><b>${esc(r.nick || "名無しのコレクター")}</b>${me ? "<em>あなた</em>" : ""}<small>${this.uLoading ? "" : L.length + " 枚"}</small></div></div>
       <div class="subbar"><div class="seg" id="oTab" role="group" aria-label="表示"><button type="button" data-t="cards" aria-pressed="${this.tab === "cards"}">トレカ</button><button type="button" data-t="books" aria-pressed="${this.tab === "books"}">ジャーナル</button></div></div>
       <div id="oBody"></div>`;
     $("#oBack").onclick = () => { this.user = null; this.book = null; this.renderRank(); if (!this.rank) this.loadRank(); };
@@ -5201,7 +5201,7 @@ const Others = {
     if (this.uErr) { body.innerHTML = `<div class="empty">読み込めませんでした。通信を確かめてください。</div>`; return; }
     if (this.tab === "cards") {
       const nOv = L.filter(s => s.overlap).length;
-      body.innerHTML = L.length ? `${nOv ? `<p class="cap" style="padding:0 16px;margin:0 0 8px">重ね押し ${nOv} まい</p>` : ""}<div class="cards c${Grid.cols}" style="--cols:${Grid.cols}">${L.map(s => cardHTML(s, numOf.get(s.id), { cols: Grid.cols, other: true })).join("")}</div>` : `<div class="empty">公開しているトレカはありません。</div>`;
+      body.innerHTML = L.length ? `${nOv ? `<p class="cap" style="padding:0 16px;margin:0 0 8px">重ね押し ${nOv} 枚</p>` : ""}<div class="cards c${Grid.cols}" style="--cols:${Grid.cols}">${L.map(s => cardHTML(s, numOf.get(s.id), { cols: Grid.cols, other: true })).join("")}</div>` : `<div class="empty">公開しているトレカはありません。</div>`;
       body.onclick = e => { const c = e.target.closest("[data-open]"); if (!c) return; const items = [...body.querySelectorAll("[data-open]")].map(el => this.byId.get(el.dataset.open)).filter(Boolean); CardView.open(c.dataset.open, { items, front: true }); };
     } else this.renderBooks(body);
   },
@@ -5253,12 +5253,12 @@ const Party = {
   list: [5, 10, 25, 50, 100, 200, 300, 400, 500, 600, 700, 800, 900, 1000],
   check(n) { const hit = this.list.includes(n) || (n > 1000 && n % 1000 === 0); if (!hit || n <= (Profile.celebrated || 0)) return 0; Profile.celebrated = n; Profile.save(); return n; },
   words(n) {
-    const W = { 5: ["はじめの5まい！", "コレクションの第一歩。ここからどんどん増えていきます。"], 10: ["10まい達成！", "立派なコレクターの仲間入りです。"], 25: ["25まい達成！", "地図がにぎやかになってきました。"],
-      50: ["50まい達成！", "もう止まりません。次はいよいよ100まい。"], 100: ["100まい達成！", "大台にのりました。ここまで集めるのは本当にすごいことです。"], 200: ["200まい達成！", "旅の記録が、ずっしり厚くなってきました。"],
-      300: ["300まい達成！", "スタンプジャーナルが何冊でも作れる量です。"], 400: ["400まい達成！", "行った場所の数だけ、思い出があります。"], 500: ["500まい達成！", "折り返しの500。せんまいが見えてきました。"],
-      600: ["600まい達成！", "ここまで来る人は、なかなかいません。"], 700: ["700まい達成！", "まだまだ、押したい場所がありますね。"], 800: ["800まい達成！", "あと200まいで、せんまいです。"], 900: ["900まい達成！", "せんまいまで、あと100まい！"] };
-    if (n >= 1000) return [n === 1000 ? "1000まい達成！！" : `${n.toLocaleString()}まい達成！！`, n === 1000 ? "せんまい。ここまで集めた人は、ほんのひと握りです。心からおめでとうございます。" : "とんでもない記録です。本当におめでとうございます。"];
-    return W[n] || [`${n}まい達成！`, "おめでとうございます。"];
+    const W = { 5: ["はじめの5枚！", "コレクションの第一歩。ここからどんどん増えていきます。"], 10: ["10枚達成！", "立派なコレクターの仲間入りです。"], 25: ["25枚達成！", "地図がにぎやかになってきました。"],
+      50: ["50枚達成！", "もう止まりません。次はいよいよ100枚。"], 100: ["100枚達成！", "大台にのりました。ここまで集めるのは本当にすごいことです。"], 200: ["200枚達成！", "旅の記録が、ずっしり厚くなってきました。"],
+      300: ["300枚達成！", "スタンプジャーナルが何冊でも作れる量です。"], 400: ["400枚達成！", "行った場所の数だけ、思い出があります。"], 500: ["500枚達成！", "折り返しの500。千枚が見えてきました。"],
+      600: ["600枚達成！", "ここまで来る人は、なかなかいません。"], 700: ["700枚達成！", "まだまだ、押したい場所がありますね。"], 800: ["800枚達成！", "あと200枚で、千枚です。"], 900: ["900枚達成！", "千枚まで、あと100枚！"] };
+    if (n >= 1000) return [n === 1000 ? "1000枚達成！！" : `${n.toLocaleString()}枚達成！！`, n === 1000 ? "千枚。ここまで集めた人は、ほんのひと握りです。心からおめでとうございます。" : "とんでもない記録です。本当におめでとうございます。"];
+    return W[n] || [`${n}枚達成！`, "おめでとうございます。"];
   },
   show(n) {
     const grand = n >= 1000; const [t1, t2] = this.words(n); const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -6401,7 +6401,7 @@ const CardGrid = {
   open(o) {   // o: { title, items, front, at: {lat,lng}, add: preset, pubs }
     this.opts = o; this.items = o.items;
     const d = this.el || (this.el = document.createElement("div")); d.className = "cgv"; if (!d.parentNode) document.body.appendChild(d);
-    d.innerHTML = `<div class="cgv-head"><div class="cgv-t"><b>${esc(o.title || "")}</b><small>${o.items.length}まい${o.front ? "・みんなのトレカ" : ""}</small></div><button class="tcv-edit" type="button" id="cgvX">閉じる</button></div>
+    d.innerHTML = `<div class="cgv-head"><div class="cgv-t"><b>${esc(o.title || "")}</b><small>${o.items.length}枚${o.front ? "・みんなのトレカ" : ""}</small></div><button class="tcv-edit" type="button" id="cgvX">閉じる</button></div>
       <div class="cgv-acts">${o.at ? `<a class="btn small" href="${gmapsDir(o.at.lat, o.at.lng)}" target="_blank" rel="noopener">道案内</a>` : ""}${o.pubs ? `<button class="btn small" type="button" id="cgvInfo">置き場所・情報</button>` : ""}${o.add ? `<button class="btn small primary" type="button" id="cgvAdd">＋ ここのスタンプを追加</button>` : ""}</div>
       <div class="cgv-body"><div class="cards c3" style="--cols:3">${o.items.map(s => cardHTML(s, s._no != null ? s._no : PrintCard.no(s), { cols: 3, tag: s._tag })).join("")}</div>${o.front ? `<p class="cgv-note">裏面は、このスタンプをゲットした人だけのおたのしみ</p>` : ""}</div>`;
     d.hidden = false; document.documentElement.classList.add("tcv-on"); requestAnimationFrame(() => d.classList.add("show"));
@@ -7095,7 +7095,7 @@ const YearSum = {
       cats: [...L.reduce((m, s) => m.set(catNorm(s.cat), (m.get(catNorm(s.cat)) || 0) + 1), new Map())].sort((a, b) => b[1] - a[1]) };
   },
   async render(y) {
-    const D = await this.data(y); await PrintCard.fonts(`${y}年のぺたろぐスタンプ枚まい都道府県移動距離歩数時間レア重ね押しデジスタ第一発見者回おでかけ0123456789.,km` + (Profile.nick || ""));
+    const D = await this.data(y); await PrintCard.fonts(`${y}年のぺたろぐスタンプ枚枚都道府県移動距離歩数時間レア重ね押しデジスタ第一発見者回おでかけ0123456789.,km` + (Profile.nick || ""));
     const Wd = 1080, Hd = 1350, cv = mkCanvas(Wd, Hd), x = cv.getContext("2d");
     const g = x.createLinearGradient(0, 0, 0, Hd); g.addColorStop(0, "#1B2A4E"); g.addColorStop(1, "#0F1830"); x.fillStyle = g; x.fillRect(0, 0, Wd, Hd);
     x.globalAlpha = 0.07; for (let i = 0; i < 160; i++) { x.fillStyle = "#fff"; x.beginPath(); x.arc((i * 137.5) % Wd, (i * 89.3) % Hd, 1 + (i % 3), 0, 7); x.fill(); } x.globalAlpha = 1;
@@ -7108,7 +7108,7 @@ const YearSum = {
     x.fillStyle = "#FFFFFF"; x.font = "700 64px 'Shippori Mincho',serif"; x.fillText(`${y}年の`, 64, 196); x.fillText("ぺたろぐ", 64, 276);
     if (Profile.nick) { x.fillStyle = "rgba(255,255,255,.7)"; x.font = "500 26px 'Zen Kaku Gothic New',sans-serif"; x.fillText(Profile.nick + " さん", 64, 326); }
     x.fillStyle = "#FFFFFF"; x.font = "800 150px 'Zen Kaku Gothic New',sans-serif"; x.fillText(String(D.n), 64, 520); const nw = x.measureText(String(D.n)).width;
-    x.font = "700 40px 'Zen Kaku Gothic New',sans-serif"; x.fillStyle = "#F0C35A"; x.fillText("まい", 64 + nw + 12, 520); x.fillStyle = "rgba(255,255,255,.75)"; x.font = "500 26px 'Zen Kaku Gothic New',sans-serif"; x.fillText("押したスタンプ", 64, 572);
+    x.font = "700 40px 'Zen Kaku Gothic New',sans-serif"; x.fillStyle = "#F0C35A"; x.fillText("枚", 64 + nw + 12, 520); x.fillStyle = "rgba(255,255,255,.75)"; x.font = "500 26px 'Zen Kaku Gothic New',sans-serif"; x.fillText("押したスタンプ", 64, 572);
     x.fillStyle = "#FFFFFF"; x.font = "800 64px 'Zen Kaku Gothic New',sans-serif"; x.fillText(`${D.prefs.size}`, 64, 680); const pw = x.measureText(String(D.prefs.size)).width; x.font = "600 30px 'Zen Kaku Gothic New',sans-serif"; x.fillStyle = "rgba(255,255,255,.8)"; x.fillText(" / 47 都道府県", 64 + pw, 680);
     // 数字のタイル
     const tiles = [[fmtM(D.walkM + D.rideM), "移動距離"], [D.steps.toLocaleString(), "歩数"], [fmtDur(D.ms), "スタンプ集めの時間"], [`${D.outs}回`, "おでかけ"]];
@@ -7266,7 +7266,7 @@ async function useStandPhoto(f) {
 }
 
 /* ================= はじめてのツアー（ログインの前に、さわって体験する） =================
-   ようこそ → ぜんぶ（つまんで投げる）→ トレカ（タップ・裏返す）→ 地図（じぶん＋みんな）→ ジャーナル（開く）→ 1まい登録（カメラのデモ）→ お祝い → 登録画面
+   ようこそ → ぜんぶ（つまんで投げる）→ トレカ（タップ・裏返す）→ 地図（じぶん＋みんな）→ ジャーナル（開く）→ 1枚登録（カメラのデモ）→ お祝い → 登録画面
    ツアーの間は「砂場」: 本当の記録・ジャーナル・設定には何も書かない（ログイン中に見直すときも安全） */
 const SAMPLE_TRIVIA = {
   "東京駅": "丸の内駅舎は辰野金吾《たつのきんご》の設計で、1914年に開業しました。赤レンガの駅舎は2012年に創建当時の姿へ復原され、南北のドームの天井も見どころです。",
@@ -7319,13 +7319,13 @@ const Plan = {
   untilText() { const d = new Date(this.until - 1); return `${d.getMonth() + 1}月${d.getDate()}日`; },
   daysLeft() { return Math.max(1, Math.ceil((this.until - Date.now()) / 864e5)); },
   full() { sheetCtx = { mode: "plan" }; openSheet(`<div class="sheet-head"><h2>登録できる数がいっぱいです</h2><button class="btn small ghost" type="button" data-close>閉じる</button></div>
-    <div class="sec"><p class="cap" style="margin-top:0">無料で登録できるのは ${this.free}まい までです。${this.free + 1}まい目からは、月額${this.price}円で何まいでも登録できるようになります（ただいま準備中）。いま登録してあるトレカは、これまでどおり見たり編集したりできます。</p></div>`); },
-  html() {   // 設定の「プラン」: 無料50まいまで・いま何まい
+    <div class="sec"><p class="cap" style="margin-top:0">無料で登録できるのは ${this.free}枚 までです。${this.free + 1}枚目からは、月額${this.price}円で何枚でも登録できるようになります（ただいま準備中）。いま登録してあるトレカは、これまでどおり見たり編集したりできます。</p></div>`); },
+  html() {   // 設定の「プラン」: 無料50枚まで・いま何枚
     if (!(window.PetalogCloud && PetalogCloud.loggedIn && PetalogCloud.loggedIn())) return "";
     const n = stamps.filter(s => !s.sample).length, camp = this.campaign(), pc = Math.min(100, Math.round(n / this.free * 100));
-    return `<div class="sec plan"><h4>プラン</h4><div class="plan-row"><b>無料プラン</b><span>${n} / ${this.free}まい</span></div><div class="plan-bar"><i style="width:${pc}%"></i></div>
-      <p class="cap">${this.free}まいまで無料。${this.free + 1}まい目からは月額${this.price}円で、何まいでも登録できます。</p>
-      ${camp ? `<p class="plan-camp">${this.untilText()}までは、ぺたろぐ誕生記念で何まい登録しても無料です。</p>` : ""}</div>`;
+    return `<div class="sec plan"><h4>プラン</h4><div class="plan-row"><b>無料プラン</b><span>${n} / ${this.free}枚</span></div><div class="plan-bar"><i style="width:${pc}%"></i></div>
+      <p class="cap">${this.free}枚まで無料。${this.free + 1}枚目からは月額${this.price}円で、何枚でも登録できます。</p>
+      ${camp ? `<p class="plan-camp">${this.untilText()}までは、ぺたろぐ誕生記念で何枚登録しても無料です。</p>` : ""}</div>`;
   },
   set(cfg) { if (!cfg) return; const f = parseInt(cfg.free_stamps, 10); if (f > 0) this.free = f; const u = Date.parse(cfg.campaign_until || ""); if (isFinite(u)) this.until = u; },
 };
@@ -7336,7 +7336,7 @@ const Tour = {
     { k: "fall", v: "fall", t: "押したスタンプが、ここに集まる", ok: "スマホを傾けて、スタンプをころころ転がしてみて！ たっぷり遊んだら「つぎへ」。", beats: [
       { b: "スタンプを指でつまんで、ぽーんと投げてみて。", pos: "top", aim: "pile", gest: "drag", until: "drag" },
       { b: "次は「傾きで動かす」を押してみて。スマホの傾きで、スタンプが転がるようになります。", anchor: "#tiltBtn", aim: "anchor", until: "tilt" }] },
-    { k: "card", v: "book", t: "1まいずつ、トレカになる", beats: [
+    { k: "card", v: "book", t: "1枚ずつ、トレカになる", beats: [
       { b: "好きなトレカをタップして開いてみよう。", pos: "bottom", aim: "card1", until: "open" },
       { b: "トレカをタップして、裏返してみて。", pos: "low", aim: "tcv", until: "flip" }] },
     { k: "map", v: "map", t: "押した場所が、地図になる", beats: [
@@ -7345,7 +7345,7 @@ const Tour = {
     { k: "journal", v: "board", t: "ノートに貼って、飾る", beats: [
       { b: "スタンプジャーナルをタップして開いてみよう。", pos: "bottom", aim: "book", until: "openbook" },
       { b: "ページをめくって、中を見てみて。", pos: "bottom", until: "page" }] },
-    { k: "camera", v: "fall", t: "さあ、1まい登録してみよう", beats: [
+    { k: "camera", v: "fall", t: "さあ、1枚登録してみよう", beats: [
       { b: "スタンプを撮るだけで、切り抜き・名前の読み取りまで自動です。ここではデモで体験できます。", pos: "top", cta: "カメラを開く（デモ）", ico: "camera", act: "camera", until: "camera" }] },
   ],
   // ---------- はじまり ----------
@@ -7359,7 +7359,7 @@ const Tour = {
   ev(s, n) { try { Track.ev("tour", { s, ...(n != null ? { n } : {}) }); } catch (_) {} },
   start(o = {}) {
     if (this.on) return; this.on = true; this.preview = !!o.preview || this.loggedIn(); this.i = -1; this.did = {}; this.got = new Set();
-    lsSet("petalog.pinchHint", "1"); try { document.fonts.load('400 30px "Dela Gothic One"', "ぺたろぐ押したスタンプが、旅のコレクションになる。さぁあなたの集めをでもっと素敵な趣味にアップデート！ツアーはここまで10月31日登録し放題キャンペーン何まいでも無料50"); document.fonts.load('600 30px "Klee One"', "0123456789.はじめての1まい"); } catch (_) {}
+    lsSet("petalog.pinchHint", "1"); try { document.fonts.load('400 30px "Dela Gothic One"', "ぺたろぐ押したスタンプが、旅のコレクションになる。さぁあなたの集めをでもっと素敵な趣味にアップデート！ツアーはここまで10月31日登録し放題キャンペーン何枚でも無料50"); document.fonts.load('600 30px "Klee One"', "0123456789.はじめての1枚"); } catch (_) {}
     if (typeof closeSheet === "function") closeSheet(); if (CardView.el) CardView.close(true);
     this.sandbox(true); this.hooks(); this.ev("start");
     this.welcome();
@@ -7583,7 +7583,7 @@ const Tour = {
     this.sandbox(false); this.i = -1; if (!this.preview) lsSet("petalog.tourDone", "1");
   },
 };
-// ---------- 1まい登録してみる（カメラのデモ。本当には撮らない・保存しない） ----------
+// ---------- 1枚登録してみる（カメラのデモ。本当には撮らない・保存しない） ----------
 Object.assign(Tour, {
   async shot() {   // デモの「写真」: スタンプジャーナルの紙に押したスタンプ（と、切り抜いたあとのスタンプだけ）
     const W = 900, H = 1200, ph = mkCanvas(W, H), cut = mkCanvas(W, H), x = ph.getContext("2d"), y = cut.getContext("2d");
@@ -7591,7 +7591,7 @@ Object.assign(Tour, {
     const g = x.createLinearGradient(0, 0, W, H); g.addColorStop(0, "#F1EBDD"); g.addColorStop(1, "#E2D8C3"); x.fillStyle = g; x.fillRect(0, 0, W, H);
     try { x.globalCompositeOperation = "multiply"; x.fillStyle = x.createPattern(Paper.washi(), "repeat"); x.fillRect(0, 0, W, H); } catch (_) {}
     x.globalCompositeOperation = "source-over"; x.strokeStyle = "rgba(96,84,60,.4)"; x.lineWidth = 3; x.setLineDash([12, 9]); x.strokeRect(140, 250, 620, 640); x.setLineDash([]);
-    x.fillStyle = "rgba(38,52,96,.78)"; x.font = "600 40px 'Klee One','Zen Kaku Gothic New',sans-serif"; x.fillText(fmtDate(todayStr()) + "  はじめての1まい", 150, 960);
+    x.fillStyle = "rgba(38,52,96,.78)"; x.font = "600 40px 'Klee One','Zen Kaku Gothic New',sans-serif"; x.fillText(fmtDate(todayStr()) + "  はじめての1枚", 150, 960);
     const put = (c, mul) => { c.save(); c.translate(450, 570); c.rotate(-0.07); if (mul) { c.globalCompositeOperation = "multiply"; c.globalAlpha = 0.9; } const k = 540 / im.width; c.drawImage(im, -im.width * k / 2, -im.height * k / 2, im.width * k, im.height * k); c.restore(); };
     put(x, true); put(y, false);
     const v = x.createRadialGradient(W * 0.52, H * 0.46, W * 0.25, W * 0.5, H * 0.5, W * 0.98); v.addColorStop(0, "rgba(0,0,0,0)"); v.addColorStop(1, "rgba(46,34,14,.42)"); x.fillStyle = v; x.fillRect(0, 0, W, H);
@@ -7631,7 +7631,7 @@ Object.assign(Tour, {
         await Pack.play(d, { oneBtn: "つぎへ" });
         el.remove(); this.el.cam = null; if (!this.on) return;
         this.did.camera = true; this.card(); show("fall"); Fall.drop();
-        const c2 = this.el.card; if (c2) { c2.classList.remove("hide"); c2.innerHTML = `<div class="tc-arrive"><b>あなたの1まい目が届きました！</b><span>こんなふうに、押すたびにコレクションが増えていきます。</span></div>`; }
+        const c2 = this.el.card; if (c2) { c2.classList.remove("hide"); c2.innerHTML = `<div class="tc-arrive"><b>あなたの1枚目が届きました！</b><span>こんなふうに、押すたびにコレクションが増えていきます。</span></div>`; }
         clearInterval(this.tickT); await wait(2600); if (this.on) this.finale();
       }
     });
@@ -7660,7 +7660,6 @@ Object.assign(Tour, {
       <div class="tjoin" hidden>${logged ? `<button class="tc-x" type="button" data-j="x" aria-label="とじる">✕</button><h3>ツアーはここまで</h3><p class="tj-sub">いつでも設定の「使い方ツアーをもう一度見る」から見直せます。</p><button class="tj-go" type="button" data-j="x">とじる</button>`
         : `<button class="tc-x" type="button" data-j="x" aria-label="とじる">✕</button>
         <h3 data-h>無料で登録して、はじめる</h3>
-        <p class="tj-plan">${Plan.free}まいまで無料。${camp ? `<b>${Plan.untilText()}までは、ぺたろぐ誕生記念で何まい登録しても無料</b>です。` : `${Plan.free + 1}まい目からは月額${Plan.price}円です。`}</p>
         <ul class="tj-perks"><li><i aria-hidden="true">${tIco("journal")}</i><span><b>記録が消えない</b><small>機種変更しても、PCからでも同じコレクション</small></span></li>
           <li><i aria-hidden="true">${tIco("map")}</i><span><b>みんなの地図</b><small>ほかの人が見つけたスタンプの場所がわかる</small></span></li>
           <li><i aria-hidden="true">${tIco("camera")}</i><span><b>AIがお手伝い</b><small>スタンプの名前の読み取りと、裏面のプチ情報</small></span></li></ul>
@@ -7680,7 +7679,7 @@ Object.assign(Tour, {
     const setMode = m => { mode = m; const f = el.querySelector(".tj-form"); if (!f) return; el.querySelector("[data-h]").textContent = m === "up" ? "無料で登録して、はじめる" : "ログイン";
       f.querySelector(".tj-go").textContent = m === "up" ? "登録してはじめる" : "ログイン"; f.pw.autocomplete = m === "up" ? "new-password" : "current-password";
       el.querySelector("[data-j=mode]").textContent = m === "up" ? "アカウントをお持ちの方はログイン" : "はじめての方は登録"; el.querySelector("[data-j=forgot]").hidden = m === "up";
-      el.querySelector(".tj-perks").hidden = m !== "up"; el.querySelector(".tj-nick").hidden = m !== "up"; el.querySelector(".tj-plan").hidden = m !== "up"; f.querySelector(".tj-msg").textContent = "";
+      el.querySelector(".tj-perks").hidden = m !== "up"; el.querySelector(".tj-nick").hidden = m !== "up"; f.querySelector(".tj-msg").textContent = "";
       const p = el.querySelector(".tjoin"); if (p && el.classList.contains("p2")) el.style.setProperty("--jh", p.offsetHeight + "px"); };
     this.setJoinMode = setMode;
     const nickOf = () => { const f = el.querySelector(".tj-form"); return f ? f.nick.value.trim().slice(0, 20) : ""; };
@@ -7733,7 +7732,7 @@ Object.assign(Tour, {
     const pn = lsGet("petalog.pendingNick"); if (pn && this.loggedIn()) { lsSet("petalog.pendingNick", ""); if (!Profile.nick) { Profile.nick = pn; Profile.save().then(() => { try { syncShares(true); } catch (_) {} }).catch(() => {}); } }
     if (!lsGet("petalog.afterJoin")) return; lsSet("petalog.afterJoin", ""); if (!this.loggedIn() || stamps.length) return;
     const b = $("#addBtn"); if (!b) return; const r = b.getBoundingClientRect(), el = document.createElement("div"); el.className = "tnudge"; el.setAttribute("role", "status");
-    el.innerHTML = `<b>ようこそ！</b>ここから本物の1まい目を登録しよう`; el.style.top = (r.bottom + 12) + "px"; el.style.right = Math.max(10, innerWidth - r.right - 6) + "px";
+    el.innerHTML = `<b>ようこそ！</b>ここから本物の1枚目を登録しよう`; el.style.top = (r.bottom + 12) + "px"; el.style.right = Math.max(10, innerWidth - r.right - 6) + "px";
     document.body.appendChild(el); requestAnimationFrame(() => el.classList.add("in")); b.classList.add("tglow");
     const off = () => { el.classList.remove("in"); b.classList.remove("tglow"); setTimeout(() => el.remove(), 300); };
     el.onclick = off; b.addEventListener("click", off, { once: true }); setTimeout(off, 9000);
