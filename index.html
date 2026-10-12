@@ -7265,6 +7265,68 @@ async function useStandPhoto(f) {
   $("#standKeep").onclick = async () => { try { const cv = await fileToCanvas(f, 1400); const p = makePhoto(cv); if (p) { c.newScenes.push({ k: uid("p").slice(1), url: p.url }); renderPhotos(); toast("写真に追加しました"); } } catch (_) { toast("この写真は追加できませんでした"); } box.hidden = true; box.innerHTML = ""; };
 }
 
+/* ---------- 「ぜんぶ」: 読み込み直したときや、裏でデータが更新されたときに、毎回スタンプを降らせ直さない ----------
+   ・ふらす／絞り込み／大きさを変えたとき（drop）だけ、ぜんぶ降らせ直す
+   ・データの更新（台紙の写真が届いた・新しく登録した・消した）は、その場で差し替え・足す・消すだけ
+   ・画面の大きさが少し変わった（iPhoneのアドレスバーが出たり消えたり）ときは、壁だけ動かす */
+Object.assign(Fall, {
+  drop() { this.hard = true; this.dirty = true; this.stop(); if (view === "fall") this.start(); },
+  sizeFor(n) { const k = this.scale || 1; return clamp(Math.sqrt(0.42 * this.W * this.H / Math.max(1, n)), 42, Math.min(this.W, this.H) * 0.34) * k; },
+  body(s, x, y, angle, size, med) {
+    const M = window.Matter, f = s.sizeMm && med ? clamp(s.sizeMm / med, 0.65, 1.5) : 1, sz = size * f, A = artOf(s), ar = (A.w || 1) / (A.h || 1);
+    const bw = ar >= 1 ? sz : sz * ar, bh = ar >= 1 ? sz / ar : sz, opts = { restitution: 0.25, friction: 0.35, frictionAir: 0.012, density: 0.002, angle };
+    const b = s.shape === "circle" && !A.sheet ? M.Bodies.circle(x, y, Math.min(bw, bh) / 2, opts) : M.Bodies.rectangle(x, y, bw, bh, { ...opts, chamfer: { radius: Math.min(bw, bh) * 0.08 } });
+    b.plugin = { s, w: bw, h: bh, img: imgFor(A.url), sheet: A.sheet }; return b;
+  },
+  sync() {
+    const M = window.Matter; if (!M || !this.engine || !this.bodies) return false;
+    if (this.bodies.some(b => !b.plugin || b.plugin.bundle)) return false;
+    const L = this.items(), k = this.scale || 1, minS = 42 * k, cap = Math.max(12, Math.floor(0.5 * this.W * this.H / (minS * minS * 1.15)));
+    if (L.length > cap || !L.length) return false;
+    if (Math.abs(L.length - this.bodies.length) > Math.max(3, Math.round(this.bodies.length * 0.3))) return false;
+    const want = new Map(L.map(s => [s.id, s])), size = this.sizeFor(L.length);
+    const mms = L.map(s => s.sizeMm).filter(Boolean).sort((a, b) => a - b), med = mms.length ? mms[mms.length >> 1] : 0;
+    const keep = [];
+    for (const b of this.bodies) {
+      const s = want.get(b.plugin.s.id); if (!s) { M.Composite.remove(this.engine.world, b); continue; }
+      const A = artOf(s), img = imgFor(A.url); b.plugin.s = s;
+      if (b.plugin.img === img && !!b.plugin.sheet === !!A.sheet) { keep.push(b); continue; }
+      const old = b.plugin.w / (b.plugin.h || 1), now = (A.w || 1) / (A.h || 1);
+      if (Math.abs(old - now) < 0.04 && !!b.plugin.sheet === !!A.sheet) { b.plugin.img = img; b.plugin.sheet = A.sheet; keep.push(b); continue; }
+      const nb = this.body(s, b.position.x, b.position.y, b.angle, size, med); M.Composite.remove(this.engine.world, b); M.Composite.add(this.engine.world, nb); keep.push(nb);
+    }
+    const have = new Set(keep.map(b => b.plugin.s.id)), add = L.filter(s => !have.has(s.id));
+    if (add.length) {   // 新しく増えたものだけ、上から降ってくる（天井をいったん外す）
+      const ceil = this.engine.world.bodies.find(b => b.isStatic && Math.abs(b.position.y + 100) < 1 && Math.abs(b.position.x - this.W / 2) < 1); if (ceil) M.Composite.remove(this.engine.world, ceil); this.ceilingAdded = false;
+      add.forEach((s, i) => { const nb = this.body(s, size / 2 + Math.random() * (this.W - size), -size - i * size * 0.6, (Math.random() - 0.5) * 1.2, size, med); M.Composite.add(this.engine.world, nb); keep.push(nb); });
+    }
+    this.bodies = keep;
+    $("#fallCount").textContent = L.length + "枚"; const emp = $("#fallEmpty"); if (emp) emp.hidden = L.length > 0;
+    this.dirty = false; return true;
+  },
+  resize() {   // 壁と床だけ作り直す（スタンプはそのまま）
+    const M = window.Matter, wrap = $("#fallWrap"), cv = $("#fallCv"); if (!M || !this.engine || !wrap) return;
+    this.W = wrap.clientWidth; this.H = wrap.clientHeight; this.dpr = Math.min(2, devicePixelRatio || 1); cv.width = this.W * this.dpr; cv.height = this.H * this.dpr;
+    this.engine.world.bodies.filter(b => b.isStatic).forEach(b => M.Composite.remove(this.engine.world, b));
+    const W = this.W, H = this.H, T = 200;
+    M.Composite.add(this.engine.world, [M.Bodies.rectangle(W / 2, H + T / 2, W * 3, T, { isStatic: true }), M.Bodies.rectangle(-T / 2, H - H * 10, T, H * 20, { isStatic: true }), M.Bodies.rectangle(W + T / 2, H - H * 10, T, H * 20, { isStatic: true })]);
+    for (const b of this.bodies) { const r = Math.max(b.plugin.w, b.plugin.h) / 2, x = clamp(b.position.x, r, Math.max(r, W - r)), y = Math.min(b.position.y, H - r); if (x !== b.position.x || y !== b.position.y) M.Body.setPosition(b, { x, y }); }
+    this.ceilingAdded = false; this.lastSize = W + "x" + H;
+  },
+});
+(function () {
+  const st = Fall.start;
+  Fall.start = function () {
+    const wrap = $("#fallWrap");
+    if (window.Matter && this.engine && wrap && !this.hard) {
+      if (this.dirty && this.sync()) this.dirty = false;
+      const sz = wrap.clientWidth + "x" + wrap.clientHeight;
+      if (!this.dirty && this.lastSize !== sz && wrap.clientWidth > 0 && wrap.clientHeight > 0) this.resize();
+    }
+    this.hard = false; return st.apply(this, arguments);
+  };
+})();
+
 /* ================= はじめてのツアー（ログインの前に、さわって体験する） =================
    ようこそ → ぜんぶ（つまんで投げる）→ トレカ（タップ・裏返す）→ 地図（じぶん＋みんな）→ ジャーナル（開く）→ 1枚登録（カメラのデモ）→ お祝い → 登録画面
    ツアーの間は「砂場」: 本当の記録・ジャーナル・設定には何も書かない（ログイン中に見直すときも安全） */
@@ -7811,7 +7873,7 @@ const SamplePh = {
 })();
 
 /* ================= boot ================= */
-addEventListener("resize", () => { Book.layout(); if (view === "fall") { Fall.dirty = true; Fall.stop(); Fall.start(); } if (view === "map") MapV.draw(); });
+addEventListener("resize", () => { Book.layout(); if (view === "fall") { Fall.stop(); Fall.start(); } if (view === "map") MapV.draw(); });
 document.addEventListener("visibilitychange", () => { if (document.hidden) Fall.stop(); else if (view === "fall") Fall.start(); });
 document.addEventListener("contextmenu", e => { if (!e.target.closest("input,textarea")) e.preventDefault(); });
 (async function boot() {
@@ -7830,7 +7892,7 @@ document.addEventListener("contextmenu", e => { if (!e.target.closest("input,tex
   setTimeout(() => Tour.nudge(), 1200);
   setTimeout(() => Privacy.firstSync(), 2500); loadSheets(); setTimeout(trimOld, 6000); setTimeout(() => Zukan.backfill(), 9000); Walk.init(); Track.init(); setTimeout(() => Numbers.ensure(), 1500);
   if (!lsGet("petalog.pinchHint")) { lsSet("petalog.pinchHint", "1"); setTimeout(() => toast("トレカ一覧は、2本指でつまむと並べる列の数（1〜5列）を変えられます", 4200), 4000); }
-  (async () => { let n = 0; for (const s of stamps) { if (await fillStats(s)) n++; } if (n) Grid.render(); })();
+  (async () => { let n = 0; for (const s of stamps) { if (await fillStats(s)) { n++; if (!s.sample && findStamp(s.id) === s) await Store.saveStamp(s).catch(() => {}); } } if (n) Grid.render(); })();
 })();
 </script>
 
