@@ -147,12 +147,14 @@ function triviaPrompt(a: Record<string, string>, digital: boolean, search: strin
 文体の見本（内容はまねしない。書き出し・調子・密度だけ参考にする）:
 描かれているのは首里城《しゅりじょう》の正殿《せいでん》。正面の弓なりの屋根は本土なら「唐破風《からはふ》」ですが、琉球《りゅうきゅう》では「破」の字を縁起が悪いと嫌い「唐玻豊《からはふう》」と書きます。屋根の両端でにらみをきかせる龍は「龍頭棟飾《りゅうとうむなかざり》」。首里城は記録に残るだけで5回焼け落ち、そのたびに再建されてきました。${fix}
 
-最後に、本文だけを返してください（前置き・見出し・かぎかっこでくくる・JSONは不要）。`;
+調べた結果の報告や「〜と確認できました」「これを踏まえて書きます」のような前置きは書かない。完成した本文だけを、<trivia> と </trivia> の間に入れて返してください（見出し・かぎかっこ・JSONは不要）。`;
 }
 
 // AIの返事から本文だけを取り出す（JSONで返ってきても、前置きがついていても読めるように）
 function cleanTrivia(raw: string): string {
   let s = String(raw ?? "").replace(/```(?:json)?/gi, "").trim();
+  const tg = [...s.matchAll(/<trivia>([\s\S]*?)<\/trivia>/g)].map((x) => x[1].trim()).filter(Boolean);
+  if (tg.length) s = tg[tg.length - 1]; else s = s.replace(/<\/?trivia>/g, "");   // 本文は <trivia> の中（いちばん最後のもの）
   const m = s.match(/\{[\s\S]*\}/);
   if (m && /"text"/.test(m[0])) {
     try { const o = JSON.parse(m[0]); if (o && typeof o.text === "string") s = o.text; }
@@ -162,7 +164,11 @@ function cleanTrivia(raw: string): string {
   s = s.replace(/^(本文|プチ情報)\s*[:：]\s*/, "").replace(/[（(]英語版[）)]/g, "").trim();
   if (/^".*"$/.test(s)) s = s.slice(1, -1).trim();
   if (/^「[^「]*」$/.test(s)) s = s.slice(1, -1).trim();
-  const i = s.indexOf("描かれているのは"); if (i > 0 && i < 300) s = s.slice(i);   // 「以下が〜です」などの前置きを落とす
+  // 「以下が〜です」「〜と確認できました。これを踏まえて書きます。」などの前置きを落とす。
+  // 調べた報告のあとに本文を書き直していることがあるので、文の頭にある「描かれているのは」のうち、いちばん最後のところから使う
+  let st = -1; for (const m2 of s.matchAll(/描かれているのは/g)) { const k = m2.index ?? 0; if (k === 0 || /[。．！？」\s]/.test(s[k - 1])) st = k; }
+  if (st > 0) s = s.slice(st);
+  s = s.split(/(?<=。)/).filter((p) => !/(これを踏まえ|踏まえて書|書きます|書いていきます|以上です|検索(で|して)確認|調べた(結果|ところ)|と確認でき(まし)?た。$)/.test(p)).join("").trim();
   // 長すぎるときは、入る長さ（ふりがなを除いて190字）までの最後の「。」で切る
   const vis = (x: string) => x.replace(/《[^》]*》/g, "").replace(/｜/g, "").length;
   if (vis(s) > 190) { let acc = ""; for (const p of s.split(/(?<=。)/)) { if (vis(acc + p) > 190) break; acc += p; } if (vis(acc) >= 80) s = acc; }
@@ -190,7 +196,7 @@ async function askClaude(key: string, model: string, content: unknown[], uses: n
     if (j.stop_reason !== "pause_turn") break;   // 検索が長いときは続きを頼む
     messages.push({ role: "assistant", content: j.content });
   }
-  return { ok: true as const, text: out || all, info };
+  return { ok: true as const, text: !/<trivia>/.test(out) && /<trivia>/.test(all) ? all : out || all, info };
 }
 
 async function trivia(uid: string, body: Record<string, unknown>) {
