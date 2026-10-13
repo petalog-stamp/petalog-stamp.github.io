@@ -141,6 +141,7 @@ function triviaPrompt(a: Record<string, string>, digital: boolean, search: strin
 - 最後は、行った人がうれしくなる具体的な小ネタ（名物、見どころ、呼び名など）で締める。
 - 「素敵」「魅力たっぷり」「〜してみませんか」「きっと〜はず」のような、ありきたりなほめ言葉や呼びかけは使わない。具体的な豆知識を詰め込むことで熱さを出す。です・ます調と体言止めをまぜてテンポよく。
 - その土地の方言や呼び名があれば、ひとつ添えると楽しい（無理に入れない）。方言の意味は「めんそーれ（ようこそ）」のように（）で添える。
+- 日本語の文の中に英単語を混ぜない（「創業」を「creation」と書くなど）。スタンプに書かれた英字や、英字の名前を出すときは「」でくくる。
 - 長さは140〜170字（ふりがなを除く）。トレカの小さな欄に入れるので、これより長くしない。改行なし。絵文字・記号の飾り・出典番号は入れない。
 - 小学生には読みにくい漢字の語・地名には、直後に《よみ》の形でふりがなを付ける（例: 首里城《しゅりじょう》）。《》は漢字の直後だけに使い、同じ語は最初の1回だけ。付けすぎない。
 
@@ -173,6 +174,35 @@ function cleanTrivia(raw: string): string {
   const vis = (x: string) => x.replace(/《[^》]*》/g, "").replace(/｜/g, "").length;
   if (vis(s) > 190) { let acc = ""; for (const p of s.split(/(?<=。)/)) { if (vis(acc + p) > 190) break; acc += p; } if (vis(acc) >= 80) s = acc; }
   return s.length >= 60 ? s.slice(0, 400) : "";
+}
+
+// 日本語の文の途中に英単語がまぎれこんでいないか（「」やかっこの中、大文字を含む名前は除く）
+function strayEnglish(t: string): boolean {
+  const s = t.replace(/「[^」]*」|『[^』]*』|（[^）]*）|\([^)]*\)/g, "　");
+  const J = /[ぁ-んァ-ヶ一-龠々ー、。]/;
+  for (const m of s.matchAll(/[A-Za-z]+/g)) {
+    const w = m[0], i = m.index ?? 0;
+    if (w.length < 3 || /[A-Z]/.test(w)) continue;
+    if (J.test(s[i - 1] ?? "") || J.test(s[i + w.length] ?? "")) return true;
+  }
+  return false;
+}
+// まぎれこんだ英単語だけを日本語に直す（安いモデルで1回だけ。直せなかったら元のまま）
+async function fixEnglish(key: string, t: string): Promise<string> {
+  const prompt = `次の文章は、日本語の旅の豆知識です。文の途中に、日本語にするべき英単語がまぎれこんでいます（例: 「1940年creation」→「1940年創業」）。
+その英単語だけを自然な日本語に直してください。それ以外（ふりがなの《》、かぎかっこ、店・施設・キャラクターの名前、スタンプに書かれた英字）は一文字も変えないこと。
+直した文章だけを <trivia> と </trivia> の間に入れて返してください。
+文章: ${t}`;
+  const r = await fetch("https://api.anthropic.com/v1/messages", {
+    method: "POST",
+    headers: { "content-type": "application/json", "x-api-key": key, "anthropic-version": "2023-06-01" },
+    body: JSON.stringify({ model: MODEL_QUICK, max_tokens: 800, messages: [{ role: "user", content: prompt }], ...noThink(MODEL_QUICK) }),
+  });
+  if (!r.ok) return t;
+  const j = await r.json();
+  const u = cleanTrivia((j.content ?? []).map((x: { text?: string }) => x.text ?? "").join(""));
+  if (!u || !u.startsWith("描かれているのは") || Math.abs(u.length - t.length) > Math.max(20, t.length * 0.15)) return t;
+  return u;
 }
 
 async function askClaude(key: string, model: string, content: unknown[], uses: number) {
@@ -275,6 +305,7 @@ async function trivia(uid: string, body: Record<string, unknown>) {
     if (!t) console.error("trivia parse", u, res.info, JSON.stringify(res.text.slice(0, 300)));
   }
   if (!t) { await refund(); return json({ error: "parse" }, 502); }
+  if (strayEnglish(t)) t = await fixEnglish(key, t).catch(() => t);
   const motif = "";
   if (fix && best && bd <= SAME) await admin.from("trivia").update({ text: t, model, hint, fixed_by: uid, updated_at: new Date().toISOString() }).eq("id", best.id);   // みんなの文章も直す
   else await admin.from("trivia").insert({ pkey, dh, lat: hasLL ? lat : null, lng: hasLL ? lng : null, name: a.name, place: a.place, pref: a.pref, text: t, motif, model, created_by: uid, ...(fix ? { hint, fixed_by: uid } : {}) });

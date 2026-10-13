@@ -1396,6 +1396,18 @@ html.tour-lock,html.tour-lock body{overflow:hidden}
 @media (prefers-reduced-motion:reduce){.tlasso .hint{display:none}}
 .tcoach p.tc-trace.again{color:var(--shu);animation:twig .45s ease}
 @keyframes twig{0%,100%{transform:none}20%{transform:translateX(-5px)}45%{transform:translateX(5px)}70%{transform:translateX(-3px)}}
+/* トレカ裏: プチ情報取得中（解説の欄の上で、ぺたろぐの◎がくるくる） */
+.tcv-load{position:absolute;left:6.5%;right:6.5%;top:46.5%;height:33%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;border-radius:10px;color:#F3E2B0;background:linear-gradient(rgba(0,0,0,.16),rgba(0,0,0,.16)),color-mix(in srgb,var(--g,#2B4C9B) 82%,transparent);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);animation:tlfade .3s ease;transition:opacity .25s}
+.tcv-load.out{opacity:0}
+.tcv-load b{font:700 13px var(--f-ui,sans-serif);letter-spacing:.14em}
+.pl-mark{width:48px;height:48px;transform:rotate(-12deg);overflow:visible}
+.pl-track{fill:none;stroke:rgba(243,226,176,.22);stroke-width:4}
+.pl-arc{fill:none;stroke:#F3E2B0;stroke-width:4;stroke-linecap:round;stroke-dasharray:1 126;transform-origin:24px 24px;animation:plspin 1.4s linear infinite,pldash 1.4s ease-in-out infinite}
+.pl-in{fill:none;stroke:#F3E2B0;stroke-width:2;opacity:.9}
+@keyframes plspin{to{transform:rotate(360deg)}}
+@keyframes pldash{0%{stroke-dasharray:1 126;stroke-dashoffset:0}50%{stroke-dasharray:88 126;stroke-dashoffset:-32}100%{stroke-dasharray:88 126;stroke-dashoffset:-124}}
+@keyframes tlfade{from{opacity:0}to{opacity:1}}
+@media (prefers-reduced-motion:reduce){.pl-arc{animation:none;stroke-dasharray:60 126}}
 </style>
 
 <div id="app">
@@ -6243,7 +6255,7 @@ const PrintCard = {
     else {
       this.text = this.fallback(s); ta.value = this.text; this.render();
       const re = $("#pcRe");
-      const ask = () => { re.hidden = true; st("この場所のプチ情報をAIが書いています…（少しかかります）"); Trivia.get(s).then(useAi).catch(e => { if (this.edited || this.s !== s) return; st(Trivia.msg(e) + "。いまは記録から作った文章です。自由に書きかえられます。"); re.hidden = !Trivia.soft(e); }); };
+      const ask = () => { re.hidden = true; st("プチ情報取得中…"); Trivia.get(s).then(useAi).catch(e => { if (this.edited || this.s !== s) return; st(Trivia.msg(e) + "。いまは記録から作った文章です。自由に書きかえられます。"); re.hidden = !Trivia.soft(e); }); };
       re.onclick = () => { Trivia.err.delete(s.id); ask(); };
       if (Trivia.can(s)) ask();
       else st("記録から文章を作りました。自由に書きかえられます。");
@@ -6315,15 +6327,24 @@ const CardView = {
   el: null, ids: [], i: 0, rx: 0, ry: 0, vx: 0, vy: 0, base: 0, drag: null, last: 0, raf: 0, cache: new Map(), noDragUntil: 0, seq: 0,
   noteOf(s) { return Trivia.text(s) || PrintCard.fallback(s); },
   paintBack(s, my) {
-    const bk = this.el.querySelector("#tcvBack");
-    bk.innerHTML = `<div class="tcv-wait"><span class="spin"></span></div>`; this.backURL(s).then(u => { if (my === this.seq) bk.innerHTML = `<img src="${u}" alt="裏面">`; }).catch(() => { if (my === this.seq) bk.innerHTML = `<div class="tcv-wait">裏面を読み込めませんでした</div>`; });
+    const bk = this.el.querySelector("#tcvBack"), ld = () => (this._ld === s.id ? this.loadHTML(s) : "");
+    bk.innerHTML = `<div class="tcv-wait"><span class="spin"></span></div>`; this.backURL(s).then(u => { if (my === this.seq) bk.innerHTML = `<img src="${u}" alt="裏面">` + ld(); }).catch(() => { if (my === this.seq) bk.innerHTML = `<div class="tcv-wait">裏面を読み込めませんでした</div>`; });
+  },
+  // プチ情報を取ってくる間: 裏面の解説の欄の上で、ぺたろぐの印（◎）がくるくる回る（CSSだけの軽い動き）
+  loadHTML(s) { return `<div class="tcv-load" data-id="${esc(s.id)}" role="status"><svg class="pl-mark" viewBox="0 0 48 48" aria-hidden="true"><circle class="pl-track" cx="24" cy="24" r="20"/><circle class="pl-arc" cx="24" cy="24" r="20"/><circle class="pl-in" cx="24" cy="24" r="12.5"/></svg><b>プチ情報取得中</b></div>`; },
+  setLoad(s, on) {
+    if (on) this._ld = s.id; else if (this._ld === s.id) this._ld = null;
+    const bk = this.el && this.el.querySelector("#tcvBack"); if (!bk) return;
+    const cur = [...bk.querySelectorAll(".tcv-load")].find(e => e.dataset.id === s.id);
+    if (on && !cur && bk.querySelector("img") && this.items[this.i] === s) bk.insertAdjacentHTML("beforeend", this.loadHTML(s));
+    if (!on && cur) { cur.classList.add("out"); setTimeout(() => cur.remove(), 260); }
   },
   flipped() {   // 裏を向いたとき、まだプチ情報がなければAIに書いてもらう（同じスタンプの文章があればすぐ出る）
     const s = this.items[this.i]; if (this.front || !s || Math.round(this.base / 180) % 2 === 0) return;
     if (Trivia.text(s) || !Trivia.can(s) || Trivia.blocked(s)) return;
-    const my = this.seq; let told = false; const tm = setTimeout(() => { told = true; toast("裏面のプチ情報をAIが書いています…（少しかかります）", 4000); }, 900);
-    Trivia.get(s).then(() => { clearTimeout(tm); if (my === this.seq && !this.el.hidden) { this.paintBack(s, my); if (told) toast("プチ情報ができました"); } })
-      .catch(e => { clearTimeout(tm); if (e && e.code === "user_limit") return; if (told || (e && e.code !== "not_configured")) toast(Trivia.msg(e) + (Trivia.soft(e) ? "。もう一度裏返すと作り直します" : ""), 3600); });
+    const my = this.seq; this.setLoad(s, true);
+    Trivia.get(s).then(() => { this.setLoad(s, false); if (my === this.seq && !this.el.hidden) this.paintBack(s, my); })
+      .catch(e => { this.setLoad(s, false); if (e && e.code === "user_limit") return; if (e && e.code !== "not_configured") toast(Trivia.msg(e) + (Trivia.soft(e) ? "。もう一度裏返すと作り直します" : ""), 3600); });
   },
   async backURL(s) {
     const txt = this.noteOf(s), key = [s.id, (s.scenes || []).join(","), s.hasPhoto ? 1 : 0, txt, s.name, s.place, s.date, s.cat, s.sizeMm, s.lat, JSON.stringify(s.bcrop || {}), backSheetOn(s) ? "sh" : "st"].join("|");
