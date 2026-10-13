@@ -5896,7 +5896,11 @@ const PrintCard = {
   // ルビ: 「首里城《しゅりじょう》」または「｜那覇空港《なはくうこう》」の書き方
   ruby(t) { const out = [], re = /(?:｜([^｜《》\n]+)|([㐀-䶿一-鿿々〆ヶ]+))《([^》\n]+)》/g; let i = 0, mm;
     const lone = x => x.replace(/《([^》\n]*)》/g, "（$1）");   // 漢字のあとでない《》（方言の意味など）は（）で見せる
-    while ((mm = re.exec(t))) { for (const ch of lone(t.slice(i, mm.index))) out.push({ t: ch }); out.push({ t: mm[1] || mm[2], r: mm[3] }); i = re.lastIndex; }
+    while ((mm = re.exec(t))) { for (const ch of lone(t.slice(i, mm.index))) out.push({ t: ch });
+      const base = mm[1] || mm[2], rd = mm[3], prev = t[mm.index - 1] || "";
+      // 「昭和15年《しょうわじゅうごねん》」のような数字の語や、字に対して長すぎるふりがなは付けない（字がばらばらに広がってしまうため）
+      if (!mm[1] && (/[0-9０-９]/.test(prev) || [...rd].length > [...base].length * 4 + 1)) for (const ch of base) out.push({ t: ch }); else out.push({ t: base, r: rd });
+      i = re.lastIndex; }
     for (const ch of lone(t.slice(i))) out.push({ t: ch });
     const g = []; for (const u of out) { const p = g[g.length - 1]; if (!u.r && p && !p.r && /^[0-9A-Za-z.,%°'"]+$/.test(p.t + u.t)) p.t += u.t; else g.push({ ...u }); } return g; },   // 数字や英字のつながりは改行で分けない
   plain(t) { return this.ruby(String(t || "")).map(u => u.t + (u.r || "")).join(""); },
