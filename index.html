@@ -8089,6 +8089,8 @@ const HQImport = {
 .hqi-row .on{outline:2px solid #2B4C9B;outline-offset:1px}
 .hqi-map{height:220px;border-radius:12px;overflow:hidden}
 .hqi-crop{display:flex;justify-content:center}
+.hqi-er{display:flex;justify-content:center;background:repeating-conic-gradient(#eee 0 25%,#fff 0 50%) 0 0/16px 16px;border-radius:8px;padding:6px}
+.hqi-er canvas{touch-action:none;max-width:100%}
 .hqi-crop canvas{border-radius:8px;touch-action:none;max-width:100%}`;
     document.head.appendChild(s);
   },
@@ -8122,8 +8124,8 @@ const HQImport = {
   },
   async make(it) {
     const e = this.ed(it), key = JSON.stringify(e); if (it._r && it._rk === key) return it._r;
-    const im = await this.src(it), cv = this.rotCanvas(im, e.rot + e.fine), an = analyze(cv), t = an.t * e.tk;
-    const box = e.box || findBox(cv, an, t), cut = makeCut(cv, box, an.paper, t, e.mode);
+    const im = await this.src(it), cv = adjustCanvas(this.rotCanvas(im, e.rot + e.fine), { auto: !!e.auto, bright: e.bright || 0, contrast: e.contrast || 0 }), an = analyze(cv), t = an.t * e.tk;
+    const box = e.box || findBox(cv, an, t), cut = makeCut(cv, box, an.paper, t, e.mode, { erase: e.erase || [], ghost: !!e.ghost });
     it._r = { cv, an, box, cut }; it._rk = key; return it._r;
   },
   card(it, r) {
@@ -8209,10 +8211,15 @@ const HQImport = {
       <label>使う範囲（四角をドラッグ）<div class="hqi-crop"><canvas id="hqiCrop"></canvas></div><div class="hqi-row"><button class="btn small" type="button" id="hqiAuto">範囲を自動にもどす</button></div></label>
       <label>回転<div class="hqi-row"><button class="btn small" type="button" id="hqiRl">↺ 90°</button><button class="btn small" type="button" id="hqiRr">↻ 90°</button><span id="hqiFv">${e.fine}°</span></div><input type="range" id="hqiFine" min="-20" max="20" step="1" value="${e.fine}"></label>
       <label>透かし（左: インクを濃く残す ／ 右: うすい所を消す）<input type="range" id="hqiTk" min="0.5" max="1.8" step="0.05" value="${e.tk}"></label>
+      <label>明るさ<input type="range" id="hqiBr" min="-60" max="60" step="2" value="${e.bright || 0}"></label>
+      <label>コントラスト<input type="range" id="hqiCo" min="-40" max="80" step="2" value="${e.contrast || 0}"></label>
+      <label class="hqi-row" style="display:flex"><input type="checkbox" id="hqiAutoB"${e.auto ? " checked" : ""}> 明るさを自動でととのえる　<input type="checkbox" id="hqiGhost"${e.ghost ? " checked" : ""}> うすい影を消す</label>
+      <label>消しゴム（なぞったところを消す）<div class="hqi-er"><canvas id="hqiErCv"></canvas></div>
+        <div class="hqi-row"><span>太さ</span><input type="range" id="hqiErSz" min="4" max="40" step="1" value="14" style="flex:1"><button class="btn small" type="button" id="hqiErUndo">1つもどす</button><button class="btn small" type="button" id="hqiErAll">ぜんぶもどす</button></div></label>
       <label>色<div class="hqi-row" id="hqiMode">${[["auto", "自動"], ["mono", "1色"], ["color", "カラーのまま"]].map(([k, t]) => `<button type="button" class="btn small${e.mode === k ? " on" : ""}" data-m="${k}">${t}</button>`).join("")}</div></label>
       <label class="hqi-row" style="display:flex"><input type="checkbox" id="hqiOvl"${it._ovl ? " checked" : ""}> 重ね押しのスタンプ</label>
       <label>場所（ピンをドラッグ、または地図をタップ）<div class="hqi-map" id="hqiMap"></div></label></div>`);
-    const redo = (keepBox) => { if (!keepBox) e.box = null; clearTimeout(this._rt); this._rt = setTimeout(async () => { try { const r2 = await this.make(it); if (this.cur() !== it) return; $("#hqiCard").innerHTML = this.card(it, r2); if (!keepBox) this.crop(it, r2); } catch (_) {} }, 120); };
+    const redo = (keepBox) => { if (!keepBox) { e.box = null; e.erase = []; } clearTimeout(this._rt); this._rt = setTimeout(async () => { try { const r2 = await this.make(it); if (this.cur() !== it) return; $("#hqiCard").innerHTML = this.card(it, r2); if (!keepBox) this.crop(it, r2); this.erDraw(r2); } catch (_) {} }, 120); };
     $("#hqiName").oninput = ev => { it._name = ev.target.value; redo(true); };
     $("#hqiCat").onclick = ev => { const b = ev.target.closest("[data-g]"); if (!b) return; it._cat = b.dataset.g; $("#hqiCat").querySelectorAll("button").forEach(x => x.classList.toggle("on", x === b)); redo(true); };
     $("#hqiRl").onclick = () => { e.rot = (e.rot + 270) % 360; redo(false); };
@@ -8222,11 +8229,32 @@ const HQImport = {
     $("#hqiMode").onclick = ev => { const b = ev.target.closest("[data-m]"); if (!b) return; e.mode = b.dataset.m; $("#hqiMode").querySelectorAll("button").forEach(x => x.classList.toggle("on", x === b)); redo(true); };
     $("#hqiOvl").onchange = ev => { it._ovl = ev.target.checked; redo(true); };
     $("#hqiAuto").onclick = () => { e.box = null; redo(false); };
-    this.crop(it, r); this.mapInit(it);
+    $("#hqiBr").oninput = ev => { e.bright = +ev.target.value; redo(true); };
+    $("#hqiCo").oninput = ev => { e.contrast = +ev.target.value; redo(true); };
+    $("#hqiAutoB").onchange = ev => { e.auto = ev.target.checked; redo(true); };
+    $("#hqiGhost").onchange = ev => { e.ghost = ev.target.checked; redo(true); };
+    $("#hqiErUndo").onclick = () => { (e.erase || []).pop(); redo(true); };
+    $("#hqiErAll").onclick = () => { e.erase = []; redo(true); };
+    this.crop(it, r); this.mapInit(it); this.eraser(it, r);
   },
   crop(it, r) {
     const cv = $("#hqiCrop"); if (!cv) return; const e = this.ed(it);
-    CropView(cv, r.cv, { editable: true, tool: "box", box: { ...r.box }, onBox: b => { if (b.w < 8 || b.h < 8) return; e.box = { x: b.x, y: b.y, w: b.w, h: b.h }; this.make(it).then(r2 => { if (this.cur() === it) $("#hqiCard").innerHTML = this.card(it, r2); }).catch(() => {}); } });
+    CropView(cv, r.cv, { editable: true, tool: "box", box: { ...r.box }, onBox: b => { if (b.w < 8 || b.h < 8) return; e.box = { x: b.x, y: b.y, w: b.w, h: b.h }; e.erase = []; this.make(it).then(r2 => { if (this.cur() !== it) return; $("#hqiCard").innerHTML = this.card(it, r2); this.erDraw(r2); }).catch(() => {}); } });
+  },
+  // 消しゴム: 切り抜いた絵の上をなぞる（ふつうの登録と同じしくみ。範囲に対する割合で覚える）
+  erDraw(r) {
+    const cv = $("#hqiErCv"); if (!cv || !r) return; const W = Math.min(($("#sheet").clientWidth || 360) - 40, 320), s = W / Math.max(r.cut.w, r.cut.h), dpr = Math.min(2, devicePixelRatio || 1);
+    cv.width = r.cut.w * s * dpr; cv.height = r.cut.h * s * dpr; cv.style.width = r.cut.w * s + "px"; cv.style.height = r.cut.h * s + "px";
+    cv.getContext("2d").drawImage(r.cut.canvas, 0, 0, cv.width, cv.height);
+  },
+  eraser(it, r) {
+    const cv = $("#hqiErCv"); if (!cv) return; const e = this.ed(it); this.erDraw(r); let cur = null;
+    const pt = ev => { const b = cv.getBoundingClientRect(), M = Math.max(b.width, b.height); return { x: (ev.clientX - b.left) / b.width, y: (ev.clientY - b.top) / b.height, r: (+$("#hqiErSz").value) / M, px: ev.clientX - b.left, py: ev.clientY - b.top }; };
+    const paint = (p, q) => { const x = cv.getContext("2d"), dpr = cv.width / cv.getBoundingClientRect().width; x.save(); x.globalCompositeOperation = "destination-out"; x.lineCap = "round"; x.lineWidth = +$("#hqiErSz").value * 2 * dpr; x.beginPath(); x.moveTo((q || p).px * dpr, (q || p).py * dpr); x.lineTo(p.px * dpr, p.py * dpr); x.stroke(); x.restore(); };
+    cv.onpointerdown = ev => { cv.setPointerCapture(ev.pointerId); const p = pt(ev); cur = [p]; paint(p, null); };
+    cv.onpointermove = ev => { if (!cur) return; const p = pt(ev), q = cur[cur.length - 1]; cur.push(p); paint(p, q); };
+    cv.onpointerup = cv.onpointercancel = () => { if (!cur) return; (e.erase || (e.erase = [])).push(cur.map(({ x, y, r }) => ({ x, y, r }))); cur = null;
+      this.make(it).then(r2 => { if (this.cur() !== it) return; $("#hqiCard").innerHTML = this.card(it, r2); this.erDraw(r2); }).catch(() => {}); };
   },
   mapInit(it) {
     const el = $("#hqiMap"); if (!el || !window.L) return; if (this.map) { try { this.map.remove(); } catch (_) {} this.map = null; }
