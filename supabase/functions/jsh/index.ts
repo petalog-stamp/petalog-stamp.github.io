@@ -113,7 +113,7 @@ function parse(p: Post, TH: Map<number, string>, TG: Map<number, string>, PF: Ma
       const w = +((tag.match(/width="(\d+)"/) ?? [])[1] ?? 0), h = +((tag.match(/height="(\d+)"/) ?? [])[1] ?? 0);
       if (/\.jpe?g$/i.test(src) && Math.max(w, h) >= 800) continue;   // 大きな写真は台紙やスタンプ台の写真
       const dm = (m[1] ?? "").match(/([A-Z][a-z]{2}) (\d{1,2}), (\d{4})/);
-      const day = dm ? new Date(`${dm[1]} ${dm[2]}, ${dm[3]} UTC`).toISOString().slice(0, 10) : "";
+      const dd = dm ? new Date(`${dm[1]} ${dm[2]}, ${dm[3]} UTC`) : null, day = dd && !isNaN(+dd) ? dd.toISOString().slice(0, 10) : "";   // ありえない日付は使わない
       imgs.push({ src, w, h, sub: head, day });
     }
   });
