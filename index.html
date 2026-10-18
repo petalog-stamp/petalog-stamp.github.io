@@ -2408,7 +2408,7 @@ const MapV = {
       boxes.push([px - pinR - 3, py - 12 - pinR * 2 - 3, px + pinR + 3, py]); this.pinHits.push({ px, py: py - 12 - pinR, ...hit });
     };
     if (!this.pick) {
-      if (this.mode === "all" && this.pubs) pubClusters(pubGroups(this.pubs), (la, ln) => { const [wx, wy] = W(la, ln); return [X(wx), Y(wy)]; }, Wd, Hd).forEach(o => o.g ? drawPin(o.g.lat, o.g.lng, o.g.top.thumb, C.shu, o.g.n > 1 ? { pgrp: o.g.ids } : { pub: o.g.top._id }, o.g.n, Trust.of(o.g, this.pubs)) : drawPin(o.c.lat, o.c.lng, o.c.top.thumb, C.shu, { zoomTo: [o.c.lat, o.c.lng] }, o.c.n, { trust: 3 }));
+      if (this.mode === "all" && this.pubs) MapPins.draw(this, x, (la, ln) => { const [wx, wy] = W(la, ln); return [X(wx), Y(wy)]; }, Wd, Hd);
       pinGroups().forEach(g => drawPin(g.lat, g.lng, g.top.cut, C.ai, g.n > 1 ? { grp: g.ids } : { id: g.top.id }, g.n));
     }
     if (this.me) { const [wx, wy] = W(this.me.lat, this.me.lng); const px = X(wx), py = Y(wy); x.beginPath(); x.arc(px, py, 14, 0, 7); x.fillStyle = "rgba(10,132,255,.18)"; x.fill(); x.beginPath(); x.arc(px, py, 7, 0, 7); x.fillStyle = "#0A84FF"; x.fill(); x.lineWidth = 2.5; x.strokeStyle = "#fff"; x.stroke(); }
@@ -8345,6 +8345,124 @@ function pubClusters(G, toXY, Wd, Hd) {
   }
   return out;
 }
+
+/* ================= みんなの地図: シンプルなピン・押した人数・「次行く！」 =================
+   - 自分が押したところは、今までどおりスタンプの絵のピン（自分の記録）
+   - まだのところは、ふつうの赤いピンだけ。タップでトレカと「◯人が押しています」
+   - 広い範囲では近いピンを1本にまとめて数を出す（地図に貼りついた升目なので、動かしてもピンがずれない）
+   - 「次行く！」: 気になる場所を登録。左下の☆で一覧、地図で見ると次行くは黄色・ほかは薄く */
+const NextGo = {
+  L: [], loaded: false, focus: false,
+  async load() { if (this.loaded) return; this.loaded = true; try { const m = await Store.getMeta("nextgo"); this.L = (m && Array.isArray(m.list)) ? m.list : []; } catch (_) { this.L = []; } this.btn(); },
+  save() { try { Store.putMeta("nextgo", { list: this.L.slice(0, 300) }); } catch (_) {} this.btn(); },
+  keyOf(P) { const d = P.find(p => p.design); return d ? "d" + d.design : "p" + P[0]._id; },
+  has(k) { return this.L.some(x => x.k === k); },
+  hasPub(p) { return this.L.some(x => (p.design && x.k === "d" + p.design) || (x.ids || []).includes(p._id)); },
+  toggle(P) {
+    const k = this.keyOf(P); if (this.has(k)) { this.L = this.L.filter(x => x.k !== k); toast("「次行く！」から外しました"); }
+    else { const t = P[0]; this.L.unshift({ k, ids: P.map(p => p._id), design: t.design || null, name: t.name || "", place: t.place || "", pref: t.pref || "", cat: t.cat || "", lat: +t.lat, lng: +t.lng, img: t.thumb || "", t: Date.now() }); toast("「次行く！」に入れました ☆"); }
+    this.save(); if (MapV.map) MapV.draw();
+  },
+  btn() {
+    const w = $("#mapWrap"); if (!w) return; let b = $("#nextBtn");
+    if (!b) { b = document.createElement("button"); b.type = "button"; b.id = "nextBtn"; b.className = "next-btn"; w.appendChild(b); b.onclick = () => this.open(); }
+    b.hidden = MapV.mode !== "all"; b.innerHTML = `<span>☆</span><b>次行く！</b>${this.L.length ? `<i>${this.L.length}</i>` : ""}`;
+    let bar = $("#nextBar");
+    if (!bar) { bar = document.createElement("div"); bar.id = "nextBar"; bar.className = "next-bar"; w.appendChild(bar); }
+    bar.hidden = !(this.focus && MapV.mode === "all"); bar.innerHTML = `<span>☆ 次行く！を表示中</span><button type="button" class="btn small" id="nextOff">もどす</button>`;
+    const off = bar.querySelector("#nextOff"); if (off) off.onclick = () => { this.focus = false; this.btn(); MapV.draw(); };
+  },
+  async open() {
+    await this.load();
+    if (!this.L.length) { toast("ピンを開いて「☆ 次行く！」を押すと、ここに集まります", 3600); return; }
+    const L = [...this.L].sort((a, b) => b.t - a.t);
+    const items = await Promise.all(L.map(async (x, i) => { let w = 1, h = 1; try { if (x.img) { const im = await loadImg(x.img); w = im.naturalWidth || 1; h = im.naturalHeight || 1; } } catch (_) {}
+      return { id: "next:" + i, _next: x.k, _tag: "次行く！", _no: null, name: x.name, place: x.place, pref: x.pref, cat: x.cat, date: "", lat: x.lat, lng: x.lng, cut: x.img, cw: w, ch: h, other: true }; }));
+    CardGrid.open({ title: "次行く！", items, front: true });
+    const acts = CardGrid.el && CardGrid.el.querySelector(".cgv-acts");
+    if (acts) { acts.innerHTML = `<button class="btn small primary" type="button" id="nextMap">地図で見る</button>`; acts.querySelector("#nextMap").onclick = () => { CardGrid.close(true); this.focus = true; this.btn(); if (MapV.map && L.length) { try { MapV.map.fitBounds(L.map(x => [x.lat, x.lng]), { padding: [60, 60], maxZoom: 15 }); } catch (_) {} } MapV.draw(); }; }
+  },
+};
+
+const MapPins = {
+  pin(x, px, py, color, alpha, n) {   // ふつうのピン（しずく形）。まとめのときは中に数
+    const R = n > 1 ? 13 : 10, cy = py - R * 1.9;
+    x.save(); x.globalAlpha = alpha; x.shadowColor = "rgba(0,0,0,.25)"; x.shadowBlur = 4; x.shadowOffsetY = 1.5;
+    x.beginPath(); x.moveTo(px, py); x.bezierCurveTo(px - R * 0.35, py - R * 0.7, px - R, cy + R * 0.55, px - R, cy); x.arc(px, cy, R, Math.PI, 0); x.bezierCurveTo(px + R, cy + R * 0.55, px + R * 0.35, py - R * 0.7, px, py); x.closePath();
+    x.fillStyle = color; x.fill(); x.shadowColor = "transparent"; x.lineWidth = 1; x.strokeStyle = "rgba(0,0,0,.18)"; x.stroke();
+    if (n > 1) { const t = n > 999 ? "999+" : String(n); x.fillStyle = "#fff"; x.font = `800 ${t.length > 2 ? 9.5 : 11.5}px 'Zen Kaku Gothic New','Hiragino Sans',sans-serif`; x.textAlign = "center"; x.textBaseline = "middle"; x.fillText(t, px, cy + 0.5); }
+    else { x.beginPath(); x.arc(px, cy, R * 0.38, 0, 7); x.fillStyle = "rgba(0,0,0,.32)"; x.fill(); }
+    x.restore(); return cy;
+  },
+  mine() {   // 自分が押したスタンプ（図鑑の番号と、場所の名前＋近さ）
+    const L = (typeof list === "function" ? list() : []).filter(s => !s.sample && s.lat != null);
+    const sig = L.length + ":" + L.map(s => s.id + (s.design || "")).join(); if (this._ms === sig) return this._m;
+    this._ms = sig; this._m = { d: new Set(L.filter(s => s.design).map(s => +s.design)), L }; return this._m;
+  },
+  pressed(g, P) {
+    const M = this.mine(); if (!M.L.length) return false; const I = Trust.idx(P);
+    for (const id of g.ids) { const p = I.ids.get(id); if (p && p.design && M.d.has(+p.design)) return true; }
+    const pn = g.pn; if (!pn) return false;
+    return M.L.some(s => norm(s.place || s.name || "") === pn && kmBetween(+s.lat, +s.lng, g.lat, g.lng) < 0.3);
+  },
+  draw(mv, x, toXY, Wd, Hd) {
+    const P = mv.pubs, G = pubGroups(P), [ax, ay] = toXY(35, 135), S = 46, cells = new Map(), vis = [];
+    for (const g of G) { const [px, py] = toXY(g.lat, g.lng); if (px < -30 || py < -10 || px > Wd + 30 || py > Hd + 50) continue; if (this.pressed(g, P)) continue; vis.push({ g, px, py }); }
+    let out = vis.map(v => ({ g: v.g, px: v.px, py: v.py }));
+    if (vis.length > 60) {   // 地図に貼りついた升目でまとめる（動かしてもずれない）
+      for (const v of vis) { const k = Math.floor((v.px - ax) / S) + "," + Math.floor((v.py - ay) / S); const c = cells.get(k); if (c) c.push(v); else cells.set(k, [v]); }
+      out = [...cells.values()].map(a => {
+        if (a.length === 1) return { g: a[0].g, px: a[0].px, py: a[0].py };
+        let la = 0, ln = 0, n = 0; for (const v of a) { la += v.g.lat; ln += v.g.lng; n += v.g.n; } const [px, py] = toXY(la / a.length, ln / a.length);
+        return { c: { lat: la / a.length, lng: ln / a.length, n, fav: a.some(v => NextGo.focus && v.g.ids.some(id => NextGo.hasPub(Trust.idx(P).ids.get(id) || {}))) }, px, py };
+      });
+    }
+    const pr = o => o.g ? (NextGo.focus && this.isFav(o.g, P) ? 2 : 1) : (o.c.fav ? 2 : 1);
+    out.sort((a, b) => pr(a) - pr(b) || a.py - b.py);
+    for (const o of out) {
+      if (o.c) { const fav = NextGo.focus && o.c.fav; const cy = this.pin(x, o.px, o.py, fav ? "#F2B90C" : "#E5483B", NextGo.focus && !fav ? 0.3 : 1, o.c.n); mv.pinHits.push({ px: o.px, py: cy, zoomTo: [o.c.lat, o.c.lng] }); continue; }
+      const g = o.g, st = Trust.of(g, P), fav = this.isFav(g, P);
+      const col = st && st.ended ? "#8E949E" : fav ? "#F2B90C" : "#E5483B", alpha = (st && st.faded ? 0.4 : 1) * (NextGo.focus && !fav ? 0.3 : 1);
+      const cy = this.pin(x, o.px, o.py, col, alpha, 1);
+      if (st && st.ended) { x.save(); x.globalAlpha = alpha; x.font = "800 9px 'Zen Kaku Gothic New',sans-serif"; const tw = x.measureText("終了").width + 8; x.fillStyle = "#5A6070"; x.fillRect(o.px - tw / 2, o.py + 1, tw, 12); x.fillStyle = "#fff"; x.textAlign = "center"; x.textBaseline = "middle"; x.fillText("終了", o.px, o.py + 7.5); x.restore(); }
+      mv.pinHits.push({ px: o.px, py: cy, ...(g.n > 1 ? { pgrp: g.ids } : { pub: g.top._id }) });
+    }
+  },
+  isFav(g, P) { if (!NextGo.L.length) return false; const I = Trust.idx(P); return g.ids.some(id => { const p = I.ids.get(id); return p && NextGo.hasPub(p); }); },
+};
+
+// 凡例（色分け）はやめる
+Trust.legend = function () { const el = $("#mapLegend"); if (el) el.hidden = true; };
+
+// みんなの地図は全面に（下のニックネーム欄・記録一覧はなし）
+{ const ft = MapV.foot; MapV.foot = function (...a) {
+  const f = $("#mapFoot"), all = this.mode === "all", was = f ? f.hidden : false;
+  if (f) f.hidden = all; if (!all) ft.apply(this, a);
+  if (f && was !== f.hidden && this.map) setTimeout(() => { try { this.map.invalidateSize(); } catch (_) {} }, 30);
+  NextGo.load(); NextGo.btn();
+}; }
+
+// ピンを開いたら、何人が押したかと「次行く！」（1枚のときも一覧で出す）
+MapV.openPubs = async function (ids) {
+  const P = ids.map(id => (this.pubs || []).find(p => p._id === id)).filter(Boolean); if (!P.length) return;
+  const cards = await pubCards(P);
+  CardGrid.open({ title: P[0].place || P[0].name, items: shuffled(cards), front: true, pubs: true, at: { lat: +P[0].lat, lng: +P[0].lng } });
+  const d = CardGrid.el; if (!d) return;
+  const des = new Set(P.filter(p => p.design).map(p => +p.design)), names = new Set(P.map(p => norm(p.name || "")).filter(Boolean));
+  const who = new Set((this.pubs || []).filter(q => !q.miss && q.by !== "catalog" && ((q.design && des.has(+q.design)) || (names.has(norm(q.name || "")) && kmBetween(+q.lat, +q.lng, +P[0].lat, +P[0].lng) < 0.6))).map(q => q.by)).size;
+  const k = NextGo.keyOf(P), on = () => NextGo.has(k);
+  d.querySelector(".cgv-head")?.insertAdjacentHTML("afterend", `<div class="cgv-who">${who ? `いま <b>${who}人</b> がここで押しています` : "まだ、ぺたろぐで押した人はいません。最初の1人になろう"}</div>`);
+  const acts = d.querySelector(".cgv-acts"); if (acts) { acts.insertAdjacentHTML("afterbegin", `<button class="btn small next-tg${on() ? " on" : ""}" type="button" id="nextTg">${on() ? "★ 次行く！" : "☆ 次行く！"}</button>`);
+    acts.querySelector("#nextTg").onclick = e => { NextGo.toggle(P); const b = e.currentTarget; b.classList.toggle("on", on()); b.textContent = on() ? "★ 次行く！" : "☆ 次行く！"; }; }
+};
+{ const s = document.createElement("style"); s.textContent = `
+.next-btn{position:absolute;left:12px;bottom:14px;z-index:3;display:flex;align-items:center;gap:6px;padding:9px 14px;border-radius:999px;border:0;background:#fff;color:#3a3200;box-shadow:0 2px 10px rgba(0,0,0,.18);font:inherit;font-size:14px}
+.next-btn span{color:#E0A500;font-size:17px;line-height:1}.next-btn i{font-style:normal;background:#F2B90C;color:#fff;border-radius:999px;padding:1px 7px;font-size:12px;font-weight:700}
+.next-bar{position:absolute;left:50%;transform:translateX(-50%);top:12px;z-index:3;display:flex;align-items:center;gap:10px;background:#FFF6D6;color:#5a4500;border-radius:999px;padding:6px 8px 6px 14px;box-shadow:0 2px 10px rgba(0,0,0,.15);font-size:13px;white-space:nowrap}
+.cgv-who{margin:0 16px 8px;font-size:14px;color:rgba(255,255,255,.88)}.cgv-who b{font-size:17px;color:#fff}
+.next-tg.on{background:#F2B90C;color:#3a2a00;border-color:#F2B90C}
+#v-map .map-wrap{margin-bottom:10px}
+#mapFoot[hidden]{display:none!important}`; document.head.appendChild(s); }
 
 /* ================= boot ================= */
 addEventListener("resize", () => { Book.layout(); if (view === "fall") { Fall.stop(); Fall.start(); } if (view === "map") MapV.draw(); });
