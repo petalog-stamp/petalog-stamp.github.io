@@ -8064,6 +8064,8 @@ const Catalog = {
   draw(null); PetalogCloud.catalogInfo(p.catalog).then(i => draw(i || { memo: "" })).catch(() => draw({ memo: "" }));
 }; }
 
+// つながりが一瞬わるいときのために、1回だけ待ってやり直す
+async function hqTry(f) { try { return await f(); } catch (_) { await new Promise(r => setTimeout(r, 2500)); return f(); } }
 const HQImport = {
   q: [], at: 0, done: false, loading: false, sending: 0, sent: 0, failed: 0, stats: null, edit: false, map: null,
   css() {
@@ -8186,15 +8188,15 @@ const HQImport = {
       const r = await this.make(it);
       let blob = await new Promise(res => r.cut.canvas.toBlob(res, "image/webp", 0.86));
       if (!blob || blob.type !== "image/webp") blob = await new Promise(res => r.cut.canvas.toBlob(res, "image/png"));
-      const url = await PetalogCloud.jsh.put(it.id, blob); let dh = ""; try { dh = await Zukan.dh(r.cut.url); } catch (_) {}
-      await PetalogCloud.jsh.set(it.id, "ok", { name: it._name, cat: it._cat, lat: it._lat, lng: it._lng, cut_url: url, w: r.cut.w, h: r.cut.h, shape: r.cut.shape, ink: r.cut.ink, overlap: it._ovl, dh: dh || null, edit: it._e });
+      const url = await hqTry(() => PetalogCloud.jsh.put(it.id, blob)); let dh = ""; try { dh = await Zukan.dh(r.cut.url); } catch (_) {}
+      await hqTry(() => PetalogCloud.jsh.set(it.id, "ok", { name: it._name, cat: it._cat, lat: it._lat, lng: it._lng, cut_url: url, w: r.cut.w, h: r.cut.h, shape: r.cut.shape, ink: r.cut.ink, overlap: it._ovl, dh: dh || null, edit: it._e }));
       MapV.pubs = null;
     } catch (_) { this.failed++; it._did = null; if (first) this.sent--; toast("公開できなかった1枚があります。もどってもう一度OKしてください", 4200); }
     this.sending--; this.tick();
   },
   async skip(it) {
     if (this.cur() !== it) return; const pre = it._did; it._did = "skip"; if (pre === "ok") this.sent--;
-    PetalogCloud.jsh.set(it.id, "skip").then(() => { MapV.pubs = null; }).catch(() => { it._did = pre; toast("「出さない」にできませんでした"); });
+    hqTry(() => PetalogCloud.jsh.set(it.id, "skip")).then(() => { MapV.pubs = null; }).catch(() => { it._did = pre; toast("「出さない」にできませんでした"); });
     this.edit = false; this.next();
   },
   tick() { const t = $("#hqiBody .hqi-top"); if (t) t.outerHTML = this.head(); },
