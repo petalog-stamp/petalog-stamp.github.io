@@ -8523,12 +8523,15 @@ const ShapeMatch = {
   rowsP: null,
   rows() { if (!this.rowsP) { this.rowsP = (window.PetalogCloud && PetalogCloud.catalogPins ? PetalogCloud.catalogPins() : Promise.resolve([])).catch(() => []); setTimeout(() => { this.rowsP = null; }, 300000); } return this.rowsP; },
   pos(r) { return Spots.of(r.design) || r; },
-  async find(cutUrl, key, lat, lng) {
+  async find(cutUrl, key, lat, lng, km) {
     if (lat == null || lng == null || !cutUrl) return [];
-    const R = (await this.rows()).filter(r => r.design && r.img && r.lat != null && kmBetween(+lat, +lng, +this.pos(r).lat, +this.pos(r).lng) < this.KM); if (!R.length) return [];
-    const me = await ShapeFP.of(key, cutUrl).catch(() => null); if (!me) return [];
+    const R = (await this.rows()).filter(r => r.design && r.img && r.lat != null && kmBetween(+lat, +lng, +this.pos(r).lat, +this.pos(r).lng) < (km || this.KM)); if (!R.length) return [];
+    const me = await ShapeFP.of(key, cutUrl); if (!me) return [];
     const out = [];
-    for (const r of R) { const f = await ShapeFP.of("d" + r.design, r.img).catch(() => null); const s = ShapeFP.sim(me, f); if (s > 0) out.push({ r, s }); }
+    let bad = 0; const F = new Array(R.length);
+    for (let i = 0; i < R.length; i += 6) await Promise.all(R.slice(i, i + 6).map((r, j) => ShapeFP.of("d" + r.design, r.img).then(f => { F[i + j] = f; }).catch(() => { bad++; })));   // 6枚ずつ並べて読む
+    R.forEach((r, i) => { const s = ShapeFP.sim(me, F[i]); if (s > 0) out.push({ r, s }); });
+    if (bad && bad === R.length) throw new Error("catalog images");
     // 同じ絵柄が何枚も取り込まれていることがある（同じスタンプの別の記事）→ 図鑑の番号ごとに1つ
     const seen = new Set(); return out.sort((a, b) => b.s - a.s).filter(x => !seen.has(x.r.design) && seen.add(x.r.design));
   },
@@ -8555,7 +8558,7 @@ const ShapeMatch = {
 
 // みんなの図鑑の番号を、自分の図鑑の番号として持っていない（公開していない）スタンプでも、地図で「押した」とわかるように
 const ShapeLink = {
-  V: 1, busy: false, ask: [],
+  V: 2, busy: false, ask: [],
   done() { try { return JSON.parse(localStorage.getItem("petalog.shapeLink") || "{}"); } catch (_) { return {}; } },
   mark(o) { try { localStorage.setItem("petalog.shapeLink", JSON.stringify(o)); } catch (_) {} },
   async run() {
@@ -8563,16 +8566,20 @@ const ShapeLink = {
     try {
       const R = await ShapeMatch.rows(); if (!R.length) return; const catD = new Set(R.map(r => +r.design)), D = this.done();
       const L = stamps.filter(s => !s.sample && s.type !== "goshuin" && s.cut && s.lat != null && !(s.design && catD.has(+s.design)) && !s.cdesign && D[s.id] !== this.V);
-      let linked = 0;
+      let linked = 0, err = 0, tried = 0; const t0 = Date.now();
       for (const s of L) {
-        let M = []; try { M = await ShapeMatch.find(s.cut, "s:" + s.id, s.lat, s.lng); } catch (_) {}
+        this.chip(`みんなのスタンプと照合中 ${L.indexOf(s) + 1}/${L.length}`);
+        let M = []; try { M = await ShapeMatch.find(s.cut, "s:" + s.id, s.lat, s.lng, 0.8); tried++; } catch (e) { err++; this.lastErr = String(e && e.message || e).slice(0, 80); continue; }   // 読めなかったものは次の機会にもう一度
         const sure = ShapeMatch.sure(M);
         if (sure) { await this.link(s, sure.r.design); linked++; }
         else if (M[0] && M[0].s >= ShapeMatch.ASK) this.ask.push({ sid: s.id, cand: M.filter(x => x.s >= ShapeMatch.ASK).slice(0, 3).map(x => ShapeMatch.pick(x)) });
         D[s.id] = this.V; this.mark(D);
         await new Promise(r => setTimeout(r, 60));
       }
+      this.chip("");
       if (linked) { toast(`みんなのスタンプと同じだったスタンプを ${linked} 枚、結びつけました`, 3600); MapV.pubs = null; if (MapV.mode === "all") MapV.loadPubs(); }
+      else if (err && !tried) toast("みんなのスタンプとの照合ができませんでした。通信のよいところで地図を開き直してください", 4200);
+      try { Track.ev("shape_link", { n: L.length, linked, ask: this.ask.length, err, ms: Date.now() - t0, e: this.lastErr || "" }); } catch (_) {}
       this.banner();
     } finally { this.busy = false; }
   },
@@ -8581,6 +8588,11 @@ const ShapeLink = {
     const cur = findStamp(s.id) || s;
     if (cur.share) { try { const r = await Zukan.register(cur, design, true); if (r && r.design === design) return true; } catch (_) {} }
     cur.cdesign = design; try { await Store.saveStamp(cur); } catch (_) {} return true;
+  },
+  chip(t) {   // 照合の進みぐあい（地図の上に小さく）
+    const w = $("#mapWrap"); if (!w) return; let c = $("#linkChip");
+    if (!c) { c = document.createElement("div"); c.id = "linkChip"; c.className = "link-chip"; w.appendChild(c); }
+    c.hidden = !t || MapV.mode !== "all"; c.textContent = t;
   },
   banner() {
     const w = $("#mapWrap"); if (!w) return; let b = $("#linkAsk"); const n = this.ask.filter(a => findStamp(a.sid)).length;
@@ -8606,6 +8618,8 @@ const ShapeLink = {
 { const s = document.createElement("style"); s.textContent = `
 .link-ask{position:absolute;left:12px;right:12px;bottom:66px;z-index:3;border:0;border-radius:14px;padding:10px 14px;background:#2B4C9B;color:#fff;font:inherit;font-size:14px;box-shadow:0 2px 10px rgba(0,0,0,.2)}
 .link-ask[hidden]{display:none}
+.link-chip{position:absolute;left:50%;transform:translateX(-50%);top:56px;z-index:3;background:rgba(43,76,155,.92);color:#fff;border-radius:999px;padding:5px 12px;font-size:12px;white-space:nowrap}
+.link-chip[hidden]{display:none}
 .lk-me{display:flex;align-items:center;gap:12px;margin:8px 0 12px}.lk-me img{width:96px;height:96px;object-fit:contain;background:#fff;border-radius:12px;box-shadow:inset 0 0 0 1px var(--line)}
 .lk-list{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.lk-c{display:grid;gap:4px;justify-items:center;padding:8px;border-radius:12px;border:1px solid var(--line);background:#fff;font:inherit;font-size:12px}
 .lk-c img{width:100%;aspect-ratio:1;object-fit:contain}`; document.head.appendChild(s); }
