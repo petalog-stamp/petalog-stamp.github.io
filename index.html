@@ -6676,7 +6676,7 @@ const Zukan = {
       ${L.map(x => `<button type="button" class="zk-row" data-zk="${x.id}">${x.thumb ? `<img src="${x.thumb}" alt="">` : `<i></i>`}<span><b>${esc(x.name || "名前なし")}</b><small>${esc([x.place && x.place !== x.name ? x.place : "", x.pref, x.size_mm ? "約" + fmtCm(x.size_mm) : "", x.members ? x.members + "人が登録" : ""].filter(Boolean).join(" · "))}${x.mine ? " · 自分も登録ずみ" : ""}</small></span><em>これにする</em></button>`).join("")}
       <small class="zk-note">似ているけれど別のスタンプのこともあります（同じ施設に何種類もあるときなど）。ちがうときは、そのまま入力してください。</small></div>`;
     box.querySelectorAll("[data-zk]").forEach(b => b.onclick = () => { const x = L.find(y => String(y.id) === b.dataset.zk); if (!x) return; c.design = x.id; c.zkPick = x;
-      applyAI({ name: x.name, place: x.place, cat: x.cat, lat: typeof x.lat === "number" ? x.lat : undefined, lng: typeof x.lng === "number" ? x.lng : undefined, size_cm: x.size_mm ? x.size_mm / 10 : undefined }, true);
+      applyAI({ name: x.name, place: x.place, cat: x.cat, lat: typeof x.lat === "number" && c.d.lat == null && !(c.exif && c.exif.lat != null) ? x.lat : undefined, lng: typeof x.lng === "number" && c.d.lat == null && !(c.exif && c.exif.lat != null) ? x.lng : undefined, size_cm: x.size_mm ? x.size_mm / 10 : undefined }, true);
       if (x.size_mm && $("#sizeSrc")) { c.d.sizeSrc = "zukan"; $("#sizeSrc").hidden = false; $("#sizeSrc").textContent = "みんなの図鑑"; }
       if (x.pref) c.d.pref = x.pref; this.render(c); toast("みんなの図鑑の内容を入れました"); });
   },
@@ -8396,8 +8396,15 @@ const MapPins = {
   },
   mine() {   // 自分が押したスタンプ（図鑑の番号と、場所の名前＋近さ）
     const L = (typeof list === "function" ? list() : []).filter(s => !s.sample && s.lat != null);
-    const sig = L.length + ":" + L.map(s => s.id + (s.design || "")).join(); if (this._ms === sig) return this._m;
-    this._ms = sig; this._m = { d: new Set(L.filter(s => s.design).map(s => +s.design)), L }; return this._m;
+    const sig = L.length + ":" + L.map(s => s.id + (s.design || "") + "/" + (s.cdesign || "")).join(); if (this._ms === sig) return this._m;
+    const d = new Set(); for (const s of L) { if (s.design) d.add(+s.design); if (s.cdesign) d.add(+s.cdesign); }
+    this._ms = sig; this._m = { d, L }; return this._m;
+  },
+  // まだ押していない分（図鑑の番号で、自分が持っているものを除く）。場所の名前と近さで同じ場所とわかったら全部押したあつかい
+  remain(g, P) {
+    const M = this.mine(); if (!M.L.length) return g.ids; const I = Trust.idx(P);
+    const pn = g.pn; if (pn && M.L.some(s => norm(s.place || s.name || "") === pn && kmBetween(+s.lat, +s.lng, g.lat, g.lng) < 0.3)) return [];
+    return g.ids.filter(id => { const p = I.ids.get(id); return !(p && p.design && M.d.has(+p.design)); });
   },
   pressed(g, P) {
     const M = this.mine(); if (!M.L.length) return false; const I = Trust.idx(P);
@@ -8407,7 +8414,7 @@ const MapPins = {
   },
   draw(mv, x, toXY, Wd, Hd) {
     const P = mv.pubs, G = pubGroups(P), [ax, ay] = toXY(35, 135), S = 46, cells = new Map(), vis = [];
-    for (const g of G) { const [px, py] = toXY(g.lat, g.lng); if (px < -30 || py < -10 || px > Wd + 30 || py > Hd + 50) continue; if (this.pressed(g, P)) continue; vis.push({ g, px, py }); }
+    for (const g of G) { const [px, py] = toXY(g.lat, g.lng); if (px < -30 || py < -10 || px > Wd + 30 || py > Hd + 50) continue; const rem = this.remain(g, P); if (!rem.length) continue; vis.push({ g: rem.length === g.ids.length ? g : { ...g, ids: rem, n: rem.length, top: Trust.idx(P).ids.get(rem[0]) || g.top }, px, py }); }
     let out = vis.map(v => ({ g: v.g, px: v.px, py: v.py }));
     if (vis.length > 60) {   // 地図に貼りついた升目でまとめる（動かしてもずれない）
       for (const v of vis) { const k = Math.floor((v.px - ax) / S) + "," + Math.floor((v.py - ay) / S); const c = cells.get(k); if (c) c.push(v); else cells.set(k, [v]); }
@@ -8423,7 +8430,7 @@ const MapPins = {
       if (o.c) { const fav = NextGo.focus && o.c.fav; const cy = this.pin(x, o.px, o.py, fav ? "#F2B90C" : "#E5483B", NextGo.focus && !fav ? 0.3 : 1, o.c.n); mv.pinHits.push({ px: o.px, py: cy, zoomTo: [o.c.lat, o.c.lng] }); continue; }
       const g = o.g, st = Trust.of(g, P), fav = this.isFav(g, P);
       const col = st && st.ended ? "#8E949E" : fav ? "#F2B90C" : "#E5483B", alpha = (st && st.faded ? 0.4 : 1) * (NextGo.focus && !fav ? 0.3 : 1);
-      const cy = this.pin(x, o.px, o.py, col, alpha, 1);
+      const cy = this.pin(x, o.px, o.py, col, alpha, g.n);
       if (st && st.ended) { x.save(); x.globalAlpha = alpha; x.font = "800 9px 'Zen Kaku Gothic New',sans-serif"; const tw = x.measureText("終了").width + 8; x.fillStyle = "#5A6070"; x.fillRect(o.px - tw / 2, o.py + 1, tw, 12); x.fillStyle = "#fff"; x.textAlign = "center"; x.textBaseline = "middle"; x.fillText("終了", o.px, o.py + 7.5); x.restore(); }
       mv.pinHits.push({ px: o.px, py: cy, ...(g.n > 1 ? { pgrp: g.ids } : { pub: g.top._id }) });
     }
@@ -8463,6 +8470,145 @@ MapV.openPubs = async function (ids) {
 .next-tg.on{background:#F2B90C;color:#3a2a00;border-color:#F2B90C}
 #v-map .map-wrap{margin-bottom:10px}
 #mapFoot[hidden]{display:none!important}`; document.head.appendChild(s); }
+
+/* ================= 同じスタンプを「インクの形」で見つける =================
+   写真から切り抜いた絵と、取り込んだ白背景の絵は、余白・かすれ・色がちがうので、明るさの指紋（dh）では合わない。
+   切り抜きのインク部分だけを外枠にぴったり合わせて 32×32 にし、少しぼかして形を比べる（向きは4方向ためす）。
+   実データ（新宿御苑）で、同じスタンプは 0.8〜0.95、ちがうスタンプはだいたい 0.6 以下。
+   - 登録するとき: 近く（1.5km）の「みんなのスタンプ」と比べて、自信があれば自動で同じスタンプにする。迷うときは候補に出す
+   - 登録ずみのスタンプ: 1回だけ比べて、自信があるものは自動で結びつけ、迷うものは「同じ？」の確認一覧へ */
+const ShapeFP = {
+  mem: new Map(),
+  async bitmap(url) {
+    if (/^data:/.test(url)) return loadImg(url);
+    const r = await fetch(url); if (!r.ok) throw new Error("img"); const b = await r.blob();
+    return window.createImageBitmap ? createImageBitmap(b) : loadImg(URL.createObjectURL(b));
+  },
+  of(key, url) {
+    if (!url) return Promise.resolve(null); if (this.mem.has(key)) return this.mem.get(key);
+    const p = (async () => {
+      const bm = await this.bitmap(url), w0 = bm.naturalWidth || bm.width, h0 = bm.naturalHeight || bm.height, s = Math.min(1, 240 / Math.max(w0, h0));
+      const W = Math.max(8, Math.round(w0 * s)), H = Math.max(8, Math.round(h0 * s)), cv = mkCanvas(W, H), x = cv.getContext("2d", { willReadFrequently: true });
+      x.drawImage(bm, 0, 0, W, H); const d = x.getImageData(0, 0, W, H).data, A = new Float32Array(W * H);
+      let opaque = 0; for (let i = 0; i < W * H; i++) if (d[i * 4 + 3] > 250) opaque++;
+      if (opaque > W * H * 0.97) { for (let i = 0; i < W * H; i++) { const L = 0.299 * d[i * 4] + 0.587 * d[i * 4 + 1] + 0.114 * d[i * 4 + 2]; A[i] = clamp((235 - L) / 120, 0, 1); } }   // 透明でない画像は白い紙として
+      else for (let i = 0; i < W * H; i++) A[i] = d[i * 4 + 3] / 255;
+      return this.fp(A, W, H);
+    })();
+    this.mem.set(key, p); p.catch(() => this.mem.delete(key)); return p;
+  },
+  fp(A, W, H, N = 32) {
+    let x0 = W, y0 = H, x1 = -1, y1 = -1;
+    for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) if (A[y * W + x] > 0.3) { if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y; }
+    if (x1 < 0) return null;
+    const bw = x1 - x0 + 1, bh = y1 - y0 + 1, S = Math.max(bw, bh), ox = x0 - (S - bw) / 2, oy = y0 - (S - bh) / 2, G = new Float32Array(N * N), C = new Float32Array(N * N);
+    for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) { const gx = Math.min(N - 1, Math.floor((x - ox) / S * N)), gy = Math.min(N - 1, Math.floor((y - oy) / S * N)); G[gy * N + gx] += A[y * W + x]; C[gy * N + gx]++; }
+    for (let i = 0; i < N * N; i++) G[i] = C[i] ? G[i] / C[i] : 0;
+    const B = new Float32Array(N * N);
+    for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) { let s = 0, n = 0; for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) { const X = x + dx, Y = y + dy; if (X >= 0 && Y >= 0 && X < N && Y < N) { s += G[Y * N + X]; n++; } } B[y * N + x] = s / n; }
+    let m = 0; for (const v of B) m += v; m /= B.length; let sd = 0; for (const v of B) sd += (v - m) ** 2; sd = Math.sqrt(sd / B.length) || 1;
+    return { z: B.map(v => (v - m) / sd), N, ar: bw / bh };
+  },
+  rot(z, N, r) { if (!r) return z; const o = new Float32Array(N * N); for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) { const X = r === 1 ? N - 1 - y : r === 2 ? N - 1 - x : y, Y = r === 1 ? x : r === 2 ? N - 1 - y : N - 1 - x; o[Y * N + X] = z[y * N + x]; } return o; },
+  sim(a, b) {   // 向きが90度ちがうと縦横の比がいれかわる
+    if (!a || !b) return -1; const near = (p, q) => p / q > 0.8 && p / q < 1.25, okA = near(a.ar, b.ar), okB = near(a.ar, 1 / b.ar);
+    let best = -1;
+    for (let r = 0; r < 4; r++) { if (r % 2 === 0 ? !okA : !okB) continue; const bz = this.rot(b.z, b.N, r); let s = 0; for (let i = 0; i < a.z.length; i++) s += a.z[i] * bz[i]; best = Math.max(best, s / a.z.length); }
+    return best;
+  },
+};
+
+const ShapeMatch = {
+  AUTO: 0.85, ASK: 0.66, GAP: 0.06, KM: 1.5,
+  rowsP: null,
+  rows() { if (!this.rowsP) { this.rowsP = (window.PetalogCloud && PetalogCloud.catalogPins ? PetalogCloud.catalogPins() : Promise.resolve([])).catch(() => []); setTimeout(() => { this.rowsP = null; }, 300000); } return this.rowsP; },
+  pos(r) { return Spots.of(r.design) || r; },
+  async find(cutUrl, key, lat, lng) {
+    if (lat == null || lng == null || !cutUrl) return [];
+    const R = (await this.rows()).filter(r => r.design && r.img && r.lat != null && kmBetween(+lat, +lng, +this.pos(r).lat, +this.pos(r).lng) < this.KM); if (!R.length) return [];
+    const me = await ShapeFP.of(key, cutUrl).catch(() => null); if (!me) return [];
+    const out = [];
+    for (const r of R) { const f = await ShapeFP.of("d" + r.design, r.img).catch(() => null); const s = ShapeFP.sim(me, f); if (s > 0) out.push({ r, s }); }
+    // 同じ絵柄が何枚も取り込まれていることがある（同じスタンプの別の記事）→ 図鑑の番号ごとに1つ
+    const seen = new Set(); return out.sort((a, b) => b.s - a.s).filter(x => !seen.has(x.r.design) && seen.add(x.r.design));
+  },
+  sure(L) { return L[0] && L[0].s >= this.AUTO && (!L[1] || L[0].s - L[1].s >= this.GAP || this.twin(L[0], L[1])) ? L[0] : null; },
+  twin(a, b) { return Math.abs(a.s - b.s) < 0.02 && norm(a.r.name) === norm(b.r.name); },   // 取り込みの重なり（同じ絵が2枚）
+  pick(x) { const p = this.pos(x.r); return { id: x.r.design, name: x.r.name, place: x.r.place, pref: x.r.pref, cat: x.r.cat, lat: +p.lat, lng: +p.lng, thumb: x.r.img, members: 0, shape: x.s }; },
+};
+
+// 登録画面: これまでの照合（dh）に加えて、近くのみんなのスタンプとインクの形でも比べる
+{ const m0 = Zukan.match.bind(Zukan); Zukan.match = async function (c) {
+  await m0(c);
+  if (sheetCtx !== c || !c.cut || !$("#zkBox")) return;
+  const lat = c.d.lat != null ? c.d.lat : c.exif && c.exif.lat, lng = c.d.lng != null ? c.d.lng : c.exif && c.exif.lng;
+  const key = "c:" + c.cut.url.length + ":" + (lat != null ? (+lat).toFixed(3) + "," + (+lng).toFixed(3) : ""); if (c.shKey === key) return; c.shKey = key;
+  let L = []; try { L = await ShapeMatch.find(c.cut.url, "cut:" + c.cut.url.slice(-64) + c.cut.url.length, lat, lng); } catch (_) { return; }
+  if (sheetCtx !== c) return;
+  const add = L.filter(x => x.s >= ShapeMatch.ASK).slice(0, 3).map(x => ShapeMatch.pick(x));
+  if (!add.length) return;
+  c.zkList = [...add, ...(c.zkList || []).filter(y => !add.some(a => a.id === y.id))].slice(0, 4);
+  const sure = ShapeMatch.sure(L);
+  if (sure && !c.design && $("#zkBox")) { this.render(c); const b = $(`#zkBox [data-zk="${sure.r.design}"]`); if (b) { b.click(); toast("みんなの図鑑の同じスタンプと結びつけました（ちがうときは「やめる」）", 3600); return; } }
+  this.render(c);
+}; }
+
+// みんなの図鑑の番号を、自分の図鑑の番号として持っていない（公開していない）スタンプでも、地図で「押した」とわかるように
+const ShapeLink = {
+  V: 1, busy: false, ask: [],
+  done() { try { return JSON.parse(localStorage.getItem("petalog.shapeLink") || "{}"); } catch (_) { return {}; } },
+  mark(o) { try { localStorage.setItem("petalog.shapeLink", JSON.stringify(o)); } catch (_) {} },
+  async run() {
+    if (this.busy || Store.mode !== "cloud" || !window.PetalogCloud || !PetalogCloud.loggedIn || !PetalogCloud.loggedIn()) return; this.busy = true;
+    try {
+      const R = await ShapeMatch.rows(); if (!R.length) return; const catD = new Set(R.map(r => +r.design)), D = this.done();
+      const L = stamps.filter(s => !s.sample && s.type !== "goshuin" && s.cut && s.lat != null && !(s.design && catD.has(+s.design)) && !s.cdesign && D[s.id] !== this.V);
+      let linked = 0;
+      for (const s of L) {
+        let M = []; try { M = await ShapeMatch.find(s.cut, "s:" + s.id, s.lat, s.lng); } catch (_) {}
+        const sure = ShapeMatch.sure(M);
+        if (sure) { await this.link(s, sure.r.design); linked++; }
+        else if (M[0] && M[0].s >= ShapeMatch.ASK) this.ask.push({ sid: s.id, cand: M.filter(x => x.s >= ShapeMatch.ASK).slice(0, 3).map(x => ShapeMatch.pick(x)) });
+        D[s.id] = this.V; this.mark(D);
+        await new Promise(r => setTimeout(r, 60));
+      }
+      if (linked) { toast(`みんなのスタンプと同じだったスタンプを ${linked} 枚、結びつけました`, 3600); MapV.pubs = null; if (MapV.mode === "all") MapV.loadPubs(); }
+      this.banner();
+    } finally { this.busy = false; }
+  },
+  // 結びつける: 公開しているスタンプは図鑑に入れ直す（GPSの場所がいちばん確かなら、ピンもそこへ）。公開していないものは手元にだけ印
+  async link(s, design) {
+    const cur = findStamp(s.id) || s;
+    if (cur.share) { try { const r = await Zukan.register(cur, design, true); if (r && r.design === design) return true; } catch (_) {} }
+    cur.cdesign = design; try { await Store.saveStamp(cur); } catch (_) {} return true;
+  },
+  banner() {
+    const w = $("#mapWrap"); if (!w) return; let b = $("#linkAsk"); const n = this.ask.filter(a => findStamp(a.sid)).length;
+    if (!n || MapV.mode !== "all") { if (b) b.hidden = true; return; }
+    if (!b) { b = document.createElement("button"); b.type = "button"; b.id = "linkAsk"; b.className = "link-ask"; w.appendChild(b); b.onclick = () => this.open(); }
+    b.hidden = false; b.textContent = `同じスタンプか確認してほしいものが ${n} 件`;
+  },
+  open() {
+    const A = this.ask.filter(a => findStamp(a.sid)); if (!A.length) { this.banner(); return; }
+    const a = A[0], s = findStamp(a.sid);
+    openSheet(`<div class="sheet-head"><h2>同じスタンプ？</h2><button class="btn small ghost" type="button" data-close>閉じる</button></div>
+      <p class="cap">あなたのスタンプと、近くのみんなのスタンプです。同じものがあればタップしてください（残り ${A.length} 件）。</p>
+      <div class="lk-me"><img src="${esc(s.cut)}" alt=""><b>${esc(s.name || "あなたのスタンプ")}</b></div>
+      <div class="lk-list">${a.cand.map(x => `<button type="button" class="lk-c" data-d="${x.id}"><img src="${esc(x.thumb)}" alt=""><span>${esc(x.name)}</span></button>`).join("")}</div>
+      <div class="acts"><button class="btn" type="button" id="lkNo">どれもちがう</button></div>`);
+    const next = () => { this.ask = this.ask.filter(y => y !== a); if (this.ask.some(y => findStamp(y.sid))) this.open(); else { closeSheet(); toast("確認ありがとうございました"); } this.banner(); };
+    $("#sheet").querySelectorAll("[data-d]").forEach(b => b.onclick = async () => { await this.link(s, +b.dataset.d); MapV.pubs = null; next(); if (MapV.mode === "all") MapV.loadPubs(); });
+    $("#lkNo").onclick = next;
+  },
+};
+// みんなの地図を開いたら（みんなのスタンプを読み込んだあと）1回だけ照合する
+{ const lp = MapV.loadPubs; MapV.loadPubs = async function (...a) { const r = await lp.apply(this, a); setTimeout(() => ShapeLink.run(), 1500); ShapeLink.banner(); return r; }; }
+{ const s = document.createElement("style"); s.textContent = `
+.link-ask{position:absolute;left:12px;right:12px;bottom:66px;z-index:3;border:0;border-radius:14px;padding:10px 14px;background:#2B4C9B;color:#fff;font:inherit;font-size:14px;box-shadow:0 2px 10px rgba(0,0,0,.2)}
+.link-ask[hidden]{display:none}
+.lk-me{display:flex;align-items:center;gap:12px;margin:8px 0 12px}.lk-me img{width:96px;height:96px;object-fit:contain;background:#fff;border-radius:12px;box-shadow:inset 0 0 0 1px var(--line)}
+.lk-list{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.lk-c{display:grid;gap:4px;justify-items:center;padding:8px;border-radius:12px;border:1px solid var(--line);background:#fff;font:inherit;font-size:12px}
+.lk-c img{width:100%;aspect-ratio:1;object-fit:contain}`; document.head.appendChild(s); }
 
 /* ================= boot ================= */
 addEventListener("resize", () => { Book.layout(); if (view === "fall") { Fall.stop(); Fall.start(); } if (view === "map") MapV.draw(); });

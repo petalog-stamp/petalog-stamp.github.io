@@ -89,8 +89,9 @@ async function designs(uid: string, task: string, body: Record<string, unknown>)
   let pick: number | null = null;
   const want = num(a.design);
   if (want != null) {
-    const { data: d } = await admin.from("designs").select("id, dh, digital").eq("id", want).maybeSingle();
-    if (d && d.digital === digital && ham(dh, String(d.dh ?? "")) <= SAME) pick = d.id;
+    const { data: d } = await admin.from("designs").select("id, dh, digital, src").eq("id", want).maybeSingle();
+    // 運営が登録したスタンプは、写真とサイトの絵で明るさの指紋が合わないので、本人（インクの形で確かめた結果）が選んだものをそのまま使う
+    if (d && d.digital === digital && (ham(dh, String(d.dh ?? "")) <= SAME || (d.src && d.dh !== "-"))) pick = d.id;
   }
   if (pick == null) {
     const rows = await designFind(dh, lat, lng, digital, 0.004, 6, SAME, 8);
