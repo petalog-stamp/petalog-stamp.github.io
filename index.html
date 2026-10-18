@@ -8208,7 +8208,7 @@ const HQImport = {
     box.insertAdjacentHTML("beforeend", `<div class="hqi-ed">
       <label>タイトル<input class="search" id="hqiName" maxlength="80" value="${esc(it._name)}"></label>
       <label>ジャンル<div class="hqi-row" id="hqiCat">${GENRES.map(g => `<button type="button" class="btn small${g === it._cat ? " on" : ""}" data-g="${esc(g)}" style="color:${gcol(g)}">${esc(g)}</button>`).join("")}</div></label>
-      <label>使う範囲（四角をドラッグ）<div class="hqi-crop"><canvas id="hqiCrop"></canvas></div><div class="hqi-row"><button class="btn small" type="button" id="hqiAuto">範囲を自動にもどす</button></div></label>
+      <label>使う範囲（四角をドラッグ）<div class="hqi-crop"><canvas id="hqiCrop"></canvas></div><div class="hqi-row"><button class="btn small" type="button" id="hqiAuto">範囲を自動にもどす</button><button class="btn small" type="button" id="hqiDup">この画像を分ける（何個も写っているとき）</button></div></label>
       <label>回転<div class="hqi-row"><button class="btn small" type="button" id="hqiRl">↺ 90°</button><button class="btn small" type="button" id="hqiRr">↻ 90°</button><span id="hqiFv">${e.fine}°</span></div><input type="range" id="hqiFine" min="-20" max="20" step="1" value="${e.fine}"></label>
       <label>透かし（左: インクを濃く残す ／ 右: うすい所を消す）<input type="range" id="hqiTk" min="0.5" max="1.8" step="0.05" value="${e.tk}"></label>
       <label>明るさ<input type="range" id="hqiBr" min="-60" max="60" step="2" value="${e.bright || 0}"></label>
@@ -8229,6 +8229,9 @@ const HQImport = {
     $("#hqiMode").onclick = ev => { const b = ev.target.closest("[data-m]"); if (!b) return; e.mode = b.dataset.m; $("#hqiMode").querySelectorAll("button").forEach(x => x.classList.toggle("on", x === b)); redo(true); };
     $("#hqiOvl").onchange = ev => { it._ovl = ev.target.checked; redo(true); };
     $("#hqiAuto").onclick = () => { e.box = null; redo(false); };
+    $("#hqiDup").onclick = async () => {   // 同じ画像でカードをもう1枚作り、すぐ次に入れる（それぞれ範囲を切る）
+      try { const n = await hqTry(() => PetalogCloud.jsh.dup(it.id)); if (!n) return; this.q.splice(this.at + 1, 0, n); toast("同じ画像のカードを次に入れました。このカードは1つ目のスタンプだけを四角で囲んでください", 4200); }
+      catch (_) { toast("分けられませんでした。もう一度どうぞ"); } };
     $("#hqiBr").oninput = ev => { e.bright = +ev.target.value; redo(true); };
     $("#hqiCo").oninput = ev => { e.contrast = +ev.target.value; redo(true); };
     $("#hqiAutoB").onchange = ev => { e.auto = ev.target.checked; redo(true); };
@@ -8470,6 +8473,22 @@ MapV.openPubs = async function (ids) {
 .next-tg.on{background:#F2B90C;color:#3a2a00;border-color:#F2B90C}
 #v-map .map-wrap{margin-bottom:10px}
 #mapFoot[hidden]{display:none!important}`; document.head.appendChild(s); }
+
+// 自分のピンを開いたら、自分のトレカの下に線で区切って「みんなが押した同じスタンプ」も並べる（押し方のちがい・昔の状態がわかる）
+MapV.openMine = async function (ids) {
+  const ss = ids.map(findStamp).filter(Boolean); if (!ss.length) return; const top = ss[0], nm = top.place || top.name;
+  const D = new Set(); ss.forEach(s => { if (s.design) D.add(+s.design); if (s.cdesign) D.add(+s.cdesign); });
+  if (D.size && !this.pubs && Store.mode === "cloud") { try { await this.loadPubs(); } catch (_) {} }
+  const P = (this.pubs || []).filter(p => !p.miss && p.by !== Store.uid && p.design && D.has(+p.design) && p.reviewed !== "hide").sort((a, b) => (a.catalog ? 1 : 0) - (b.catalog ? 1 : 0));
+  if (ss.length === 1 && !P.length) { CardView.open(top.id, { items: ss }); return; }
+  CardGrid.open({ title: nm, items: shuffled(ss), at: top.lat != null ? { lat: +top.lat, lng: +top.lng } : null, add: { name: nm, place: top.place || nm, cat: catNorm(top.cat), lat: +(+top.lat).toFixed(6), lng: +(+top.lng).toFixed(6), pref: top.pref || prefAt(top.lat, top.lng) || "", locSrc: "地図で検索" } });
+  if (!P.length || !CardGrid.el) return;
+  const others = await pubCards(P), body = CardGrid.el.querySelector(".cgv-body"), mine = body && body.querySelector(".cards"); if (!mine) return;
+  mine.insertAdjacentHTML("afterend", `<div class="cgv-sep"><span>みんなが押した同じスタンプ ${others.length}枚</span></div><div class="cards c3 cgv-others" style="--cols:3">${others.map(s => cardHTML(s, null, { cols: 3, tag: s._tag })).join("")}</div>`);
+  body.querySelector(".cgv-others").addEventListener("click", e => { const c = e.target.closest("[data-open]"); if (!c) return; e.stopPropagation(); CardView.open(c.dataset.open, { items: others, front: true }); });
+};
+{ const s = document.createElement("style"); s.textContent = `.cgv-sep{display:flex;align-items:center;gap:10px;margin:18px 4px 10px;color:rgba(255,255,255,.75);font-size:13px}
+.cgv-sep::before,.cgv-sep::after{content:"";flex:1;height:1px;background:rgba(255,255,255,.28)}`; document.head.appendChild(s); }
 
 /* ================= 同じスタンプを「インクの形」で見つける =================
    写真から切り抜いた絵と、取り込んだ白背景の絵は、余白・かすれ・色がちがうので、明るさの指紋（dh）では合わない。

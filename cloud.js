@@ -588,6 +588,7 @@
       imgUrl(u) { return `${CFG.url}/functions/v1/jsh?img=${encodeURIComponent(u)}`; },
       async queue(afterDist, afterId, n) { const { data, error } = await sb.rpc("hq_jsh_queue", { p_after_dist: afterDist, p_after_id: afterId, p_limit: n }); if (error) fail(error); return data || []; },
       async stats() { const { data, error } = await sb.rpc("hq_jsh_stats"); if (error) fail(error); return data; },
+      async dup(id) { const { data, error } = await sb.rpc("hq_jsh_dup", { p_id: id }); if (error) fail(error); return (data || [])[0] || null; },
       async set(id, status, p) { const { data, error } = await sb.rpc("hq_jsh_set", { p_id: id, p_status: status, p: p || {} }); if (error) fail(error); return data; },
       async put(id, blob) { const path = `jsh/${id}-${Date.now().toString(36)}.${/webp/.test(blob.type) ? "webp" : "png"}`; await upload("catalog", path, blob, true); return sb.storage.from("catalog").getPublicUrl(path).data.publicUrl; },
     },
