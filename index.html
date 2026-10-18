@@ -2391,7 +2391,7 @@ const MapV = {
     };
     // stamp pins
     this.pinHits = []; const pinR = 17;
-    const drawPin = (lat, lng, url, ring, hit, n = 1, st = null) => {
+    const drawPin = (lat, lng, url, ring, hit, n = 1, st = null) => { if (this.route) n = 1;
       const [wx, wy] = W(lat, lng); const px = X(wx), py = Y(wy); if (px < -30 || py < -40 || px > Wd + 30 || py > Hd + 60) return;
       const tr = st ? st.trust : 3, rc = st && st.ended ? "#8E949E" : tr >= 3 ? ring : tr === 2 ? "#D98A1C" : "#5F7FB8";
       x.save(); if (st && st.faded) x.globalAlpha = 0.35;
@@ -8472,7 +8472,8 @@ MapV.openPubs = async function (ids) {
 .cgv-who{margin:0 16px 8px;font-size:14px;color:rgba(255,255,255,.88)}.cgv-who b{font-size:17px;color:#fff}
 .next-tg.on{background:#F2B90C;color:#3a2a00;border-color:#F2B90C}
 #v-map .map-wrap{margin-bottom:10px}
-#mapFoot[hidden]{display:none!important}`; document.head.appendChild(s); }
+#mapFoot[hidden]{display:none!important}
+#routeCard:not([hidden]) ~ #nextBtn,#routeCard:not([hidden]) ~ #linkAsk{display:none}`; document.head.appendChild(s); }
 
 // 自分のピンを開いたら、自分のトレカの下に線で区切って「みんなが押した同じスタンプ」も並べる（押し方のちがい・昔の状態がわかる）
 MapV.openMine = async function (ids) {
@@ -8489,6 +8490,29 @@ MapV.openMine = async function (ids) {
 };
 { const s = document.createElement("style"); s.textContent = `.cgv-sep{display:flex;align-items:center;gap:10px;margin:18px 4px 10px;color:rgba(255,255,255,.75);font-size:13px}
 .cgv-sep::before,.cgv-sep::after{content:"";flex:1;height:1px;background:rgba(255,255,255,.28)}`; document.head.appendChild(s); }
+
+// 囲んだ中の「地図に出ているピン」だけをまわる（みんな: まだ押していない赤ピン／じぶん: 自分のピン）。1か所に何枚あっても1回立ち寄る
+MapV.lassoDone = function (poly) {
+  this.endLasso(); const m = this.map, inside = (la, ln) => { const p = m.latLngToContainerPoint([la, ln]); return inPoly(p.x, p.y, poly); }, pts = [];
+  if (this.mode === "all" && this.pubs) {
+    const P = this.pubs;
+    for (const g of pubGroups(P)) {
+      if (!inside(g.lat, g.lng)) continue; const rem = MapPins.remain(g, P); if (!rem.length) continue; const st = Trust.of(g, P); if (st && st.ended) continue;
+      const top = Trust.idx(P).ids.get(rem[0]) || g.top; pts.push({ n: top.place || top.name, lat: g.lat, lng: g.lng, sub: [rem.length > 1 ? `${rem.length}枚` : "みんなのスタンプ"], spot: top.spot || "" });
+    }
+  } else {
+    for (const g of pinGroups()) { if (!inside(g.lat, g.lng)) continue; const t = g.top; pts.push({ n: t.place || t.name, lat: g.lat, lng: g.lng, sub: [g.n > 1 ? `${g.n}枚` : "自分のスタンプ"] }); }
+  }
+  let list2 = pts, note = "";
+  if (!list2.length) { toast(this.mode === "all" ? "囲んだ中に、まだ押していないピンがありませんでした" : "囲んだ中に、自分のピンがありませんでした", 4200); return; }
+  if (list2.length > 24) { const cx = poly.reduce((s, p) => s + p[0], 0) / poly.length, cy = poly.reduce((s, p) => s + p[1], 0) / poly.length, cc = m.containerPointToLatLng([cx, cy]);
+    list2.sort((a, b) => kmBetween(a.lat, a.lng, cc.lat, cc.lng) - kmBetween(b.lat, b.lng, cc.lat, cc.lng)); note = `ピンが${list2.length}か所あったので、真ん中に近い24か所で組みました。`; list2 = list2.slice(0, 24); }
+  this.route = solveRoute(list2, this.me ? { n: "現在地", lat: this.me.lat, lng: this.me.lng } : null); this.route.note = note;
+  this.showRoute(); this.draw();
+  const all = [...(this.route.start ? [this.route.start] : []), ...this.route.stops]; m.fitBounds(all.map(p => [p.lat, p.lng]), { padding: [60, 60], maxZoom: 16 });
+};
+// ルートを出している間は、ピンの枚数の数字を出さない（ルートの番号とまぎれるので）
+{ const pin0 = MapPins.pin.bind(MapPins); MapPins.pin = function (x, px, py, color, alpha, n) { return pin0(x, px, py, color, alpha, MapV.route ? 1 : n); }; }
 
 /* ================= 同じスタンプを「インクの形」で見つける =================
    写真から切り抜いた絵と、取り込んだ白背景の絵は、余白・かすれ・色がちがうので、明るさの指紋（dh）では合わない。
