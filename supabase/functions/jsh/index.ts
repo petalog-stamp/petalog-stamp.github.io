@@ -84,13 +84,16 @@ async function terms(tx: string): Promise<Map<number, string>> {
 }
 
 function parse(p: Post, TH: Map<number, string>, TG: Map<number, string>, PF: Map<number, string>) {
-  const html = p.content?.rendered ?? "";
+  // ほかの記事へのリンクカード（小さな画像つき）は使わない
+  const html = (p.content?.rendered ?? "").replace(/<a[^>]*class="lkc-link[\s\S]*?<\/a>/gi, "");
   const title = jpOnly(strip(p.title?.rendered ?? ""));
   const themes = (p.theme ?? []).map((i) => TH.get(i) ?? "").filter(Boolean);
   const tags = (p.stamp_tag ?? []).map((i) => TG.get(i) ?? "").filter((t) => t && !/^Contributor-/i.test(t));
   const pref = (p.prefecture ?? []).map((i) => PF.get(i) ?? "").filter(Boolean)[0] ?? "";
-  // 情報の箇条書き（最初の <ul> が日本語）
-  const ul = (html.match(/<ul>[\s\S]*?<\/ul>\s*<\/li>\s*<\/ul>|<ul>[\s\S]*?<\/ul>/) ?? [""])[0];
+  // 情報の箇条書き: 日本語で住所の入ったものをえらぶ（英語が先の記事もある）
+  const uls: string[] = []; { let d = 0, st = -1; for (const m of html.matchAll(/<\/?ul[^>]*>/gi)) { if (m[0][1] !== "/") { if (!d++) st = m.index!; } else if (d && !--d) uls.push(html.slice(st, m.index! + m[0].length)); } }
+  const JA = /[ぁ-んァ-ン一-龥]/;
+  const ul = uls.find((u) => JA.test(strip(u)) && /〒|[都道府県]/.test(strip(u))) ?? uls.find((u) => JA.test(strip(u))) ?? uls[0] ?? "";
   const lines = ul.replace(/<\/?(ul|li)[^>]*>/gi, "\n").split("\n").map(strip).filter(Boolean);
   const addrs = lines.filter(isAddr);
   const ai = lines.findIndex(isAddr);
