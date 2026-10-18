@@ -62,7 +62,7 @@ async function designs(uid: string, task: string, body: Record<string, unknown>)
     const { data: rows } = await admin.from("design_members").delete().eq("user_id", uid).eq("stamp_id", sid).select("design_id");
     for (const r of rows ?? []) {
       const { count } = await admin.from("design_members").select("user_id", { count: "exact", head: true }).eq("design_id", r.design_id);
-      if (!count) await admin.from("designs").delete().eq("id", r.design_id);
+      if (!count) { await admin.from("designs").delete().eq("id", r.design_id).is("src", null); await admin.rpc("design_recount", { p_design: r.design_id }); }
       else await admin.rpc("design_recount", { p_design: r.design_id });
     }
     return json({ ok: true });
@@ -125,7 +125,7 @@ async function designs(uid: string, task: string, body: Record<string, unknown>)
   for (const r of was ?? []) if (r.design_id !== pick) {
     await admin.from("design_members").delete().eq("user_id", uid).eq("stamp_id", sid).eq("design_id", r.design_id);
     const { count } = await admin.from("design_members").select("user_id", { count: "exact", head: true }).eq("design_id", r.design_id);
-    if (!count) await admin.from("designs").delete().eq("id", r.design_id); else await admin.rpc("design_recount", { p_design: r.design_id });
+    if (!count) { await admin.from("designs").delete().eq("id", r.design_id).is("src", null); await admin.rpc("design_recount", { p_design: r.design_id }); } else await admin.rpc("design_recount", { p_design: r.design_id });
   }
   const { data: j, error: je } = await admin.rpc("design_join", { p_design: pick, p_user: uid, p_stamp: sid, p_t: Math.round(t) });
   if (je) { console.error("design_join", je.message); return json({ error: "server" }, 500); }

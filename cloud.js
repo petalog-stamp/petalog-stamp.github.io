@@ -583,6 +583,23 @@
     async saveWalk(w) { const { id, ...data } = w; const { error } = await sb.from("walks").upsert({ user_id: uid, id, data, updated_at: new Date().toISOString() }); if (error) fail(error); },
     async delWalk(id) { const { error } = await sb.from("walks").delete().eq("user_id", uid).eq("id", id); if (error) fail(error); },
     async walk(task, args) { if (!attached) throw { code: "login_required" }; const j = await callFn("walk", { task, args }); return j.result; },
+    // 本部だけ: 取り込んだスタンプの確認（皇居から近い順）と公開
+    jsh: {
+      imgUrl(u) { return `${CFG.url}/functions/v1/jsh?img=${encodeURIComponent(u)}`; },
+      async queue(afterDist, afterId, n) { const { data, error } = await sb.rpc("hq_jsh_queue", { p_after_dist: afterDist, p_after_id: afterId, p_limit: n }); if (error) fail(error); return data || []; },
+      async stats() { const { data, error } = await sb.rpc("hq_jsh_stats"); if (error) fail(error); return data; },
+      async set(id, status, p) { const { data, error } = await sb.rpc("hq_jsh_set", { p_id: id, p_status: status, p: p || {} }); if (error) fail(error); return data; },
+      async put(id, blob) { const path = `jsh/${id}-${Date.now().toString(36)}.${/webp/.test(blob.type) ? "webp" : "png"}`; await upload("catalog", path, blob, true); return sb.storage.from("catalog").getPublicUrl(path).data.publicUrl; },
+    },
+    // みんなのスタンプ（運営が登録した地図のピン）。前回から変わった分だけ読む
+    async catalogPins() {
+      if (!sb || noNet()) throw new Error("offline");
+      const old = (await Cache.get("kv", "catalog")) || { t: "1970-01-01T00:00:00Z", rows: {} };
+      const { data, error } = await sb.rpc("catalog_pins", { p_since: old.t }); if (error) fail(error);
+      for (const r of data || []) { if (r.live && r.lat != null && r.img) old.rows[r.id] = r; else delete old.rows[r.id]; if (r.t > old.t) old.t = r.t; }
+      Cache.put("kv", "catalog", old); return Object.values(old.rows);
+    },
+    async catalogInfo(id) { const { data } = await sb.rpc("catalog_info", { p_id: id }); return data || null; },
     // みんなのスタンプ図鑑（AIは使わない）: match / register / leave
     async zukan(task, args) {
       if (!attached) throw { code: "login_required" };

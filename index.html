@@ -4700,6 +4700,7 @@ function openSettings() {
   $("#tourAgain").onclick = () => { closeSheet(); Tour.start({ preview: true }); };
   if (cloud) PetalogCloud.wireSettings();
   Privacy.wire();
+  if (typeof HQ !== "undefined") HQ.settings();   // 本部のアカウントだけ: 本部の画面へのボタン
 }
 $("#setBtn").onclick = openSettings;
 async function exportBackup() {
@@ -8032,6 +8033,220 @@ const SamplePh = {
     document.body.appendChild(el); requestAnimationFrame(() => el.classList.add("in")); el.querySelector("button").onclick = () => { el.classList.remove("in"); setTimeout(() => el.remove(), 250); };
   };
 })();
+
+/* ================= みんなのスタンプ（運営が登録した地図のピン）と、本部の取り込み確認 =================
+   - 掲載許可をもらったスタンプ紹介サイトの情報を、サーバーで下書きにしてある（jsh_items）
+   - 本部は1枚ずつ見て、問題なければスワイプ（＝OK・公開）。直したいときだけ「直す」。戻ることもできる
+   - 公開したものは、みんなの地図にピンが出て、みんなの図鑑にも入る（同じスタンプを登録した人は第一発見者にならない） */
+const CATALOG_TAG = "みんなのスタンプ";
+const Catalog = {
+  pub(r) {
+    return { _id: "cat" + r.id, catalog: r.id, sid: null, by: "catalog", nick: CATALOG_TAG, name: r.name || "", place: r.place || "", pref: r.pref || "", cat: r.cat || "施設",
+      date: "", lat: r.lat, lng: r.lng, sizeMm: null, thumb: r.img, rk: "", spot: "", spotTags: [], type: "stamp", miss: false, reason: null,
+      t: Date.parse(r.t) || 0, ct: Date.parse(r.t) || 0, design: r.design || null, reviewed: null, lr: 2, overlap: !!r.overlap };
+  },
+  wrap() {
+    if (Store._catWrap || Store.mode !== "cloud" || !Store.pubList || !window.PetalogCloud || !PetalogCloud.catalogPins) return;
+    const f = Store.pubList.bind(Store); Store._catWrap = true;
+    Store.pubList = async () => { const a = await f(); let c = []; try { c = await PetalogCloud.catalogPins(); } catch (_) {} return a.concat(c.map(r => Catalog.pub(r))); };
+  },
+};
+{ const lp = MapV.loadPubs; MapV.loadPubs = function (...a) { Catalog.wrap(); return lp.apply(this, a); }; }
+// みんなのスタンプのピンを開いたとき（記録した人はいないので、場所の案内を出す）
+{ const op = openPub; openPub = function (id) {
+  const p = (MapV.pubs || []).find(x => x._id === id); if (!p || !p.catalog) return op(id);
+  sheetCtx = { mode: "pub" }; const ctx = sheetCtx;
+  const draw = info => { if (sheetCtx !== ctx) return;
+    openSheet(`<div class="sheet-head"><h2>${CATALOG_TAG}</h2><button class="btn small ghost" type="button" data-close>閉じる</button></div>
+      <div class="hero washi"><div class="hi"><img src="${esc(p.thumb || "")}" alt=""></div><div><h3>${esc(p.name)}</h3><div class="meta">${p.place ? `<span>${esc(p.place)}</span>` : ""}${p.pref ? `<span>${esc(p.pref)}</span>` : ""}${p.cat ? `<span class="chip" style="color:${gcol(p.cat)}">${esc(p.cat)}</span>` : ""}</div></div></div>
+      <div class="sec"><h4>場所の案内</h4>${info ? `<p class="cat-memo">${esc(info.memo || info.addr || "")}</p>` : `<p class="cap"><span class="spin"></span> 読み込み中…</p>`}</div>
+      ${p.lat != null ? `<div class="acts"><a class="btn primary" href="${gmapsDir(p.lat, p.lng)}" target="_blank" rel="noopener">道案内（Googleマップ）</a></div>` : ""}`); };
+  draw(null); PetalogCloud.catalogInfo(p.catalog).then(i => draw(i || { memo: "" })).catch(() => draw({ memo: "" }));
+}; }
+
+const HQImport = {
+  q: [], at: 0, done: false, loading: false, sending: 0, sent: 0, failed: 0, stats: null, edit: false, map: null,
+  css() {
+    if ($("#hqiCss")) return; const s = document.createElement("style"); s.id = "hqiCss";
+    s.textContent = `.cat-memo{white-space:pre-line;font-size:14px;line-height:1.6;margin:0}
+.hqi-top{display:flex;gap:8px;align-items:center;justify-content:space-between;font-size:12.5px;color:var(--sub,#6a6f78);margin:0 0 8px}
+.hqi-stage{position:relative;display:flex;justify-content:center;padding:6px 0 4px;touch-action:pan-y;user-select:none;-webkit-user-select:none}
+.hqi-card{width:min(260px,64vw);transition:transform .22s ease,opacity .22s ease;will-change:transform}
+.hqi-card.drag{transition:none}
+.hqi-card .cards{--cols:1}
+.hqi-hint{position:absolute;top:40%;font-weight:700;font-size:15px;padding:6px 12px;border-radius:999px;opacity:0;transition:opacity .15s;pointer-events:none}
+.hqi-hint.ok{right:6px;background:#2F7A4F;color:#fff}
+.hqi-src{font-size:12.5px;line-height:1.55;color:var(--sub,#6a6f78);margin:6px 0 0;white-space:pre-line;max-height:7.5em;overflow:auto;border-left:3px solid #ddd;padding-left:8px}
+.hqi-warn{background:#FFF4D6;color:#7a5a00;border-radius:10px;padding:8px 10px;font-size:13px;margin:6px 0}
+.hqi-acts{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:6px;margin:10px 0 4px}
+.hqi-acts .btn{padding-left:4px;padding-right:4px}
+.hqi-ed{border-top:1px solid #eee;margin-top:10px;padding-top:10px;display:grid;gap:10px}
+.hqi-ed label{font-size:12.5px;color:var(--sub,#6a6f78);display:grid;gap:4px}
+.hqi-ed input[type=range]{width:100%}
+.hqi-row{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.hqi-row .on{outline:2px solid #2B4C9B;outline-offset:1px}
+.hqi-map{height:220px;border-radius:12px;overflow:hidden}
+.hqi-crop{display:flex;justify-content:center}
+.hqi-crop canvas{border-radius:8px;touch-action:none;max-width:100%}`;
+    document.head.appendChild(s);
+  },
+  async open() {
+    this.css(); this.q = []; this.at = 0; this.done = false; this.edit = false;
+    sheetCtx = { mode: "hqimp" }; this.ctx = sheetCtx;
+    openSheet(`<div class="sheet-head"><h2>取り込みスタンプの確認</h2><button class="btn small ghost" type="button" data-close>閉じる</button></div><div id="hqiBody"><p class="cap"><span class="spin"></span> 読み込み中…</p></div>`);
+    try { this.stats = await PetalogCloud.jsh.stats(); } catch (_) {}
+    await this.more(); this.show();
+  },
+  alive() { return sheetCtx === this.ctx && $("#hqiBody"); },
+  async more() {
+    if (this.loading || this.done) return; this.loading = true;
+    const last = this.q.filter(x => !x._back).slice(-1)[0];
+    try { const L = await PetalogCloud.jsh.queue(last ? last.dist_km : -1, last ? last.id : 0, 30); if (L.length < 30) this.done = true; this.q.push(...L); }
+    catch (_) { toast("読み込めませんでした。もう一度どうぞ"); }
+    this.loading = false;
+  },
+  cur() { return this.q[this.at]; },
+  // 画像は確認用の中継から読む（キャンバスで加工できるように）
+  async src(it) {
+    if (it._img) return it._img;
+    const r = await fetch(PetalogCloud.jsh.imgUrl(it.img)); if (!r.ok) throw new Error("img");
+    it._img = await loadImg(URL.createObjectURL(await r.blob())); return it._img;
+  },
+  ed(it) { if (!it._e) it._e = Object.assign({ rot: 0, fine: 0, tk: 1, mode: "auto", box: null }, it.edit || {}); if (it._name == null) { it._name = it.name || ""; it._cat = catNorm(it.cat); it._lat = it.lat; it._lng = it.lng; it._ovl = !!it.overlap; } return it._e; },
+  rotCanvas(im, deg) {
+    const a = deg * Math.PI / 180, c = Math.abs(Math.cos(a)), s = Math.abs(Math.sin(a)), W = im.naturalWidth || im.width, H = im.naturalHeight || im.height;
+    const cv = mkCanvas(W * c + H * s, W * s + H * c), x = cv.getContext("2d", { willReadFrequently: true });
+    x.fillStyle = "#fff"; x.fillRect(0, 0, cv.width, cv.height); x.translate(cv.width / 2, cv.height / 2); x.rotate(a); x.drawImage(im, -W / 2, -H / 2); return cv;
+  },
+  async make(it) {
+    const e = this.ed(it), key = JSON.stringify(e); if (it._r && it._rk === key) return it._r;
+    const im = await this.src(it), cv = this.rotCanvas(im, e.rot + e.fine), an = analyze(cv), t = an.t * e.tk;
+    const box = e.box || findBox(cv, an, t), cut = makeCut(cv, box, an.paper, t, e.mode);
+    it._r = { cv, an, box, cut }; it._rk = key; return it._r;
+  },
+  card(it, r) {
+    const s = { id: "hqi" + it.id, name: it._name, place: it.place, pref: it.pref, cat: it._cat, date: "", lat: it._lat, lng: it._lng, cut: r.cut.url, cw: r.cut.w, ch: r.cut.h, shape: r.cut.shape, ink: r.cut.ink, overlap: it._ovl, colors: r.cut.colors || [] };
+    try { return `<div class="cards c1" style="--cols:1">${cardHTML(s, null, { cols: 1, tag: CATALOG_TAG })}</div>`; } catch (_) { return `<img src="${r.cut.url}" alt="" style="width:100%">`; }
+  },
+  head() {
+    const st = this.stats || {}, left = Math.max(0, (st.new || 0) - this.sent);
+    return `<div class="hqi-top"><span>残り <b>${left}</b> ・ 公開 <b>${(st.ok || 0) + this.sent}</b>${this.sending ? ` ・ 送信中 ${this.sending}` : ""}${this.failed ? ` ・ <b style="color:#C0396A">失敗 ${this.failed}</b>` : ""}</span><span>皇居から近い順${st.page && st.page !== "-1" ? " ・ 読み込み中" : ""}</span></div>`;
+  },
+  async show() {
+    if (!this.alive()) return; const box = $("#hqiBody"); const it = this.cur();
+    if (!it) { if (!this.done) { await this.more(); if (this.cur()) return this.show(); }
+      box.innerHTML = this.head() + `<div class="empty">確認待ちのスタンプはありません。${this.stats && this.stats.page && this.stats.page !== "-1" ? "<br>まだ読み込み中のものがあります。しばらくしてから開き直してください。" : ""}</div>${this.at > 0 ? `<div class="hqi-acts" style="grid-template-columns:1fr"><button class="btn small" type="button" id="hqiBack">← もどる</button></div>` : ""}`;
+      const b = $("#hqiBack"); if (b) b.onclick = () => this.back(); return; }
+    if (this.q.length - this.at < 8) this.more();
+    box.innerHTML = this.head() + `<div class="hqi-stage" id="hqiStage"><p class="cap"><span class="spin"></span> 画像を読み込み中…</p></div>`;
+    let r; try { r = await this.make(it); } catch (_) { if (this.cur() !== it || !this.alive()) return; box.querySelector("#hqiStage").innerHTML = `<div class="hqi-warn">画像を読み込めませんでした</div>`; this.actions(it, null); return; }
+    if (this.cur() !== it || !this.alive()) return;
+    this.paint(it, r); this.actions(it, r); if (this.edit) this.editor(it, r);
+    const nx = this.q[this.at + 1]; if (nx) this.make(nx).catch(() => {});   // 次の1枚を先に用意
+  },
+  paint(it, r) {
+    const st = $("#hqiStage"); if (!st) return;
+    st.innerHTML = `<div class="hqi-card" id="hqiCard">${this.card(it, r)}</div><span class="hqi-hint ok" id="hqiOk">OK・公開</span>`;
+    this.swipe(st, it);
+  },
+  actions(it, r) {
+    const box = $("#hqiBody"); if (!box) return; box.querySelector(".hqi-info")?.remove(); box.querySelector(".hqi-acts")?.remove();
+    const geo = { "name+addr": "住所と施設名で確認ずみ", town: "住所（丁目まで）", name: "施設名だけ（住所なし）", hq: "本部が置いた場所" }[it.geo] || "";
+    const was = it._did === "ok" ? "（公開ずみ・もう一度スワイプで上書き）" : it._did === "skip" ? "（出さないにしました）" : "";
+    box.insertAdjacentHTML("beforeend", `<div class="hqi-info">${it._lat == null ? `<div class="hqi-warn">場所が見つかりませんでした。「直す」で地図にピンを置いてください。</div>` : ""}
+      <div class="hqi-src"><b>${esc(it.title || "")}</b>${it.sub ? `｜${esc(it.sub)}` : ""}${was}\n${esc(it.addr || "")}${geo ? `（${geo}）` : ""}${it.nimg > 1 ? `\nこの記事の画像 ${it.idx + 1}/${it.nimg}` : ""}\n${esc(it.memo || "")}</div></div>
+      <div class="hqi-acts"><button class="btn small" type="button" id="hqiBack"${this.at ? "" : " disabled"}>← もどる</button><button class="btn small" type="button" id="hqiEd">${this.edit ? "閉じる" : "直す"}</button><button class="btn small ghost" type="button" id="hqiSkip">出さない</button><button class="btn small primary" type="button" id="hqiGo">OK →</button></div>`);
+    $("#hqiBack").onclick = () => this.back();
+    $("#hqiEd").onclick = () => { this.edit = !this.edit; this.show(); };
+    $("#hqiSkip").onclick = () => this.skip(it);
+    $("#hqiGo").onclick = () => this.ok(it);
+  },
+  swipe(st, it) {
+    const card = $("#hqiCard"), hint = $("#hqiOk"); let x0 = null, y0 = 0, dx = 0, lock = null;
+    st.onpointerdown = e => { if (e.button) return; x0 = e.clientX; y0 = e.clientY; dx = 0; lock = null; };
+    st.onpointermove = e => { if (x0 == null) return; const ddx = e.clientX - x0, ddy = e.clientY - y0;
+      if (lock == null && Math.hypot(ddx, ddy) > 8) { lock = Math.abs(ddx) > Math.abs(ddy) ? "x" : "y"; if (lock === "x") { try { st.setPointerCapture(e.pointerId); } catch (_) {} card.classList.add("drag"); } }
+      if (lock !== "x") return; dx = ddx; card.style.transform = `translateX(${dx}px) rotate(${dx / 18}deg)`; hint.style.opacity = Math.min(1, Math.abs(dx) / 90); };
+    st.onpointerup = st.onpointercancel = () => { if (x0 == null) return; x0 = null; card.classList.remove("drag");
+      if (lock === "x" && Math.abs(dx) > 90) { card.style.transform = `translateX(${dx > 0 ? 520 : -520}px) rotate(${dx > 0 ? 18 : -18}deg)`; card.style.opacity = 0; setTimeout(() => this.ok(it), 160); }
+      else { card.style.transform = ""; hint.style.opacity = 0; } };
+  },
+  next() { this.at++; this.show(); },
+  back() { if (this.at <= 0) return; this.at--; this.edit = false; this.show(); },
+  ok(it) {
+    if (this.cur() !== it) return;
+    if (it._lat == null) { this.edit = true; toast("場所が入っていません。地図でピンを置いてからOKしてください", 3600); this.show(); return; }
+    const sig = JSON.stringify([it._e, it._name, it._cat, it._lat, it._lng, it._ovl]);
+    if (!(it._did === "ok" && it._sig === sig)) this.publish(it, sig);
+    this.edit = false; this.next();
+  },
+  async publish(it, sig) {
+    const first = it._did !== "ok"; it._did = "ok"; it._sig = sig; this.sending++; if (first) this.sent++; this.tick();
+    try {
+      const r = await this.make(it);
+      let blob = await new Promise(res => r.cut.canvas.toBlob(res, "image/webp", 0.86));
+      if (!blob || blob.type !== "image/webp") blob = await new Promise(res => r.cut.canvas.toBlob(res, "image/png"));
+      const url = await PetalogCloud.jsh.put(it.id, blob); let dh = ""; try { dh = await Zukan.dh(r.cut.url); } catch (_) {}
+      await PetalogCloud.jsh.set(it.id, "ok", { name: it._name, cat: it._cat, lat: it._lat, lng: it._lng, cut_url: url, w: r.cut.w, h: r.cut.h, shape: r.cut.shape, ink: r.cut.ink, overlap: it._ovl, dh: dh || null, edit: it._e });
+      MapV.pubs = null;
+    } catch (_) { this.failed++; it._did = null; if (first) this.sent--; toast("公開できなかった1枚があります。もどってもう一度OKしてください", 4200); }
+    this.sending--; this.tick();
+  },
+  async skip(it) {
+    if (this.cur() !== it) return; const pre = it._did; it._did = "skip"; if (pre === "ok") this.sent--;
+    PetalogCloud.jsh.set(it.id, "skip").then(() => { MapV.pubs = null; }).catch(() => { it._did = pre; toast("「出さない」にできませんでした"); });
+    this.edit = false; this.next();
+  },
+  tick() { const t = $("#hqiBody .hqi-top"); if (t) t.outerHTML = this.head(); },
+  // 直す: タイトル・ジャンル・画像（範囲・回転・透かし・色）・場所・重ね押し
+  editor(it, r) {
+    const box = $("#hqiBody"); if (!box) return; const e = this.ed(it);
+    box.insertAdjacentHTML("beforeend", `<div class="hqi-ed">
+      <label>タイトル<input class="search" id="hqiName" maxlength="80" value="${esc(it._name)}"></label>
+      <label>ジャンル<div class="hqi-row" id="hqiCat">${GENRES.map(g => `<button type="button" class="btn small${g === it._cat ? " on" : ""}" data-g="${esc(g)}" style="color:${gcol(g)}">${esc(g)}</button>`).join("")}</div></label>
+      <label>使う範囲（四角をドラッグ）<div class="hqi-crop"><canvas id="hqiCrop"></canvas></div><div class="hqi-row"><button class="btn small" type="button" id="hqiAuto">範囲を自動にもどす</button></div></label>
+      <label>回転<div class="hqi-row"><button class="btn small" type="button" id="hqiRl">↺ 90°</button><button class="btn small" type="button" id="hqiRr">↻ 90°</button><span id="hqiFv">${e.fine}°</span></div><input type="range" id="hqiFine" min="-20" max="20" step="1" value="${e.fine}"></label>
+      <label>透かし（左: インクを濃く残す ／ 右: うすい所を消す）<input type="range" id="hqiTk" min="0.5" max="1.8" step="0.05" value="${e.tk}"></label>
+      <label>色<div class="hqi-row" id="hqiMode">${[["auto", "自動"], ["mono", "1色"], ["color", "カラーのまま"]].map(([k, t]) => `<button type="button" class="btn small${e.mode === k ? " on" : ""}" data-m="${k}">${t}</button>`).join("")}</div></label>
+      <label class="hqi-row" style="display:flex"><input type="checkbox" id="hqiOvl"${it._ovl ? " checked" : ""}> 重ね押しのスタンプ</label>
+      <label>場所（ピンをドラッグ、または地図をタップ）<div class="hqi-map" id="hqiMap"></div></label></div>`);
+    const redo = (keepBox) => { if (!keepBox) e.box = null; clearTimeout(this._rt); this._rt = setTimeout(async () => { try { const r2 = await this.make(it); if (this.cur() !== it) return; $("#hqiCard").innerHTML = this.card(it, r2); if (!keepBox) this.crop(it, r2); } catch (_) {} }, 120); };
+    $("#hqiName").oninput = ev => { it._name = ev.target.value; redo(true); };
+    $("#hqiCat").onclick = ev => { const b = ev.target.closest("[data-g]"); if (!b) return; it._cat = b.dataset.g; $("#hqiCat").querySelectorAll("button").forEach(x => x.classList.toggle("on", x === b)); redo(true); };
+    $("#hqiRl").onclick = () => { e.rot = (e.rot + 270) % 360; redo(false); };
+    $("#hqiRr").onclick = () => { e.rot = (e.rot + 90) % 360; redo(false); };
+    $("#hqiFine").oninput = ev => { e.fine = +ev.target.value; $("#hqiFv").textContent = e.fine + "°"; redo(false); };
+    $("#hqiTk").oninput = ev => { e.tk = +ev.target.value; redo(true); };
+    $("#hqiMode").onclick = ev => { const b = ev.target.closest("[data-m]"); if (!b) return; e.mode = b.dataset.m; $("#hqiMode").querySelectorAll("button").forEach(x => x.classList.toggle("on", x === b)); redo(true); };
+    $("#hqiOvl").onchange = ev => { it._ovl = ev.target.checked; redo(true); };
+    $("#hqiAuto").onclick = () => { e.box = null; redo(false); };
+    this.crop(it, r); this.mapInit(it);
+  },
+  crop(it, r) {
+    const cv = $("#hqiCrop"); if (!cv) return; const e = this.ed(it);
+    CropView(cv, r.cv, { editable: true, tool: "box", box: { ...r.box }, onBox: b => { if (b.w < 8 || b.h < 8) return; e.box = { x: b.x, y: b.y, w: b.w, h: b.h }; this.make(it).then(r2 => { if (this.cur() === it) $("#hqiCard").innerHTML = this.card(it, r2); }).catch(() => {}); } });
+  },
+  mapInit(it) {
+    const el = $("#hqiMap"); if (!el || !window.L) return; if (this.map) { try { this.map.remove(); } catch (_) {} this.map = null; }
+    const ll = it._lat != null ? [it._lat, it._lng] : [35.6852, 139.7528];
+    const m = this.map = L.map(el, { zoomControl: true, attributionControl: false }).setView(ll, it._lat != null ? 17 : 11); addBaseMap(m);
+    const mk = L.marker(ll, { draggable: true, icon: PlacePick.icon() }).addTo(m); if (it._lat == null) mk.setOpacity(0.4);
+    const set = p => { it._lat = +p.lat.toFixed(6); it._lng = +p.lng.toFixed(6); mk.setLatLng(p); mk.setOpacity(1); const w = $("#hqiBody .hqi-warn"); if (w && /場所/.test(w.textContent)) w.remove(); };
+    mk.on("dragend", () => set(mk.getLatLng())); m.on("click", ev => set(ev.latlng));
+    setTimeout(() => m.invalidateSize(), 60);
+  },
+};
+// 本部の設定画面にボタンを足す（本部のアカウントだけ）
+{ const st = HQ.settings; HQ.settings = async function (...a) {
+  await st.apply(this, a); const sec = $("#hqSec"); if (!sec || $("#hqImp") || !window.PetalogCloud || !PetalogCloud.jsh) return;
+  sec.querySelector("#hqOpen").insertAdjacentHTML("afterend", ` <button class="btn small" type="button" id="hqImp">取り込みスタンプの確認</button>`);
+  $("#hqImp").onclick = () => HQImport.open();
+}; }
+// 本部のサイトから #hq-import で開いたとき
+addEventListener("load", () => { if (location.hash !== "#hq-import") return; let n = 0; const t = setInterval(async () => {
+  if (++n > 40) return clearInterval(t); if (Store.mode !== "cloud" || !Store.hqAdmin) return; clearInterval(t);
+  if (HQ.admin == null) HQ.admin = await Store.hqAdmin(); if (HQ.admin) HQImport.open(); else toast("本部のアカウントでログインしてください");
+}, 500); });
 
 /* ================= boot ================= */
 addEventListener("resize", () => { Book.layout(); if (view === "fall") { Fall.stop(); Fall.start(); } if (view === "map") MapV.draw(); });
