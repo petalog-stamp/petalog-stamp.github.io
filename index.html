@@ -2018,10 +2018,10 @@ function figHTML(s) {
 }
 function cardHTML(s, no, o = {}) {   // スタンプトレカ（印刷の表と同じデザイン。位置はmmで計算してcqwで置く）
   const g = catNorm(s.cat), L = tcLayout(s), u = v => `calc(var(--u) * ${(+v).toFixed(2)})`;
-  const cls = `card tc${isDigi(s) ? " digi" : ""}${s.overlap ? " ovl" : ""}${o.picked ? " picked" : ""}`;
+  const cls = `card tc${isDigi(s) ? " digi" : ""}${s.overlap ? " ovl" : ""}${o.picked ? " picked" : ""}${s.ghost ? " ghost" : ""}${o.pressed ? " pressed" : ""}`;
   const dms = (v, p, q) => { const z = Math.abs(v), d = Math.floor(z), mf = (z - d) * 60, mi = Math.floor(mf); return `${d}°${String(mi).padStart(2, "0")}'${String(Math.round((mf - mi) * 60) % 60).padStart(2, "0")}"${v >= 0 ? p : q}`; };
   const geo = s.lat != null && s.lng != null && !isNaN(s.lat) ? `${dms(+s.lat, "N", "S")} ${dms(+s.lng, "E", "W")}` : "";
-  return `<button type="button" class="${cls}" data-open="${esc(s.id)}" style="--g:${gcol(g)}"><span class="pick" aria-hidden="true">✓</span>
+  return `<button type="button" class="${cls}" data-open="${esc(s.id)}" style="--g:${gcol(g)}"><span class="pick" aria-hidden="true">✓</span>${s.ghost ? '<span class="tc-ghost">写真まだ</span>' : ""}
     <span class="tc-hd"><span class="tc-k">ぺたろぐ</span>${o.tag ? `<span class="tc-no tag">${esc(o.tag)}</span>` : `<span class="tc-no">${no ? "No." + String(no).padStart(4, "0") : ""}</span>`}</span>
     <span class="tc-win"><span class="tc-tab"><span class="tc-tabf"></span><svg viewBox="0 0 214 52" preserveAspectRatio="none" aria-hidden="true"><path d="M0 1 L19.5 51 L194.5 51 L214 1" fill="none" stroke="#C9A24A" stroke-width="2.4"/></svg><span class="tc-tabt"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="${gicon(g)}"/></svg>${esc(g)}</span></span>
       ${s.overlap || isDigi(s) || (FIRST_ON && s.first) ? `<span class="tc-badges">${FIRST_ON && s.first ? '<span class="tc-badge fd">第一発見者</span>' : ""}${s.overlap ? '<span class="tc-badge">重ね押し</span>' : ""}${isDigi(s) ? '<span class="tc-badge dgs">デジスタ</span>' : ""}</span>` : ""}
@@ -2204,7 +2204,7 @@ const Fall = {
         x.fillStyle = "#1B2130"; x.textAlign = "center"; x.textBaseline = "middle";
         x.font = `700 ${Math.round(r * 0.42)}px 'Zen Kaku Gothic New',sans-serif`; x.fillText(p.bundle.label, 0, -r * 0.08);
         x.font = `500 ${Math.round(r * 0.26)}px 'IBM Plex Mono',monospace`; x.fillStyle = "#2B4C9B"; x.fillText("×" + p.bundle.items.length, 0, r * 0.38);
-      } else if (p.img && p.img.complete) { x.globalCompositeOperation = this.bgMul && !isDigi(p.s) && !p.sheet ? "multiply" : "source-over"; x.drawImage(p.img, -p.w / 2, -p.h / 2, p.w, p.h); x.globalCompositeOperation = "source-over"; }
+      } else if (p.img && p.img.complete) { x.globalCompositeOperation = this.bgMul && !isDigi(p.s) && !p.sheet ? "multiply" : "source-over"; if (p.s.ghost) x.globalAlpha = 0.3; x.drawImage(p.img, -p.w / 2, -p.h / 2, p.w, p.h); x.globalAlpha = 1; x.globalCompositeOperation = "source-over"; }
       x.restore();
     }
   },
@@ -4647,7 +4647,7 @@ async function updateExisting(t) {
 }
 async function commitSave(c, d) {
   const fixLoc = locFixOf(c, d);
-  if (c.mode === "add" && Store.mode === "cloud" && !Plan.campaign() && stamps.length >= Plan.free) { Plan.full(); return; }
+  if (c.mode === "add" && Store.mode === "cloud" && !Plan.campaign() && stamps.filter(s => !s.ghost).length >= Plan.free) { Plan.full(); return; }
   if (c.mode === "add" && !(+d.no > 0 && Numbers.vacant().includes(+d.no))) d.no = Numbers.next();   // 新しい番号（空き番号を選んだときはその番号）
   const btn = $("#saveBtn"); if (btn) { btn.disabled = true; btn.innerHTML = `<span class="spin"></span> 保存中`; }
   try {
@@ -5086,7 +5086,7 @@ async function syncShares(quiet) {
   const W = stamps.filter(wantShare), N = stamps.filter(s => !wantShare(s));
   try {
     if (N.length) await Store.pubDelMany(N.map(s => s.id));
-    const items = []; for (const s of W) items.push({ s: pubView(s), thumb: await thumbOf(s.cut) });
+    const items = []; for (const s of W) items.push(s.ghost ? { s: { ...pubView(s), type: "press" }, thumb: "" } : { s: pubView(s), thumb: await thumbOf(s.cut) });
     if (items.length) await Store.pubPutMany(items, Profile.nick);
     stamps.forEach(s => { s.share = wantShare(s); }); MapV.pubs = null;
   } catch { if (!quiet) toast("みんなの地図への反映が一部できませんでした", 3600); }
@@ -7465,7 +7465,7 @@ const Plan = {
     <div class="sec"><p class="cap" style="margin-top:0">無料で登録できるのは ${this.free}枚 までです。${this.free + 1}枚目からは、月額${this.price}円で何枚でも登録できるようになります（ただいま準備中）。いま登録してあるトレカは、これまでどおり見たり編集したりできます。</p></div>`); },
   html() {   // 設定の「プラン」: 無料50枚まで・いま何枚
     if (!(window.PetalogCloud && PetalogCloud.loggedIn && PetalogCloud.loggedIn())) return "";
-    const n = stamps.filter(s => !s.sample).length, camp = this.campaign(), pc = Math.min(100, Math.round(n / this.free * 100));
+    const n = stamps.filter(s => !s.sample && !s.ghost).length, camp = this.campaign(), pc = Math.min(100, Math.round(n / this.free * 100));
     return `<div class="sec plan"><h4>プラン</h4><div class="plan-row"><b>無料プラン</b><span>${n} / ${this.free}枚</span></div><div class="plan-bar"><i style="width:${pc}%"></i></div>
       <p class="cap">${this.free}枚まで無料。${this.free + 1}枚目からは月額${this.price}円で、何枚でも登録できます。</p>
       ${camp ? `<p class="plan-camp">${this.untilText()}までは、ぺたろぐ誕生記念で何枚登録しても無料です。</p>` : ""}</div>`;
@@ -8399,19 +8399,19 @@ const MapPins = {
   },
   mine() {   // 自分が押したスタンプ（図鑑の番号と、場所の名前＋近さ）
     const L = (typeof list === "function" ? list() : []).filter(s => !s.sample && s.lat != null);
-    const sig = L.length + ":" + L.map(s => s.id + (s.design || "") + "/" + (s.cdesign || "")).join(); if (this._ms === sig) return this._m;
-    const d = new Set(); for (const s of L) { if (s.design) d.add(+s.design); if (s.cdesign) d.add(+s.cdesign); }
-    this._ms = sig; this._m = { d, L }; return this._m;
+    const sig = L.length + ":" + L.map(s => s.id + (s.design || "") + "/" + (s.cdesign || "") + (s.ghostPub || "")).join(); if (this._ms === sig) return this._m;
+    const d = new Set(), p = new Set(); for (const s of L) { if (s.design) d.add(+s.design); if (s.cdesign) d.add(+s.cdesign); if (s.ghostPub) p.add(s.ghostPub); }
+    this._ms = sig; this._m = { d, p, L }; return this._m;
   },
   // まだ押していない分（図鑑の番号で、自分が持っているものを除く）。場所の名前と近さで同じ場所とわかったら全部押したあつかい
   remain(g, P) {
     const M = this.mine(); if (!M.L.length) return g.ids; const I = Trust.idx(P);
     const pn = g.pn; if (pn && M.L.some(s => norm(s.place || s.name || "") === pn && kmBetween(+s.lat, +s.lng, g.lat, g.lng) < 0.3)) return [];
-    return g.ids.filter(id => { const p = I.ids.get(id); return !(p && p.design && M.d.has(+p.design)); });
+    return g.ids.filter(id => { const p = I.ids.get(id); return !(M.p.has(id) || (p && p.design && M.d.has(+p.design))); });
   },
   pressed(g, P) {
     const M = this.mine(); if (!M.L.length) return false; const I = Trust.idx(P);
-    for (const id of g.ids) { const p = I.ids.get(id); if (p && p.design && M.d.has(+p.design)) return true; }
+    for (const id of g.ids) { const p = I.ids.get(id); if (M.p.has(id) || (p && p.design && M.d.has(+p.design))) return true; }
     const pn = g.pn; if (!pn) return false;
     return M.L.some(s => norm(s.place || s.name || "") === pn && kmBetween(+s.lat, +s.lng, g.lat, g.lng) < 0.3);
   },
@@ -8459,7 +8459,7 @@ MapV.openPubs = async function (ids) {
   CardGrid.open({ title: P[0].place || P[0].name, items: shuffled(cards), front: true, pubs: true, at: { lat: +P[0].lat, lng: +P[0].lng } });
   const d = CardGrid.el; if (!d) return;
   const des = new Set(P.filter(p => p.design).map(p => +p.design)), names = new Set(P.map(p => norm(p.name || "")).filter(Boolean));
-  const who = new Set((this.pubs || []).filter(q => !q.miss && q.by !== "catalog" && ((q.design && des.has(+q.design)) || (names.has(norm(q.name || "")) && kmBetween(+q.lat, +q.lng, +P[0].lat, +P[0].lng) < 0.6))).map(q => q.by)).size;
+  const who = new Set([...(this.pubs || []), ...(this.pressPubs || [])].filter(q => !q.miss && q.by !== "catalog" && ((q.design && des.has(+q.design)) || (names.has(norm(q.name || "")) && kmBetween(+q.lat, +q.lng, +P[0].lat, +P[0].lng) < 0.6))).map(q => q.by)).size;
   const k = NextGo.keyOf(P), on = () => NextGo.has(k);
   d.querySelector(".cgv-head")?.insertAdjacentHTML("afterend", `<div class="cgv-who">${who ? `いま <b>${who}人</b> がここで押しています` : "まだ、ぺたろぐで押した人はいません。最初の1人になろう"}</div>`);
   const acts = d.querySelector(".cgv-acts"); if (acts) { acts.insertAdjacentHTML("afterbegin", `<button class="btn small next-tg${on() ? " on" : ""}" type="button" id="nextTg">${on() ? "★ 次行く！" : "☆ 次行く！"}</button>`);
@@ -8666,6 +8666,143 @@ const ShapeLink = {
 .lk-me{display:flex;align-items:center;gap:12px;margin:8px 0 12px}.lk-me img{width:96px;height:96px;object-fit:contain;background:#fff;border-radius:12px;box-shadow:inset 0 0 0 1px var(--line)}
 .lk-list{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.lk-c{display:grid;gap:4px;justify-items:center;padding:8px;border-radius:12px;border:1px solid var(--line);background:#fff;font:inherit;font-size:12px}
 .lk-c img{width:100%;aspect-ratio:1;object-fit:contain}`; document.head.appendChild(s); }
+
+/* ================= 「押した！」だけの記録（写真まだ） =================
+   - みんなのトレカを大きく見て「押した！」を押すと、自分のトレカに入る（現地でなくてもOK）
+   - 記録は「写真」ではなく「スタンプ（図鑑の番号）」につける。だれの写真から押しても同じスタンプ
+   - 写真を入れるまでは、インクが薄くて「写真まだ」。印刷できない。無料の50枚にも数えない
+   - 自分の写真を入れると、インクが濃くなる（ここが一番気持ちいい瞬間） */
+const Press = {
+  mineOf(p) {   // そのスタンプを自分がもう持っているか（押しただけも含む）
+    if (!p) return null; const D = p.design ? +p.design : 0;
+    return stamps.find(s => !s.sample && ((D && (+s.design === D || +s.cdesign === D)) || (s.ghostPub && s.ghostPub === p._id) || (p.sid && p.by === Store.uid && s.id === p.sid))) || null;
+  },
+  pubOf(card) { return card && card._pub ? (MapV.pubs || []).find(p => p._id === card._pub) || null : null; },
+  can() { if (Store.mode === "cloud") return true; toast("ログインすると「押した」を記録できます", 3200); return false; },
+  async press(p) {
+    const have = this.mineOf(p); if (have) return have;
+    let w = 1, h = 1; try { if (p.thumb) { const im = await loadImg(p.thumb); w = im.naturalWidth || 1; h = im.naturalHeight || 1; } } catch (_) {}
+    const d = { id: uid(), type: p.type || "stamp", ghost: true, ghostImg: p.thumb || "", ghostPub: p._id, name: p.name || "", place: p.place || p.name || "", pref: p.pref || prefAt(p.lat, p.lng) || "",
+      cat: catNorm(p.cat), date: todayStr(), lat: +p.lat, lng: +p.lng, sizeMm: p.sizeMm || null, design: p.design || null, cut: p.thumb || "", cw: w, ch: h, overlap: !!p.overlap,
+      memo: "", spot: p.spot || "", scenes: [], created: Date.now(), locSrc: "地図で検索" };
+    d.no = Numbers.next(); d.share = wantShare(d);
+    await Store.saveStamp(d); stamps.push(d);
+    if (d.share) { try { await Store.pubPut({ ...pubView(d), type: "press" }, "", Profile.nick); } catch (_) {} }
+    try { Track.ev("press", { d: d.design || null }); } catch (_) {}
+    return d;
+  },
+  async many(P, btn) {   // まとめて（同じスタンプは1回だけ）
+    if (!this.can()) return 0; const seen = new Set(), todo = [];
+    for (const p of P) { const k = p.design ? "d" + p.design : "p" + p._id; if (seen.has(k) || this.mineOf(p)) continue; seen.add(k); todo.push(p); }
+    let n = 0; for (const p of todo) { try { await this.press(p); n++; if (btn) btn.textContent = `記録中… ${n}/${todo.length}`; } catch (_) { break; } }
+    if (n) { refreshAll(); if (MapV.map) MapV.draw(); }
+    return n;
+  },
+  ink(el) { if (!el) return; el.classList.remove("press-pon"); void el.offsetWidth; el.classList.add("press-pon"); },
+  // 写真まだのトレカを開いたとき（編集のかわり）
+  sheet(s) {
+    sheetCtx = { mode: "ghost" };
+    openSheet(`<div class="sheet-head"><h2>押した記録</h2><button class="btn small ghost" type="button" data-close>閉じる</button></div>
+      <div class="hero washi"><div class="hi"><img src="${esc(s.cut || "")}" alt="" style="opacity:.35;filter:grayscale(.6)"></div><div><h3>${esc(s.name)}</h3><div class="meta"><span>${esc(fmtDate(s.date))}</span>${s.pref ? `<span>${esc(s.pref)}</span>` : ""}<span class="chip" style="color:${gcol(catNorm(s.cat))}">${esc(catNorm(s.cat))}</span></div></div></div>
+      <div class="sec"><p class="cap" style="margin-top:0">いまは、みんなの写真を薄く表示しています。自分で押したスタンプの写真を入れると、インクが濃くなって、印刷もできるようになります。</p></div>
+      <div class="acts"><button class="btn ghost" type="button" id="ghDel">記録を消す</button><button class="btn primary" type="button" id="ghFill">写真を入れる</button></div><div id="ghConfirm"></div>`);
+    $("#ghFill").onclick = () => this.fill(s);
+    $("#ghDel").onclick = () => { $("#ghConfirm").innerHTML = `<div class="confirm"><span style="flex:1">この「押した」記録を消します。</span><button class="btn small" type="button" id="ghNo">やめる</button><button class="btn small shu" type="button" id="ghYes">消す</button></div>`;
+      $("#ghNo").onclick = () => { $("#ghConfirm").innerHTML = ""; };
+      $("#ghYes").onclick = async () => { try { await Store.removeStamp(s); } catch (_) { toast("消せませんでした。通信を確かめてもう一度どうぞ"); return; } try { await Store.pubDel(s.id); } catch (_) {}
+        stamps = stamps.filter(x => x.id !== s.id); closeSheet(); refreshAll(); MapV.pubs = null; if (MapV.map) MapV.draw(); toast("記録を消しました"); }; };
+  },
+  fill(g) {   // 写真を入れる＝ふつうの登録と同じ流れ。保存したら、この記録が本物のトレカになる
+    closeSheet(); CardView.close(true); CardGrid.close(true);
+    openStamp("add", null, { name: g.name, place: g.place, pref: g.pref, cat: g.cat, lat: g.lat, lng: g.lng, date: g.date, spot: g.spot || "", locSrc: g.locSrc, type: g.type || "stamp", ...(g.no ? { no: g.no } : {}) });
+    if (sheetCtx && sheetCtx.mode === "add") { sheetCtx.ghostOf = g.id; sheetCtx.dupDone = true; }
+  },
+  inkUp(id) {   // 薄かったインクが、ジュワッと濃くなる
+    setTimeout(() => { if (!findStamp(id)) return; CardView.open(id, { items: [findStamp(id)] }); const im = CardView.el && CardView.el.querySelector("#tcvFront .tc-art img"); if (im) { im.classList.add("ink-up"); } toast("インクが濃くなりました！", 3000); }, 450);
+  },
+  // 大きく見ているトレカの下の「押した！」ボタン
+  btn() {
+    const d = CardView.el; if (!d) return; let b = d.querySelector("#tcvPress");
+    if (!b) { b = document.createElement("button"); b.type = "button"; b.id = "tcvPress"; b.className = "tcv-press"; d.appendChild(b); b.onclick = e => { e.stopPropagation(); this.tap(); }; }
+    const s = CardView.items[CardView.i]; if (!s) { b.hidden = true; return; }
+    if (s.ghost && !CardView.front) { b.hidden = false; b.className = "tcv-press fill"; b.innerHTML = `<svg viewBox="0 0 24 24"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg>自分の写真を入れる`; return; }
+    const p = this.pubOf(s); if (!p || p.miss || p.by === Store.uid) { b.hidden = true; return; }
+    const have = this.mineOf(p); b.hidden = false; b.className = "tcv-press" + (have ? " done" : "");
+    b.innerHTML = have ? (have.ghost ? "✓ 押した（写真まだ）" : "✓ 押した") : `<svg viewBox="0 0 24 24"><rect x="8" y="3" width="8" height="8" rx="2"/><path d="M5 14h14v3H5zM7 20h10"/></svg>押した！`;
+  },
+  async tap() {
+    const s = CardView.items[CardView.i]; if (!s) return;
+    if (s.ghost && !CardView.front) { this.fill(findStamp(s.id) || s); return; }
+    const p = this.pubOf(s); if (!p) return; const have = this.mineOf(p);
+    if (have) { toast(have.ghost ? "押した記録があります。写真はあとで入れられます" : "このスタンプはもう登録してあります", 3000); return; }
+    if (!this.can()) return; const b = CardView.el.querySelector("#tcvPress"); b.disabled = true; b.textContent = "記録中…";
+    try { await this.press(p); } catch (e) { b.disabled = false; this.btn(); toast("記録できませんでした。通信を確かめてもう一度どうぞ", 3600); return; }
+    b.disabled = false; this.ink(CardView.el.querySelector("#tcvCard")); this.btn(); refreshAll(); if (MapV.map) MapV.draw(); this.marks();
+    toast("押した！ 自分のトレカに入れました。写真はあとで入れられます", 3600);
+  },
+  marks() {   // ピンの一覧で、押したトレカに「✓押した」
+    const g = CardGrid.el; if (!g || g.hidden) return;
+    g.querySelectorAll(".cgv-body [data-open]").forEach(c => { const it = (CardGrid.items || []).find(x => x.id === c.dataset.open); const p = it && this.pubOf(it); const on = !!(p && this.mineOf(p)), m = c.querySelector(".tc-pressed"); if (on && !m) c.insertAdjacentHTML("beforeend", '<span class="tc-pressed">✓ 押した</span>'); else if (!on && m) m.remove(); });
+  },
+};
+{ const sh = CardView.show; CardView.show = function (...a) { const r = sh.apply(this, a); Press.btn(); return r; }; }
+// 写真まだのトレカは、編集のかわりに「押した記録」を開く
+{ const os = openStamp; openStamp = function (mode, s, ...a) { if (mode === "edit" && s && s.ghost) return Press.sheet(findStamp(s.id) || s); return os.call(this, mode, s, ...a); }; }
+// 保存したら、押しただけの記録を本物のトレカにする（番号・図鑑はそのまま）
+{ const cs = commitSave; commitSave = async function (c, d) {
+  const g = c && c.mode === "add" && c.ghostOf ? findStamp(c.ghostOf) : c && c.mode === "update" && c.orig && c.orig.ghost ? findStamp(c.orig.id) : null;
+  if (!g || !g.ghost) return cs.call(this, c, d);
+  if (Store.mode === "cloud" && !Plan.campaign() && stamps.filter(s => !s.ghost).length >= Plan.free) { Plan.full(); return; }
+  if (c.mode === "update") { d.visits = [...(g.visits || [])]; d.date = c.d && c.d.date || d.date; }
+  const at = stamps.indexOf(g); stamps = stamps.filter(x => x !== g);
+  d.id = g.id; if (g.no) d.no = g.no; if (!d.design && g.design) d.design = g.design; d.created = g.created || d.created; delete d.ghost; delete d.ghostImg; delete d.ghostPub;
+  const mode = c.mode; c.mode = "add"; c.orig = null;
+  await cs.call(this, c, d);
+  if (!findStamp(g.id)) { stamps.splice(Math.max(0, at), 0, g); c.mode = mode; refreshAll(); return; }   // 保存できなかったときは元の記録にもどす
+  try { Track.ev("press_fill", {}); } catch (_) {}
+  Press.inkUp(g.id);
+}; }
+// 写真まだのトレカは印刷・画像保存しない（人の写真で印刷できたらずるいので）
+{ const po = PrintCard.open.bind(PrintCard); PrintCard.open = function (s, ...a) { if (s && (s.ghost || (findStamp(s.id) || {}).ghost)) { toast("自分の写真を入れると、印刷できるようになります", 3200); return; } return po(s, ...a); }; }
+{ const oe = openExport; openExport = function (o) { if (o && o.ids) { const ids = o.ids.filter(id => !(findStamp(id) || {}).ghost); if (!ids.length) { toast("写真まだのトレカは、自分の写真を入れると保存できます", 3200); return; } if (ids.length < o.ids.length) toast("写真まだのトレカは、はずしました", 2600); o = { ...o, ids }; } return oe(o); }; }
+// 「押した」記録（みんなの人数に数えるだけ。地図のピンやトレカには出さない）
+{ const lp = MapV.loadPubs; MapV.loadPubs = function (...a) {
+  if (!Store._pressWrap && Store.mode === "cloud" && Store.pubList) { try { Catalog.wrap(); } catch (_) {} const f = Store.pubList.bind(Store); Store._pressWrap = true;
+    Store.pubList = async () => { const L = await f(); MapV.pressPubs = L.filter(p => p.type === "press"); return L.filter(p => p.type !== "press"); }; }
+  return lp.apply(this, a);
+}; }
+// ピンの一覧: 「ここ全部押した」と、押したトレカの印
+{ const op = MapV.openPubs; MapV.openPubs = async function (ids) {
+  const r = await op.apply(this, arguments); const d = CardGrid.el; if (!d || d.hidden) return r;
+  const P = ids.map(id => (this.pubs || []).find(p => p._id === id)).filter(p => p && !p.miss && p.by !== Store.uid);
+  const kinds = new Set(P.map(p => p.design ? "d" + p.design : "p" + p._id)); Press.marks();
+  const acts = d.querySelector(".cgv-acts");
+  if (acts && kinds.size > 1) {
+    const left = () => P.filter(p => !Press.mineOf(p)).length;
+    acts.insertAdjacentHTML("beforeend", `<button class="btn small press-all" type="button" id="pressAll"></button>`); const b = acts.querySelector("#pressAll");
+    const lab = () => { const n = left(); b.disabled = !n; b.textContent = n ? "ここ全部押した" : "✓ 全部押した"; };
+    lab(); b.onclick = async () => { if (!Press.can()) return; b.disabled = true; const n = await Press.many(P, b); lab(); Press.marks(); if (n) toast(`${n}枚を「押した」にしました。写真はあとで入れられます`, 3600); else if (left()) toast("記録できませんでした。通信を確かめてもう一度どうぞ", 3600); };
+  }
+  return r;
+}; }
+// 大きく見ていたトレカを閉じたら、一覧の印を最新に
+{ const cl = CardView.close; CardView.close = function (...a) { const r = cl.apply(this, a); Press.marks(); return r; }; }
+{ const s = document.createElement("style"); s.textContent = `
+.card.tc.ghost .tc-art img{opacity:.32;filter:grayscale(.55)}
+.card.tc.ghost .tc-dim{opacity:.4}
+.tc-ghost{position:absolute;right:5%;top:13.5%;z-index:3;background:rgba(27,33,48,.72);color:#fff;font-size:3.6cqw;font-weight:700;letter-spacing:.04em;padding:.8cqw 2.4cqw;border-radius:99px;pointer-events:none}
+.tc-pressed{position:absolute;left:50%;top:44%;transform:translate(-50%,-50%) rotate(-8deg);z-index:4;background:rgba(229,72,59,.92);color:#fff;font-weight:800;font-size:7cqw;padding:1.6cqw 4.5cqw;border-radius:2cqw;box-shadow:0 1px 4px rgba(0,0,0,.25);pointer-events:none}
+.tcv-press{position:absolute;left:50%;bottom:calc(64px + env(safe-area-inset-bottom));transform:translateX(-50%);z-index:5;display:flex;align-items:center;gap:8px;border:0;border-radius:999px;padding:14px 30px;background:#E5483B;color:#fff;font:inherit;font-size:17px;font-weight:800;letter-spacing:.06em;box-shadow:0 6px 18px rgba(229,72,59,.45);white-space:nowrap}
+.tcv-press svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:2;stroke-linejoin:round}
+.tcv-press.done{background:rgba(255,255,255,.14);color:#fff;box-shadow:none;font-weight:700;font-size:15px}
+.tcv-press.fill{background:#fff;color:#1b2130;box-shadow:0 6px 18px rgba(0,0,0,.3)}
+.tcv-press[hidden]{display:none}
+.tcv.bk .tcv-press{display:none}
+.press-pon{animation:pressPon .5s cubic-bezier(.2,.9,.3,1.4)}
+@keyframes pressPon{0%{scale:1}35%{scale:.9}100%{scale:1}}
+.ink-up{animation:inkUp 1.8s ease-out both}
+@keyframes inkUp{0%{opacity:.32;filter:grayscale(.55) blur(.6px)}45%{opacity:.75;filter:grayscale(.2) blur(.3px)}100%{opacity:1;filter:none}}
+.press-all{background:#E5483B;color:#fff;border-color:#E5483B}.press-all:disabled{background:rgba(255,255,255,.12);color:#fff;border-color:transparent;opacity:1}`; document.head.appendChild(s); }
 
 /* ================= boot ================= */
 addEventListener("resize", () => { Book.layout(); if (view === "fall") { Fall.stop(); Fall.start(); } if (view === "map") MapV.draw(); });

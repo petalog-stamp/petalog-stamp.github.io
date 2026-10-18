@@ -165,6 +165,7 @@
       await pool(rows, 6, async (r) => {
         const s = { ...(r.data || {}), id: r.id }; delete s.kind;
         let url = r.cut_path ? await cutFor(r.cut_path).catch(() => null) : null;
+        if (!url && !r.cut_path && s.ghost && s.ghostImg) url = s.ghostImg;   // 「押しただけ」はみんなの写真を仮に表示
         if (!url) { url = PLACEHOLDER; cutFailed.add(r.id); }
         s.cut = url;
         cutState.set(r.id, { path: r.cut_path, url });
