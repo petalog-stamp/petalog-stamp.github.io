@@ -8804,6 +8804,76 @@ const Press = {
 @keyframes inkUp{0%{opacity:.32;filter:grayscale(.55) blur(.6px)}45%{opacity:.75;filter:grayscale(.2) blur(.3px)}100%{opacity:1;filter:none}}
 .press-all{background:#E5483B;color:#fff;border-color:#E5483B}.press-all:disabled{background:rgba(255,255,255,.12);color:#fff;border-color:transparent;opacity:1}`; document.head.appendChild(s); }
 
+/* ================= 「もう登録してる」: 自分のスタンプと、みんなのピンのスタンプを手でつなぐ =================
+   - 形の自動判定でつながらなかったとき用。近く300mの自分のスタンプから選ぶ（なければ名前で探す）
+   - つないだら赤ピンは自分のピンに。自分の場所のほうが確か（写真のGPSなど）なら、みんなのピンの場所もそこへ
+   - 押しただけ（写真まだ）の同じスタンプがあれば、もういらないので消す */
+const LinkPick = {
+  open(p) {
+    if (!p || !p.design) return; if (!Press.can()) return;
+    CardView.close(true); CardGrid.close(true);
+    sheetCtx = { mode: "linkpick" }; const ctx = sheetCtx;
+    openSheet(`<div class="sheet-head"><h2>どのスタンプと同じ？</h2><button class="btn small ghost" type="button" data-close>閉じる</button></div>
+      <div class="lp-tgt"><img src="${esc(p.thumb || "")}" alt=""><div><b>${esc(p.name || "")}</b><small>このスタンプと同じものを、自分の記録から選んでください</small></div></div>
+      <input class="lp-q" id="lpQ" type="search" placeholder="名前で探す（例: 新宿御苑）" autocomplete="off">
+      <p class="cap" id="lpCap"></p><div class="cards c3 lp-list" id="lpList" style="--cols:3"></div>`);
+    const draw = () => { if (sheetCtx !== ctx) return; const q = $("#lpQ").value.trim().toLowerCase(), toks = q.split(/[\s　]+/).filter(Boolean);
+      const L = stamps.filter(s => !s.sample && !s.ghost && s.type !== "goshuin" && s.cut).map(s => ({ s, km: s.lat != null && p.lat != null ? kmBetween(+s.lat, +s.lng, +p.lat, +p.lng) : 1e9 }));
+      const R = (toks.length ? L.filter(x => toks.every(t => hayOf(x.s).includes(t))) : L.filter(x => x.km <= 0.3)).sort((a, b) => a.km - b.km).slice(0, 60);
+      $("#lpCap").textContent = toks.length ? (R.length ? `${R.length}枚見つかりました` : "見つかりませんでした") : (R.length ? "近く（300m以内）の自分のスタンプ" : "300m以内に自分のスタンプがありません。上の欄で名前から探してください");
+      $("#lpList").innerHTML = R.map(x => cardHTML(x.s, Numbers.of(x.s), { cols: 3 })).join(""); };
+    $("#lpQ").oninput = draw; draw();
+    $("#lpList").onclick = async e => { const c = e.target.closest("[data-open]"); if (!c) return; const s = findStamp(c.dataset.open); if (!s) return;
+      c.disabled = true; $("#lpCap").textContent = "つないでいます…";
+      try { await this.link(s, p); } catch (_) { toast("つなげませんでした。通信を確かめてもう一度どうぞ", 3600); draw(); return; }
+      closeSheet(); toast("つなぎました。地図のピンが自分のピンになります", 3600);
+      MapV.pubs = null; if (MapV.mode === "all") await MapV.loadPubs(); if (MapV.map) MapV.draw(); refreshAll();
+      try { MapV.openMine([s.id]); } catch (_) {} };
+  },
+  async link(s, p) {
+    const cur = findStamp(s.id) || s, D = +p.design;
+    const g = stamps.find(x => x.ghost && x.id !== cur.id && (+x.design === D || x.ghostPub === p._id));   // 押しただけの同じスタンプはもういらない
+    if (g) { try { await Store.removeStamp(g); await Store.pubDel(g.id); } catch (_) {} stamps = stamps.filter(x => x !== g); }
+    cur.linked = D; if (cur.design !== D) cur.cdesign = D;
+    const fix = locRank(cur.locSrc) >= 2 && cur.lat != null;   // 写真のGPS・現在地など、確かな場所ならピンもそこへ
+    if (cur.share) { try { await Zukan.register(cur, D, true, fix); } catch (_) {} }
+    await Store.saveStamp(cur);
+    try { Track.ev("link_manual", { d: D, fix }); } catch (_) {}
+  },
+  async unlink(s) {
+    const cur = findStamp(s.id) || s, D = +cur.linked; if (!D) return;
+    delete cur.linked; if (+cur.cdesign === D) delete cur.cdesign;
+    if (+cur.design === D) { try { Zukan.leave(cur.id); } catch (_) {} delete cur.design; delete cur.first; }
+    await Store.saveStamp(cur);
+    if (cur.share) { try { await Zukan.register(cur, null, true); } catch (_) {} }
+    MapV.pubs = null; refreshAll(); if (MapV.map) MapV.draw();
+  },
+};
+// 「押した！」の下に小さく「もう登録してる」
+{ const b0 = Press.btn.bind(Press); Press.btn = function () {
+  b0(); const d = CardView.el; if (!d) return; let l = d.querySelector("#tcvLink");
+  if (!l) { l = document.createElement("button"); l.type = "button"; l.id = "tcvLink"; l.className = "tcv-link"; l.textContent = "もう登録してる"; d.appendChild(l);
+    l.onclick = e => { e.stopPropagation(); const s = CardView.items[CardView.i], p = Press.pubOf(s); if (p) LinkPick.open(p); }; }
+  const s = CardView.items[CardView.i], p = s && Press.pubOf(s), have = p && Press.mineOf(p);
+  l.hidden = !(p && p.design && !p.miss && p.by !== Store.uid && (!have || have.ghost));
+}; }
+// 自分の記録の画面に「つながりを外す」
+{ const os = openStamp; openStamp = function (mode, s, ...a) {
+  const r = os.call(this, mode, s, ...a);
+  if (mode === "edit" && s && !s.ghost && (findStamp(s.id) || s).linked) { const box = $("#sheet .heroacts");
+    if (box) { box.insertAdjacentHTML("beforeend", `<button class="btn small" type="button" id="hUnlink">みんなのスタンプとのつながりを外す</button>`);
+      $("#hUnlink").onclick = async () => { try { await LinkPick.unlink(s); toast("つながりを外しました"); closeSheet(); } catch (_) { toast("外せませんでした。通信を確かめてもう一度どうぞ"); } }; } }
+  return r;
+}; }
+{ const s = document.createElement("style"); s.textContent = `
+.tcv-link{position:absolute;left:50%;bottom:calc(26px + env(safe-area-inset-bottom));transform:translateX(-50%);z-index:5;border:0;background:none;color:rgba(255,255,255,.72);font:inherit;font-size:13.5px;text-decoration:underline;text-underline-offset:3px;padding:6px 10px}
+.tcv-link[hidden],.tcv.bk .tcv-link{display:none}
+.tcv:has(#tcvPress:not([hidden])) .tcv-hint{bottom:auto;top:calc(70px + env(safe-area-inset-top))}
+.lp-tgt{display:flex;gap:12px;align-items:center;background:var(--surface2,#f4f1ea);border-radius:14px;padding:10px;margin:0 0 12px}
+.lp-tgt img{width:64px;height:64px;object-fit:contain;mix-blend-mode:multiply}.lp-tgt b{display:block;font-size:15px}.lp-tgt small{font-size:12.5px;color:var(--sub,#6a6f78)}
+.lp-q{width:100%;box-sizing:border-box;font:inherit;font-size:16px;padding:10px 12px;border-radius:12px;border:1px solid var(--line,#d9d4c8);background:var(--surface,#fff);color:inherit}
+.lp-list{margin-top:6px}`; document.head.appendChild(s); }
+
 /* ================= boot ================= */
 addEventListener("resize", () => { Book.layout(); if (view === "fall") { Fall.stop(); Fall.start(); } if (view === "map") MapV.draw(); });
 document.addEventListener("visibilitychange", () => { if (document.hidden) Fall.stop(); else if (view === "fall") Fall.start(); });
