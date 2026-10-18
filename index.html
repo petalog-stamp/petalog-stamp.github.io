@@ -2138,7 +2138,7 @@ const Fall = {
     this.ceilingAdded = false;
     const L = this.items();
     // overflow: keep the newest as single stamps, fold older ones into month (or year) bundles
-    const k = this.scale || 1, minS = 42 * k, cap = Math.max(12, Math.floor(0.5 * W * H / (minS * minS * 1.15)));
+    const k = this.scale || 1, minS = 42 * k, cap = Math.max(12, Math.floor(1.05 * W * H / (minS * minS)));
     let singles = L, bundles = [];
     if (L.length > cap) {
       const desc = [...L].sort((p, q) => (q.date || "").localeCompare(p.date || ""));
@@ -2408,7 +2408,7 @@ const MapV = {
       boxes.push([px - pinR - 3, py - 12 - pinR * 2 - 3, px + pinR + 3, py]); this.pinHits.push({ px, py: py - 12 - pinR, ...hit });
     };
     if (!this.pick) {
-      if (this.mode === "all" && this.pubs) pubGroups(this.pubs).forEach(g => drawPin(g.lat, g.lng, g.top.thumb, C.shu, g.n > 1 ? { pgrp: g.ids } : { pub: g.top._id }, g.n, Trust.of(g, this.pubs)));
+      if (this.mode === "all" && this.pubs) pubClusters(pubGroups(this.pubs), (la, ln) => { const [wx, wy] = W(la, ln); return [X(wx), Y(wy)]; }, Wd, Hd).forEach(o => o.g ? drawPin(o.g.lat, o.g.lng, o.g.top.thumb, C.shu, o.g.n > 1 ? { pgrp: o.g.ids } : { pub: o.g.top._id }, o.g.n, Trust.of(o.g, this.pubs)) : drawPin(o.c.lat, o.c.lng, o.c.top.thumb, C.shu, { zoomTo: [o.c.lat, o.c.lng] }, o.c.n, { trust: 3 }));
       pinGroups().forEach(g => drawPin(g.lat, g.lng, g.top.cut, C.ai, g.n > 1 ? { grp: g.ids } : { id: g.top.id }, g.n));
     }
     if (this.me) { const [wx, wy] = W(this.me.lat, this.me.lng); const px = X(wx), py = Y(wy); x.beginPath(); x.arc(px, py, 14, 0, 7); x.fillStyle = "rgba(10,132,255,.18)"; x.fill(); x.beginPath(); x.arc(px, py, 7, 0, 7); x.fillStyle = "#0A84FF"; x.fill(); x.lineWidth = 2.5; x.strokeStyle = "#fff"; x.stroke(); }
@@ -2452,7 +2452,7 @@ const MapV = {
     const f = $("#mapFoot"); const L = list(); const no = L.filter(s => s.lat == null || s.lng == null).length;
     if (this.mode === "me") { f.innerHTML = `<span>地図に ${L.length - no} 枚${no ? ` · 場所が未設定 ${no} 枚` : ""}。駅の名前のあたりをタップすると、道案内やスタンプの追加ができます。右の点線の丸ボタンでエリアを囲むと、まだのスタンプを回るルートを作ります。</span>${this.decided && !this.real ? `<span class="credit">この画面では外部の地図画像が読み込めないため、簡易地図で表示しています。</span>` : ""}`; return; }
     if (!this.pubs) { f.innerHTML = `<span><span class="spin"></span> みんなの記録を読み込み中…</span>`; return; }
-    const others = this.pubs.filter(p => p.by !== Store.uid && !p.miss);
+    const others = this.pubs.filter(p => p.by !== Store.uid && !p.miss && !p.catalog);
     f.innerHTML = `<div class="nick"><span>ニックネーム</span><input id="nickIn" maxlength="20" value="${esc(Profile.nick)}" placeholder="例: えきすたん"><button class="btn small" type="button" id="nickSave">保存</button><button class="btn small" type="button" id="pubReload">更新</button></div>
       <span>出ているのは、公開設定で「場所」を見せていて、非公開にしていないトレカだけです。写真とメモは出ません。いま ${others.length} 件。</span>
       <div class="feed">${others.slice(0, 40).map(p => `<button type="button" data-pub="${esc(p._id)}"><img src="${p.thumb || ""}" alt=""><span><b>${esc(p.nick || "だれか")}</b> · ${esc(fmtDate(p.date))}<br>${esc(p.name)}${p.pref ? "（" + esc(p.pref) + "）" : ""}</span></button>`).join("") || "<span>まだ誰も公開していません。</span>"}</div>`;
@@ -2492,7 +2492,7 @@ const MapV = {
   },
   tap(px, py) {
     this.pickName = "";
-    if (!this.pick) for (const h of [...this.pinHits].reverse()) if (Math.hypot(px - h.px, py - h.py) < 20) { if (h.pub || h.pgrp) this.openPubs(h.pgrp || [h.pub]); else this.openMine(h.grp || [h.id]); return; }
+    if (!this.pick) for (const h of [...this.pinHits].reverse()) if (Math.hypot(px - h.px, py - h.py) < 20) { if (h.zoomTo) { this.map.setView(h.zoomTo, Math.min(18, this.map.getZoom() + 2)); return; } if (h.pub || h.pgrp) this.openPubs(h.pgrp || [h.pub]); else this.openMine(h.grp || [h.id]); return; }
     let best = null, bd = 20; for (const h of this.stHits) { const d = Math.hypot(px - h.px, py - h.py); if (d < bd) { bd = d; best = h; } }
     if (!best) { this.closeCard(); return; }
     const o = best.s || best.f;
@@ -8277,6 +8277,74 @@ addEventListener("load", () => { if (location.hash !== "#hq-import") return; let
   if (++n > 40) return clearInterval(t); if (Store.mode !== "cloud" || !Store.hqAdmin) return; clearInterval(t);
   if (HQ.admin == null) HQ.admin = await Store.hqAdmin(); if (HQ.admin) HQImport.open(); else toast("本部のアカウントでログインしてください");
 }, 500); });
+
+/* ================= みんなの地図を軽くする（ピンが数千本あっても動くように） =================
+   - 同じ場所のまとめ: みんなの記録が変わったときだけ計算しなおす（位置の近さは升目でさがす）
+   - ピンの「確かさ」: 記録ごとの索引を作って、ピン1本ごとに全部を見くらべない
+   - 広い範囲を見ているときは、画面の上で近いピンを1つにまとめて数を出す（タップで近づく） */
+Spots.ver = 0;
+{ const put = Spots.put; Spots.put = function (id, sp) { const a = this.m.get(+id); put.call(this, id, sp); const b = this.m.get(+id); if (b && (!a || a.lat !== b.lat || a.lng !== b.lng)) this.ver++; }; }
+
+function groupNearFast(L, idOf) {
+  const m = (a, b) => { const dy = (a.lat - b.lat) * 110540, dx = (a.lng - b.lng) * 111320 * Math.cos(a.lat * Math.PI / 180); return Math.hypot(dx, dy); };
+  const rk = s => (s.date || "") + "|" + String(s.created || 0).padStart(15, "0");
+  const ord = L.filter(s => s.lat != null && s.lng != null && !isNaN(s.lat) && !isNaN(s.lng)).sort((a, b) => rk(b) < rk(a) ? -1 : rk(b) > rk(a) ? 1 : 0);
+  const C = 0.003, cell = new Map(), key = (i, j) => i + "," + j, groups = [];   // 約300mの升目
+  for (const s of ord) {
+    const p = { lat: +s.lat, lng: +s.lng }, pn = norm(s.place || ""), ci = Math.floor(p.lat / C), cj = Math.floor(p.lng / C);
+    let g = null;
+    for (let di = -1; di <= 1 && !g; di++) for (let dj = -1; dj <= 1 && !g; dj++) {
+      const a = cell.get(key(ci + di, cj + dj)); if (a) g = a.find(g => { const d = m(g, p); return d < 30 || (pn && g.pn === pn && d < 300); }) || null;
+    }
+    if (g) { g.ids.push(idOf(s)); g.n++; } else { g = { lat: p.lat, lng: p.lng, pn, top: s, ids: [idOf(s)], n: 1 }; groups.push(g); const k = key(ci, cj); (cell.get(k) || cell.set(k, []).get(k)).push(g); }
+  }
+  return groups.reverse();
+}
+const _pbgFast = { P: null, ver: -1, uid: null, groups: [] };
+pubGroups = function (P) {
+  const c = _pbgFast; if (c.P === P && c.ver === Spots.ver && c.uid === Store.uid) return c.groups;
+  const L = designPos(P.filter(p => p.lat != null && p.by !== Store.uid && !p.miss && p.reviewed !== "hide"), P);
+  c.groups = groupNearFast(L, p => p._id); c.P = P; c.ver = Spots.ver; c.uid = Store.uid; return c.groups;
+};
+
+// 確かさ: 記録の索引（図鑑の番号・名前）を一度だけ作る
+{ const of0 = Trust.of.bind(Trust);
+  Trust.idx = function (P) {
+    if (this._P === P) return this._I; const recs = P.filter(p => !p.miss && p.reviewed !== "hide"), byD = new Map(), byN = new Map();
+    for (const q of recs) { if (q.design) (byD.get(+q.design) || byD.set(+q.design, []).get(+q.design)).push(q); const k = q.name ? norm(q.name) : ""; if (k) (byN.get(k) || byN.set(k, []).get(k)).push(q); }
+    this._P = P; this._I = { byD, byN, misses: P.filter(p => p.miss && p.reviewed !== "ok"), memo: new WeakMap(), ids: new Map(recs.map(q => [q._id, q])) }; return this._I;
+  };
+  Trust.of = function (g, P) {
+    if (!P || P.length < 60) return of0(g, P);
+    const I = this.idx(P); if (I.memo.has(g)) return I.memo.get(g);
+    const mine = g.ids.map(id => I.ids.get(id)).filter(Boolean); if (!mine.length) { I.memo.set(g, null); return null; }
+    let trust = 0, last = "";
+    for (const r of mine) {
+      const cand = new Set([...(r.design ? I.byD.get(+r.design) || [] : []), ...(r.name ? I.byN.get(norm(r.name)) || [] : [])]);
+      const same = [...cand].filter(q => this.same(q, r) && this.near(q, r, 600));
+      trust = Math.max(trust, r.catalog ? 3 : new Set(same.map(q => q.by)).size); same.forEach(q => { if ((q.date || "") > last) last = q.date || ""; });
+    }
+    const reps = I.misses.filter(p => this.near(p, g, 400) && mine.some(r => (r.rk && p.rk === r.rk) || (p.name && this.same(p, r))));
+    const endBy = new Set(reps.filter(p => p.type !== "wrong" && ENDED_R.includes(p.reason) && (p.date || "") >= last).map(p => p.by)).size;
+    const wrong = new Set(reps.filter(p => p.type === "wrong").map(p => p.by)).size;
+    const res = { trust: Math.min(3, Math.max(1, trust)), ended: endBy >= 3, faded: wrong >= 2, endBy, wrong }; I.memo.set(g, res); return res;
+  };
+}
+
+// 画面の上で近いピンをまとめる（見えている分だけ）。少なければそのまま
+function pubClusters(G, toXY, Wd, Hd) {
+  const vis = []; for (const g of G) { const [px, py] = toXY(g.lat, g.lng); if (px > -40 && py > -60 && px < Wd + 40 && py < Hd + 80) vis.push({ g, px, py }); }
+  if (vis.length <= 70) return vis.map(v => ({ g: v.g }));
+  const S = 58, cells = new Map();
+  for (const v of vis) { const k = Math.floor(v.px / S) + "," + Math.floor(v.py / S); const c = cells.get(k); if (c) c.push(v); else cells.set(k, [v]); }
+  const out = [];
+  for (const a of cells.values()) {
+    if (a.length === 1) { out.push({ g: a[0].g }); continue; }
+    let n = 0, la = 0, ln = 0, top = a[0].g; for (const v of a) { n += v.g.n; la += v.g.lat; ln += v.g.lng; if (v.g.n > top.n) top = v.g; }
+    out.push({ c: { lat: la / a.length, lng: ln / a.length, n, top: top.top } });
+  }
+  return out;
+}
 
 /* ================= boot ================= */
 addEventListener("resize", () => { Book.layout(); if (view === "fall") { Fall.stop(); Fall.start(); } if (view === "map") MapV.draw(); });
