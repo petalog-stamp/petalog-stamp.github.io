@@ -8157,7 +8157,7 @@ const HQImport = {
     const box = $("#hqiBody"); if (!box) return; box.querySelector(".hqi-info")?.remove(); box.querySelector(".hqi-acts")?.remove();
     const geo = { "name+addr": "住所と施設名で確認ずみ", town: "住所（丁目まで）", name: "施設名だけ（住所なし）", hq: "本部が置いた場所" }[it.geo] || "";
     const was = it._did === "ok" ? "（公開ずみ・もう一度スワイプで上書き）" : it._did === "skip" ? "（出さないにしました）" : "";
-    box.insertAdjacentHTML("beforeend", `<div class="hqi-info">${it._lat == null ? `<div class="hqi-warn">場所が見つかりませんでした。「直す」で地図にピンを置いてください。</div>` : ""}
+    box.insertAdjacentHTML("beforeend", `<div class="hqi-info">${it._lat == null ? `<div class="hqi-warn">場所が見つかりませんでした。「直す」で地図にピンを置いてください。</div>` : /^y-(zip|name1)/.test(it.geo || "") ? `<div class="hqi-warn">場所は郵便番号や名前からの推定で、おおよそです。気になるときは「直す」で地図を確かめてください。</div>` : ""}
       <div class="hqi-src"><b>${esc(it.title || "")}</b>${it.sub ? `｜${esc(it.sub)}` : ""}${was}\n${esc(it.addr || "")}${geo ? `（${geo}）` : ""}${it.nimg > 1 ? `\nこの記事の画像 ${it.idx + 1}/${it.nimg}` : ""}\n${esc(it.memo || "")}</div></div>
       <div class="hqi-acts"><button class="btn small" type="button" id="hqiBack"${this.at ? "" : " disabled"}>← もどる</button><button class="btn small" type="button" id="hqiEd">${this.edit ? "閉じる" : "直す"}</button><button class="btn small ghost" type="button" id="hqiSkip">出さない</button><button class="btn small primary" type="button" id="hqiGo">OK →</button></div>`);
     $("#hqiBack").onclick = () => this.back();
