@@ -8043,7 +8043,7 @@ const Catalog = {
   pub(r) {
     return { _id: "cat" + r.id, catalog: r.id, sid: null, by: "catalog", nick: CATALOG_TAG, name: r.name || "", place: r.place || "", pref: r.pref || "", cat: r.cat || "施設",
       date: "", lat: r.lat, lng: r.lng, sizeMm: null, thumb: r.img, rk: "", spot: "", spotTags: [], type: "stamp", miss: false, reason: null,
-      t: Date.parse(r.t) || 0, ct: Date.parse(r.t) || 0, design: r.design || null, reviewed: null, lr: 2, overlap: !!r.overlap };
+      t: Date.parse(r.t) || 0, ct: Date.parse(r.t) || 0, design: r.design || null, reviewed: null, lr: 2, overlap: !!r.overlap, themes: r.themes || [], w: r.w || 0, h: r.h || 0 };
   },
   wrap() {
     if (Store._catWrap || Store.mode !== "cloud" || !Store.pubList || !window.PetalogCloud || !PetalogCloud.catalogPins) return;
@@ -8424,15 +8424,15 @@ const MapPins = {
       out = [...cells.values()].map(a => {
         if (a.length === 1) return { g: a[0].g, px: a[0].px, py: a[0].py };
         let la = 0, ln = 0, n = 0; for (const v of a) { la += v.g.lat; ln += v.g.lng; n += v.g.n; } const [px, py] = toXY(la / a.length, ln / a.length);
-        return { c: { lat: la / a.length, lng: ln / a.length, n, fav: a.some(v => NextGo.focus && v.g.ids.some(id => NextGo.hasPub(Trust.idx(P).ids.get(id) || {}))) }, px, py };
+        return { c: { lat: la / a.length, lng: ln / a.length, n, fav: a.some(v => NextGo.focus && v.g.ids.some(id => NextGo.hasPub(Trust.idx(P).ids.get(id) || {}))), tag: !MapV.tagF || a.some(v => Tags.groupHas(v.g, P)) }, px, py };
       });
     }
-    const pr = o => o.g ? (NextGo.focus && this.isFav(o.g, P) ? 2 : 1) : (o.c.fav ? 2 : 1);
+    const pr = o => (o.g ? (NextGo.focus && this.isFav(o.g, P) ? 2 : 1) : (o.c.fav ? 2 : 1)) + (MapV.tagF && (o.g ? Tags.groupHas(o.g, P) : o.c.tag) ? 3 : 0);
     out.sort((a, b) => pr(a) - pr(b) || a.py - b.py);
     for (const o of out) {
-      if (o.c) { const fav = NextGo.focus && o.c.fav; const cy = this.pin(x, o.px, o.py, fav ? "#F2B90C" : "#E5483B", NextGo.focus && !fav ? 0.3 : 1, o.c.n); mv.pinHits.push({ px: o.px, py: cy, zoomTo: [o.c.lat, o.c.lng] }); continue; }
+      if (o.c) { const fav = NextGo.focus && o.c.fav; const cy = this.pin(x, o.px, o.py, fav ? "#F2B90C" : "#E5483B", (NextGo.focus && !fav ? 0.3 : 1) * (o.c.tag ? 1 : 0.22), o.c.n); mv.pinHits.push({ px: o.px, py: cy, zoomTo: [o.c.lat, o.c.lng] }); continue; }
       const g = o.g, st = Trust.of(g, P), fav = this.isFav(g, P);
-      const col = st && st.ended ? "#8E949E" : fav ? "#F2B90C" : "#E5483B", alpha = (st && st.faded ? 0.4 : 1) * (NextGo.focus && !fav ? 0.3 : 1);
+      const col = st && st.ended ? "#8E949E" : fav ? "#F2B90C" : "#E5483B", alpha = (st && st.faded ? 0.4 : 1) * (NextGo.focus && !fav ? 0.3 : 1) * (MapV.tagF && !Tags.groupHas(g, P) ? 0.22 : 1);
       const cy = this.pin(x, o.px, o.py, col, alpha, g.n);
       if (st && st.ended) { x.save(); x.globalAlpha = alpha; x.font = "800 9px 'Zen Kaku Gothic New',sans-serif"; const tw = x.measureText("終了").width + 8; x.fillStyle = "#5A6070"; x.fillRect(o.px - tw / 2, o.py + 1, tw, 12); x.fillStyle = "#fff"; x.textAlign = "center"; x.textBaseline = "middle"; x.fillText("終了", o.px, o.py + 7.5); x.restore(); }
       mv.pinHits.push({ px: o.px, py: cy, ...(g.n > 1 ? { pgrp: g.ids } : { pub: g.top._id }) });
@@ -8873,6 +8873,139 @@ const LinkPick = {
 .lp-tgt img{width:64px;height:64px;object-fit:contain;mix-blend-mode:multiply}.lp-tgt b{display:block;font-size:15px}.lp-tgt small{font-size:12.5px;color:var(--sub,#6a6f78)}
 .lp-q{width:100%;box-sizing:border-box;font:inherit;font-size:16px;padding:10px 12px;border-radius:12px;border:1px solid var(--line,#d9d4c8);background:var(--surface,#fff);color:inherit}
 .lp-list{margin-top:6px}`; document.head.appendChild(s); }
+
+/* ================= 地図のジャンル検索（★お城・★博物館…） =================
+   - 検索欄に「城」「博物館」「重ね押し」などを打つと、名前の候補の上に「★ お城 77件」のようなジャンルが出る
+   - 選ぶと、そのジャンルのピンだけ濃く、ほかは薄く。上の帯から「一覧」（トレカで近い順）・☆お気に入り・やめる
+   - お気に入りのジャンルは、検索欄をタップしたとき（空のとき）にすぐ出る */
+const Tags = {
+  // [名前, 検索のことば, 名前から見分けることば, スタンプ紹介サイトのテーマ, ジャンル(cat)]
+  DEF: [
+    ["お城", ["城", "しろ", "お城", "名城"], /城(址|跡|公園)?$|城(天守|跡)/, ["お城"], null],
+    ["日本100名城", ["100名城", "名城", "百名城"], /100名城|百名城/, ["日本100名城"], null],
+    ["駅スタンプ", ["駅", "えき", "駅スタンプ"], null, ["駅スタンプ"], "駅"],
+    ["JR78駅スタンプ", ["JR", "78駅", "JR78"], null, ["JR78駅スタンプ"], null],
+    ["博物館・美術館", ["博物館", "美術館", "資料館", "記念館", "ミュージアム", "ギャラリー"], /博物館|美術館|資料館|記念館|ミュージアム|ギャラリー|科学館|文学館/, ["博物館・美術館"], null],
+    ["神社・お寺", ["神社", "寺", "お寺", "神宮", "御朱印", "八幡"], /神社|神宮|大社|八幡宮|寺$|寺[^院]|院$/, ["神社・お寺"], null],
+    ["観光案内所", ["観光案内", "案内所", "インフォメーション", "観光"], /観光案内|案内所|インフォメーション|観光センター|観光協会|観光情報/, ["観光案内所"], null],
+    ["道の駅", ["道の駅", "みちのえき"], /道の駅/, ["道の駅"], "道の駅"],
+    ["SA・PA", ["SA", "PA", "サービスエリア", "パーキング", "高速", "ハイウェイ"], /サービスエリア|パーキングエリア|ハイウェイオアシス/, ["高速道路"], "SA・PA"],
+    ["空港", ["空港", "くうこう"], /空港/, ["空港"], "空港"],
+    ["港・フェリー", ["港", "フェリー", "船"], /フェリー|港$|ターミナル$/, ["フェリー"], "港"],
+    ["重ね押し", ["重ね", "重ね押し", "かさね"], null, ["重ね押し"], null],
+    ["タワー", ["タワー"], /タワー/, ["タワー"], null],
+    ["温泉・銭湯", ["温泉", "銭湯", "湯"], /温泉|銭湯|湯$/, ["温泉", "銭湯"], null],
+    ["庭園", ["庭園", "日本庭園"], /庭園/, ["庭園"], null],
+    ["自然・景勝地", ["自然", "景勝", "絶景", "山", "滝"], null, ["自然・景勝地"], null],
+    ["世界遺産", ["世界遺産"], null, ["世界遺産"], null],
+    ["ショップ", ["ショップ", "お店", "店"], /ショップ|ストア/, ["ショップ"], null],
+    ["宿泊施設", ["ホテル", "旅館", "宿"], /ホテル|旅館/, ["宿泊施設"], null],
+    ["官公庁・公共施設", ["役所", "役場", "公共", "図書館"], /市役所|区役所|町役場|村役場|図書館/, ["官公庁・公共施設"], null],
+    ["アニメ", ["アニメ", "キャラクター", "コラボ"], null, ["アニメ"], null],
+    ["ちいかわ", ["ちいかわ"], /ちいかわ/, ["ちいかわ"], null],
+    ["ONE PIECE", ["ワンピース", "ONE PIECE", "onepiece"], /ONE ?PIECE|ワンピース/i, ["ONE PIECE"], null],
+    ["期間限定", ["期間限定", "限定", "イベント", "スタンプラリー"], /スタンプラリー/, ["期間限定"], "イベント"],
+  ],
+  fav: [], favLoaded: false, memo: new Map(),
+  of(p) {   // そのピンのスタンプが入るジャンル（Set）
+    if (!p) return new Set(); const k = p._id + "|" + (p.themes || []).length; let r = this.memo.get(k); if (r) return r; r = new Set();
+    const th = new Set(p.themes || []), c = catNorm(p.cat || ""), nm = (p.name || "") + " " + (p.place || "");
+    for (const [t, , re, ths, cat] of this.DEF) if (ths.some(x => th.has(x)) || (cat && c === cat) || (re && re.test(nm))) r.add(t);
+    if (p.overlap) r.add("重ね押し"); this.memo.set(k, r); return r;
+  },
+  groupHas(g, P, t) { t = t || MapV.tagF; if (!t) return true; const I = Trust.idx(P);
+    const c = this._gc && this._gc.P === P && this._gc.t === t ? this._gc : (this._gc = { P, t, m: new WeakMap() });
+    let v = c.m.get(g); if (v === undefined) { v = g.ids.some(id => this.of(I.ids.get(id)).has(t)); c.m.set(g, v); } return v; },
+  count(t) { const P = MapV.pubs; if (!P) return 0; return pubGroups(P).filter(g => this.groupHas(g, P, t)).length; },
+  find(q) {   // 打った言葉に合うジャンル
+    q = String(q || "").replace(/^[★☆⭐︎⭐\s]+/, "").trim().toLowerCase(); if (!q) return [];
+    return this.DEF.filter(([t, al]) => t.toLowerCase().includes(q) || al.some(a => a.toLowerCase().includes(q) || (q.length >= 2 && q.includes(a.toLowerCase()) && a.length >= 2))).map(d => d[0]);
+  },
+  rows(list) { return list.map(t => { const n = this.count(t); return n ? `<button type="button" class="tag-row" data-tag="${esc(t)}"><b>★ ${esc(t)}</b><small>ジャンル</small><i>${n}件</i></button>` : ""; }).join(""); },
+  async loadFav() { if (this.favLoaded) return; this.favLoaded = true; try { const m = await Store.getMeta("favtags"); this.fav = m && Array.isArray(m.list) ? m.list : []; } catch (_) {} },
+  toggleFav(t) { const on = this.fav.includes(t); this.fav = on ? this.fav.filter(x => x !== t) : [t, ...this.fav].slice(0, 30); try { Store.putMeta("favtags", { list: this.fav }); } catch (_) {} toast(on ? "お気に入りのジャンルから外しました" : "お気に入りのジャンルに入れました ☆"); this.bar(); },
+  async set(t) {
+    $("#mapResults").hidden = true; $("#mapQ").value = ""; $("#mapQ").blur();
+    if (t && MapV.mode !== "all") MapV.setMode("all");
+    if (t && !MapV.pubs && Store.mode === "cloud") await MapV.loadPubs();
+    MapV.tagF = t || null; this.bar(); if (MapV.map) MapV.draw();
+    if (t) { const n = this.count(t); if (!n) toast("このジャンルのピンは、まだありません"); try { Track.ev("tag_search", { t, n }); } catch (_) {} }
+  },
+  bar() {
+    const w = $("#mapWrap"); if (!w) return; let b = $("#tagBar");
+    if (!b) { b = document.createElement("div"); b.id = "tagBar"; b.className = "tag-bar"; w.appendChild(b); }
+    const t = MapV.tagF; b.hidden = !t || MapV.mode !== "all"; const nb = $("#nextBar"); if (nb) nb.classList.toggle("low", !b.hidden);
+    if (!t) return; const on = this.fav.includes(t);
+    b.innerHTML = `<span class="tb-t">★ ${esc(t)}<i>${this.count(t)}件</i></span><button type="button" class="btn small" id="tagList">一覧</button><button type="button" class="btn small tb-fav${on ? " on" : ""}" id="tagFav" aria-label="お気に入り">${on ? "★" : "☆"}</button><button type="button" class="btn small" id="tagOff" aria-label="やめる">✕</button>`;
+    b.querySelector("#tagList").onclick = () => this.list(t); b.querySelector("#tagFav").onclick = () => this.toggleFav(t); b.querySelector("#tagOff").onclick = () => this.set(null);
+  },
+  // 一覧: そのジャンルのピンを、近い順（現在地 → なければ地図のまん中）にトレカで
+  async list(t) {
+    const P = MapV.pubs || [], I = Trust.idx(P), at = MapV.me || (MapV.map ? (c => ({ lat: c.lat, lng: c.lng }))(MapV.map.getCenter()) : { lat: 35.6812, lng: 139.7671 });
+    const G = pubGroups(P).filter(g => this.groupHas(g, P, t)).map(g => ({ g, km: kmBetween(g.lat, g.lng, at.lat, at.lng) })).sort((a, b) => a.km - b.km);
+    const pubs = []; for (const { g } of G) for (const id of g.ids) { const p = I.ids.get(id); if (p && this.of(p).has(t)) pubs.push(p); }
+    if (!pubs.length) { toast("このジャンルのピンは、まだありません"); return; }
+    const page = 48; let shown = 0;
+    const first = await pubCards(pubs.slice(0, page)); shown = first.length;
+    CardGrid.open({ title: "★ " + t, items: first, front: true });
+    const d = CardGrid.el; if (!d) return;
+    d.querySelector(".cgv-t small").textContent = `${pubs.length}枚・${MapV.me ? "現在地から近い順" : "地図のまん中から近い順"}`;
+    const acts = d.querySelector(".cgv-acts"); const on = () => this.fav.includes(t);
+    acts.innerHTML = `<button class="btn small tb-fav${on() ? " on" : ""}" type="button" id="tlFav">${on() ? "★ お気に入り" : "☆ お気に入り"}</button><button class="btn small" type="button" id="tlMap">地図で見る</button><span class="tl-cols"><button type="button" data-c="-1" aria-label="大きく">－</button><button type="button" data-c="1" aria-label="小さく">＋</button></span>`;
+    acts.querySelector("#tlFav").onclick = e => { this.toggleFav(t); e.currentTarget.classList.toggle("on", on()); e.currentTarget.textContent = on() ? "★ お気に入り" : "☆ お気に入り"; };
+    acts.querySelector("#tlMap").onclick = () => { CardGrid.close(true); this.set(t); };
+    const grid = d.querySelector(".cgv-body .cards"); let cols = Math.max(3, Math.min(5, +(lsGet("petalog.tagCols") || 3)));
+    const setCols = n => { cols = Math.max(3, Math.min(5, n)); grid.className = `cards c${cols}`; grid.style.setProperty("--cols", cols); lsSet("petalog.tagCols", String(cols)); };
+    setCols(cols); acts.querySelector(".tl-cols").onclick = e => { const b = e.target.closest("[data-c]"); if (b) setCols(cols + +b.dataset.c); };
+    // 2本指でつまむ・広げる → 列の数（3〜5）
+    const body = d.querySelector(".cgv-body"); let pd = 0, pc = cols;
+    const dist = ts => Math.hypot(ts[0].clientX - ts[1].clientX, ts[0].clientY - ts[1].clientY);
+    body.addEventListener("touchstart", e => { if (e.touches.length === 2) { pd = dist(e.touches); pc = cols; } }, { passive: true });
+    body.addEventListener("touchmove", e => { if (e.touches.length === 2 && pd) { e.preventDefault(); const r = dist(e.touches) / pd; const n = r > 1.25 ? pc - 1 - (r > 1.8 ? 1 : 0) : r < 0.8 ? pc + 1 + (r < 0.55 ? 1 : 0) : pc; if (n !== cols) setCols(n); } }, { passive: false });
+    body.addEventListener("touchend", e => { if (e.touches.length < 2) pd = 0; });
+    // 下までいったら続きを読む
+    const more = async () => { if (shown >= pubs.length || this._more) return; this._more = true;
+      const next = await pubCards(pubs.slice(shown, shown + page)); shown += next.length; CardGrid.items.push(...next);
+      grid.insertAdjacentHTML("beforeend", next.map(s => cardHTML(s, null, { cols, tag: s._tag })).join("")); this._more = false; Press.marks(); };
+    body.addEventListener("scroll", () => { if (body.scrollTop + body.clientHeight > body.scrollHeight - 600) more(); }, { passive: true });
+    Press.marks();
+  },
+};
+// 検索: 名前の候補の上にジャンルを出す（あとから住所の候補が届いて書き直されても、ジャンルは残す）
+{ const se = MapV.search.bind(MapV); MapV.search = function (q) {
+  se(q); Tags.q = (q || "").trim(); Tags.paint();
+  if (Tags.q && Store.mode === "cloud" && !MapV.pubs && !MapV.pubLoading && Tags.find(Tags.q).length) MapV.loadPubs().then(() => Tags.paint());
+}; }
+Tags.paint = function () {
+  const box = $("#mapResults"); if (!box) return; const q = this.q || "";
+  const list = q ? this.find(q) : (document.activeElement === $("#mapQ") ? this.fav : []); if (!list.length) return;
+  const html = this.rows(list); if (!html) return;
+  box.querySelectorAll(".tag-row,.tag-cap").forEach(b => b.remove());
+  if (!q) { box.innerHTML = `<div class="tag-cap">お気に入りのジャンル</div>` + html; box.hidden = false; return; }
+  const nr = box.querySelector(".nores"); if (nr) nr.remove();
+  box.insertAdjacentHTML("afterbegin", html); box.hidden = false;
+};
+{ const box = $("#mapResults"), inp = $("#mapQ");
+  if (box) { new MutationObserver(() => { if (Tags.q && !box.querySelector(".tag-row") && Tags.find(Tags.q).length) Tags.paint(); }).observe(box, { childList: true });
+    box.addEventListener("click", e => { const b = e.target.closest("[data-tag]"); if (!b) return; e.stopPropagation(); Tags.set(b.dataset.tag); }, true); }
+  if (inp) inp.addEventListener("focus", async () => { await Tags.loadFav(); if (!inp.value.trim() && Tags.fav.length) { if (Store.mode === "cloud" && !MapV.pubs && !MapV.pubLoading) await MapV.loadPubs(); Tags.q = ""; Tags.paint(); } });
+}
+// 地図の表示が変わったら帯も合わせる（じぶん⇔みんな）
+{ const sm = MapV.setMode.bind(MapV); MapV.setMode = function (m) { const r = sm(m); Tags.bar(); return r; }; }
+{ const s = document.createElement("style"); s.textContent = `
+#mapResults .tag-row{display:flex!important;flex-direction:row!important;align-items:center!important;justify-content:flex-start!important;text-align:left;gap:8px;background:#FFFBEA}
+#mapResults .tag-row small{margin:0}
+#mapResults .tag-row b{color:#B8860B}#mapResults .tag-row i{margin-left:auto;font-style:normal;font-weight:700;font-size:12.5px;background:#FFF1C2;color:#6a4b00;border-radius:999px;padding:2px 9px}
+#mapResults .tag-cap{font-size:12px;color:var(--sub,#6a6f78);padding:8px 12px 2px}
+.tag-bar{position:absolute;left:50%;transform:translateX(-50%);top:12px;z-index:4;display:flex;align-items:center;gap:6px;background:#FFF6D6;color:#4a3800;border-radius:999px;padding:5px 6px 5px 14px;box-shadow:0 2px 10px rgba(0,0,0,.18);font-size:13.5px;white-space:nowrap;max-width:calc(100% - 24px)}
+.tag-bar[hidden]{display:none}.tag-bar .tb-t{font-weight:800;overflow:hidden;text-overflow:ellipsis}.tag-bar .tb-t i{font-style:normal;font-weight:700;margin-left:6px;font-size:12px;color:#7a5a00}
+.tag-bar .btn.small{padding:5px 10px;min-height:0}
+.tb-fav.on{background:#F2B90C;color:#3a2a00;border-color:#F2B90C}
+.next-bar.low{top:58px}
+.tl-cols{display:inline-flex;margin-left:auto;border-radius:999px;overflow:hidden;border:1px solid rgba(255,255,255,.3)}
+.tl-cols button{border:0;background:rgba(255,255,255,.1);color:#fff;font:inherit;font-size:16px;width:38px;height:32px}
+.cgv .cards.c4 .tc-pressed,.cgv .cards.c5 .tc-pressed{font-size:8cqw}
+.cgv-body{touch-action:pan-y}`; document.head.appendChild(s); }
 
 /* ================= boot ================= */
 addEventListener("resize", () => { Book.layout(); if (view === "fall") { Fall.stop(); Fall.start(); } if (view === "map") MapV.draw(); });

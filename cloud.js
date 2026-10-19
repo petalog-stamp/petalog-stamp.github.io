@@ -596,10 +596,10 @@
     // みんなのスタンプ（運営が登録した地図のピン）。前回から変わった分だけ読む
     async catalogPins() {
       if (!sb || noNet()) throw new Error("offline");
-      const old = (await Cache.get("kv", "catalog")) || { t: "1970-01-01T00:00:00Z", rows: {} };
-      const { data, error } = await sb.rpc("catalog_pins", { p_since: old.t }); if (error) fail(error);
+      const old = (await Cache.get("kv", "catalog2")) || { t: "1970-01-01T00:00:00Z", rows: {} };
+      const { data, error } = await sb.rpc("catalog_pins2", { p_since: old.t }); if (error) fail(error);
       for (const r of data || []) { if (r.live && r.lat != null && r.img) old.rows[r.id] = r; else delete old.rows[r.id]; if (r.t > old.t) old.t = r.t; }
-      Cache.put("kv", "catalog", old); return Object.values(old.rows);
+      Cache.put("kv", "catalog2", old); return Object.values(old.rows);
     },
     async catalogInfo(id) { const { data } = await sb.rpc("catalog_info", { p_id: id }); return data || null; },
     // みんなのスタンプ図鑑（AIは使わない）: match / register / leave
