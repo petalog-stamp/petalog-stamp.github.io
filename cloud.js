@@ -644,7 +644,9 @@
       if (recovery && attached) { openNewPassword(); return; }
       if (attached && (memLogin || !storeOK())) setTimeout(() => say("この画面ではログインを覚えておけないので、閉じるとログアウトします。Safariで開くか、ホーム画面のぺたろぐのアイコンから使ってください。", 9000), 3000);
       if (attached) { offerMove(); return; }
-      if (!ls.get(LS_SKIP) && !ss.get(SS_ASKED)) { ss.set(SS_ASKED, "1"); if (!(typeof Tour !== "undefined" && Tour.auto())) openLogin(true); }
+      // ログインしていない人は、毎回かならず「ようこそ → さわってみる」から（Tour.auto）。端末にだけ記録がある人は、これまでどおり
+      if (typeof Tour !== "undefined" && Tour.auto()) return;
+      if (!ls.get(LS_SKIP) && !ss.get(SS_ASKED)) { ss.set(SS_ASKED, "1"); openLogin(true); }
     },
     openLogin,
     // はじめてのツアーの登録画面から

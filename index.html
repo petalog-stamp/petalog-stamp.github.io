@@ -1126,6 +1126,16 @@ html.tour-lock,html.tour-lock body{overflow:hidden}
 .tc-arrive b{display:block;font-size:17px;color:var(--shu);margin-bottom:4px}
 .tc-arrive span{font-size:13.5px;color:var(--muted)}
 .tour-mapnote{font-size:13px;line-height:1.6}
+/* ホーム画面に追加の案内 */
+.a2-lead{font-size:14px;line-height:1.7;margin:0 0 12px}
+.a2-seg{margin-bottom:10px}
+.a2-steps{margin:6px 0 0;padding-left:22px;font-size:14.5px;line-height:1.75}
+.a2-steps li{margin-bottom:8px}
+.a2-steps small{color:var(--muted);font-size:12px}
+.a2-ico{display:inline-flex;vertical-align:-3px;padding:1px 3px;border:1px solid var(--line);border-radius:6px;background:var(--card)}
+.a2-warn{font-size:13px;line-height:1.65;margin:0 0 10px;padding:10px 12px;border-radius:10px;background:rgba(194,59,46,.08);border:1px solid rgba(194,59,46,.25)}
+.a2-one{width:100%;margin:2px 0 4px}
+.a2-done{width:100%;margin-top:14px}
 /* 指の丸 */
 .tdot{position:fixed;z-index:99;width:0;height:0;pointer-events:none}
 .tdot i{position:absolute;left:-23px;top:-23px;width:46px;height:46px;border-radius:50%;background:rgba(200,65,46,.28);border:3px solid #fff;box-shadow:0 2px 12px rgba(0,0,0,.35),0 0 0 3px var(--t-shu)}
@@ -4693,11 +4703,12 @@ function openSettings() {
     <div class="sec"><h4>「ぜんぶ」の背景</h4><div class="papers" id="setFall">${["washi", "plain", "grid", "dot", "kraft", "cork", "seigaiha"].map(k => `<button type="button" data-fb="${k}" aria-pressed="${(Profile.fallBg || "washi") === k}"><i style="background-image:url(${Paper.previewURL(k)})"></i>${PAPERS[k]}</button>`).join("")}<label class="pbtn" aria-pressed="${Profile.fallBg === "photo"}"><i style="background-image:url(${Paper.previewURL("photo")})"></i>写真<input type="file" id="setFallPh" accept="image/*" style="position:absolute;width:1px;height:1px;opacity:0"></label></div></div>
     ${Plan.html()}
     ${cloud ? PetalogCloud.settingsHTML() : ""}
-    <div class="set-foot"><button class="set-link" type="button" id="tourAgain">使い方ツアーをもう一度見る</button>${inn ? `<button class="set-link faint" type="button" id="acDel">アカウントの削除</button>` : ""}</div>`);
+    <div class="set-foot"><button class="set-link" type="button" id="tourAgain">使い方ツアーをもう一度見る</button>${A2HS.should() ? `<button class="set-link" type="button" id="a2Open">ホーム画面に追加して、アプリとして使う</button>` : ""}${inn ? `<button class="set-link faint" type="button" id="acDel">アカウントの削除</button>` : ""}</div>`);
   $("#yrOpen").onclick = () => YearSum.open(y);
   $("#setFall").onclick = e => { const b = e.target.closest("[data-fb]"); if (!b) return; Profile.fallBg = b.dataset.fb; Profile.save(); applyFallBg(); document.querySelectorAll("#setFall [data-fb], #setFall .pbtn").forEach(x => x.setAttribute("aria-pressed", x === b)); };
   $("#setFallPh").onchange = async e => { const f = e.target.files[0]; if (!f) return; try { const cv = await fileToCanvas(f, 2000); const ph = makePhoto(cv, [[1600, 0.84], [1300, 0.8], [1000, 0.76]]); if (!ph) throw 0; await Store.putPhoto("fallbg", ph.url); Profile.fallBg = "photo"; await Profile.save(); await applyFallBg(); openSettings(); toast("「ぜんぶ」の背景を変えました"); } catch { toast("この写真は使えませんでした", 3200); } };
   $("#tourAgain").onclick = () => { closeSheet(); Tour.start({ preview: true }); };
+  if ($("#a2Open")) $("#a2Open").onclick = () => A2HS.open();
   if (cloud) PetalogCloud.wireSettings();
   Privacy.wire();
   if (typeof HQ !== "undefined") HQ.settings();   // 本部のアカウントだけ: 本部の画面へのボタン
@@ -7493,9 +7504,11 @@ const Tour = {
   ],
   // ---------- はじまり ----------
   auto() {   // ログインしていない人が開いたとき（cloud.js の afterBoot から）。何か出したら true
-    if (stamps.length || this.on) return false;
-    if (!lsGet("petalog.tourDone")) { this.start(); return true; }
-    this.join({ back: true }); return true;
+    // ログインしていなければ、前に見た人も・リロードしても・別のブラウザで開き直しても、毎回かならず「ようこそ → さわってみる」から。
+    // ただし、ログインせずにこの端末だけで記録している人（端末にスタンプがある人）は、いつもの画面のまま。
+    if (this.on) return true;
+    if (stamps.length) return false;
+    this.start(); return true;
   },
   fromURL() { const q = new URLSearchParams(location.search); if (!q.has("tour")) return false; try { history.replaceState(null, "", location.pathname + location.hash); } catch (_) {} setTimeout(() => this.start({ preview: true }), 400); return true; },
   loggedIn() { return !!(window.PetalogCloud && PetalogCloud.loggedIn && PetalogCloud.loggedIn()); },
@@ -7954,14 +7967,61 @@ Object.assign(Tour, {
   // 登録したあと、はじめて開いたとき: 「＋ 追加」を指さす
   nudge() {
     const pn = lsGet("petalog.pendingNick"); if (pn && this.loggedIn()) { lsSet("petalog.pendingNick", ""); if (!Profile.nick) { Profile.nick = pn; Profile.save().then(() => { try { syncShares(true); } catch (_) {} }).catch(() => {}); } }
-    if (!lsGet("petalog.afterJoin")) return; lsSet("petalog.afterJoin", ""); if (!this.loggedIn() || stamps.length) return;
-    const b = $("#addBtn"); if (!b) return; const r = b.getBoundingClientRect(), el = document.createElement("div"); el.className = "tnudge"; el.setAttribute("role", "status");
-    el.innerHTML = `<b>ようこそ！</b>ここから本物の1枚目を登録しよう`; el.style.top = (r.bottom + 12) + "px"; el.style.right = Math.max(10, innerWidth - r.right - 6) + "px";
-    document.body.appendChild(el); requestAnimationFrame(() => el.classList.add("in")); b.classList.add("tglow");
-    const off = () => { el.classList.remove("in"); b.classList.remove("tglow"); setTimeout(() => el.remove(), 300); };
-    el.onclick = off; b.addEventListener("click", off, { once: true }); setTimeout(off, 9000);
+    if (!lsGet("petalog.afterJoin")) return; lsSet("petalog.afterJoin", ""); if (!this.loggedIn()) return;
+    const point = () => {   // 「＋ 追加」を指さす（まだ1枚もないときだけ）
+      if (stamps.length) return;
+      const b = $("#addBtn"); if (!b) return; const r = b.getBoundingClientRect(), el = document.createElement("div"); el.className = "tnudge"; el.setAttribute("role", "status");
+      el.innerHTML = `<b>ようこそ！</b>ここから本物の1枚目を登録しよう`; el.style.top = (r.bottom + 12) + "px"; el.style.right = Math.max(10, innerWidth - r.right - 6) + "px";
+      document.body.appendChild(el); requestAnimationFrame(() => el.classList.add("in")); b.classList.add("tglow");
+      const off = () => { el.classList.remove("in"); b.classList.remove("tglow"); setTimeout(() => el.remove(), 300); };
+      el.onclick = off; b.addEventListener("click", off, { once: true }); setTimeout(off, 9000);
+    };
+    // 登録した直後: まず「ホーム画面に追加すると、アプリとして使えます」を案内（もうホーム画面のアイコンから開いている人には出さない）
+    if (A2HS.should()) A2HS.open({ first: true, after: point }); else point();
   },
 });
+
+// ---------- ホーム画面に追加する案内（登録した直後と、設定から） ----------
+const A2HS = {
+  bip: null,   // Android の Chrome がくれる「インストール」の合図
+  sa() { return !!((window.matchMedia && matchMedia("(display-mode: standalone)").matches) || navigator.standalone); },
+  inApp() { return /Instagram|FBAN|FBAV|FB_IAB|Line\/|Twitter|TikTok|musical_ly|BytedanceWebview/i.test(navigator.userAgent); },
+  os() { return isIOS ? "ios" : /Android/i.test(navigator.userAgent) ? "android" : "other"; },
+  should() { return !this.sa(); },
+  ev(s) { try { Track.ev("a2hs", { s }); } catch (_) {} },
+  steps(os) {
+    const inApp = this.inApp();
+    if (os === "ios") return `${inApp && isIOS ? `<p class="a2-warn"><b>いまはInstagramなどのアプリの中で開いています。</b>ここからは追加できないので、右上（または右下）の「…」から<b>「外部ブラウザで開く」</b>を押してSafariで開き、同じメールアドレスでログインしてから、下の手順へ。</p>` : ""}
+      <ol class="a2-steps"><li>Safariの画面下にある<b>共有ボタン</b>（<span class="a2-ico" aria-label="四角から上向き矢印">${this.icoShare}</span>）をタップ<br><small>見当たらないときは、右下の「…」→「共有」</small></li>
+        <li>メニューを下にスクロールして<b>「ホーム画面に追加」</b>をタップ</li>
+        <li>右上の<b>「追加」</b>をタップ。ホーム画面にぺたろぐのアイコンができます</li></ol>`;
+    return `${inApp && !isIOS ? `<p class="a2-warn"><b>いまはInstagramなどのアプリの中で開いています。</b>右上の「︙」から<b>「Chromeで開く」</b>（または「ブラウザで開く」）を押し、同じメールアドレスでログインしてから、下の手順へ。</p>` : ""}
+      ${this.bip ? `<button class="btn primary a2-one" type="button" id="a2One">ワンタップでホーム画面に追加</button><p class="cap">うまくいかないときは、下の手順でどうぞ。</p>` : ""}
+      <ol class="a2-steps"><li>Chromeの右上にある<b>「︙」</b>（たての点3つ）をタップ</li>
+        <li><b>「ホーム画面に追加」</b>（または<b>「アプリをインストール」</b>）をタップ</li>
+        <li><b>「追加」</b>（または「インストール」）をタップ。ホーム画面にぺたろぐのアイコンができます</li></ol>`;
+  },
+  icoShare: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 15V3M8 7l4-4 4 4"/><path d="M6 11H5a1 1 0 0 0-1 1v8a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-8a1 1 0 0 0-1-1h-1"/></svg>`,
+  open(o = {}) {
+    let os = this.os() === "android" ? "android" : "ios";
+    openSheet(`<div class="sheet-head"><h2>${o.first ? "登録ありがとうございます！" : "ホーム画面に追加する"}</h2><button class="btn small ghost" type="button" data-close>${o.first ? "あとで" : "閉じる"}</button></div>
+      <div class="a2">
+        <p class="a2-lead"><b>ホーム画面に追加すると、ぺたろぐがアプリとして使えます。</b>アイコンをタップするだけで、検索バーのない全画面ですぐ開けて、ログインもそのまま保たれます。</p>
+        <div class="seg a2-seg" role="group" aria-label="お使いのスマホ"><button type="button" data-os="ios" aria-pressed="${os === "ios"}">iPhoneの方</button><button type="button" data-os="android" aria-pressed="${os === "android"}">Androidの方</button></div>
+        <div id="a2Body">${this.steps(os)}</div>
+        <button class="btn a2-done" type="button" id="a2Done">${o.first ? "追加した！ / あとでやる" : "閉じる"}</button>
+      </div>`);
+    this.ev(o.first ? "show_first" : "show");
+    const wire = () => { const one = $("#a2One"); if (one) one.onclick = async () => { this.ev("one"); try { await this.bip.prompt(); const c = await this.bip.userChoice; this.ev(c && c.outcome === "accepted" ? "installed" : "dismissed"); this.bip = null; } catch (_) {} done(); }; };
+    const done = () => { closeSheet(); if (o.after) setTimeout(o.after, 350); };
+    $(".a2-seg").onclick = e => { const b = e.target.closest("[data-os]"); if (!b) return; os = b.dataset.os; document.querySelectorAll(".a2-seg [data-os]").forEach(x => x.setAttribute("aria-pressed", String(x === b))); $("#a2Body").innerHTML = this.steps(os); wire(); this.ev(os); };
+    $("#a2Done").onclick = () => { this.ev("done"); done(); };
+    const x = $("#sheet [data-close]"); if (x) x.onclick = () => { this.ev("later"); done(); };
+    wire();
+  },
+};
+addEventListener("beforeinstallprompt", e => { A2HS.bip = e; });
+addEventListener("appinstalled", () => { A2HS.bip = null; A2HS.ev("installed"); });
 
 // ---------- サンプルのトレカの裏面に入れる写真（イラスト）: みんなでピースの記念写真と、スタンプ台 ----------
 const SamplePh = {
