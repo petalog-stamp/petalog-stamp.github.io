@@ -1153,6 +1153,8 @@ html.tour-lock,html.tour-lock body{overflow:hidden}
 .tpop-in p{font-size:12.5px;line-height:1.55;margin:5px 0 0;color:var(--muted)}
 .tpop-in p.tpop-rare{color:var(--t-gold);font-weight:700}
 .tpop-tag{font-size:11px;font-weight:700;color:var(--shu)}
+.tpop-tag.mine{color:#2B4C9B}
+.tpop-next{color:var(--shu);font-weight:700}
 .tpop .tc-x{position:absolute;top:8px;right:8px}
 /* カメラのデモ */
 .tcam{position:fixed;inset:0;z-index:8000;background:#0B0C0F;color:#fff;display:flex;flex-direction:column;opacity:0;transition:opacity .25s}
@@ -7494,7 +7496,7 @@ const Tour = {
       { b: "好きなトレカをタップして開いてみよう。", pos: "bottom", aim: "card1", until: "open" },
       { b: "トレカをタップして、裏返してみて。", pos: "low", aim: "tcv", until: "flip" }] },
     { k: "map", v: "map", t: "押した場所が、地図になる", beats: [
-      { b: "青いピンがあなた、赤いピンはみんなが見つけたスタンプ。ネット検索には出てこない、地元だけのレアスタンプが見つかるかも…？ 赤いピンをタップしてみて！", pos: "bottom", aim: "rarepin", until: "pin" },
+      { b: "青いピンがあなた、赤いピンはみんなが見つけたスタンプ。ネット検索には出てこない、地元だけのレアスタンプが見つかるかも…？ 光っている赤いピンをタップしてみて！", pos: "bottom", aim: "rarepin", until: "pin" },
       { b: "行きたいスタンプを、指でぐるっと囲むと…", trace: "地図のまん中の、うすい丸の線を指でぐるっとなぞってみて。", pos: "bottom", cta: "ぐるっと囲んでみる", act: "lasso", until: "route" }] },
     { k: "journal", v: "board", t: "ノートに貼って、飾る", beats: [
       { b: "スタンプジャーナルをタップして開いてみよう。", pos: "bottom", aim: "book", until: "openbook" },
@@ -7549,7 +7551,12 @@ const Tour = {
     const co = CardView.open; CardView.open = function () { const r = co.apply(this, arguments); if (T.on) { T.hit("open"); T.layout(); } return r; };
     const cc = CardView.close; CardView.close = function () { const r = cc.apply(this, arguments); if (T.on) setTimeout(() => T.layout(), 300); return r; };
     const op = MapV.openPubs; MapV.openPubs = function (ids) { if (T.on) return T.pubPop(ids); return op.apply(this, arguments); };
-    const om = MapV.openMine; if (om) MapV.openMine = function () { if (T.on && T.cur && T.cur.k === "map") { toast("青いピンは、あなたが押したスタンプです（いまはサンプル）"); return; } return om.apply(this, arguments); };
+    const om = MapV.openMine; if (om) MapV.openMine = function (ids) { if (T.on && T.cur && T.cur.k === "map") { T.minePop(ids); return; } return om.apply(this, arguments); };
+    // ツアー中は、重なっていたら赤いピン（みんなのスタンプ）を優先。指で押しやすいように少し広めに
+    const tp = MapV.tap; MapV.tap = function (px, py) {
+      if (T.on && T.cur && T.cur.k === "map" && !this.pick) { let best = null, bd = 28; for (const h of this.pinHits || []) if (!h.zoomTo) { const d = Math.hypot(px - h.px, py - h.py) - (h.pub || h.pgrp ? 4 : 0); if (d < bd) { bd = d; best = h; } }
+        if (best) { if (best.pub || best.pgrp) this.openPubs(best.pgrp || [best.pub]); else T.minePop(best.grp || [best.id]); return; } }
+      return tp.apply(this, arguments); };
     const ft = MapV.foot; MapV.foot = function () { if (T.on && this.mode === "all") { const f = $("#mapFoot"); if (f) f.innerHTML = `<span class="tour-mapnote">赤いピンは、ほかの人が見つけたスタンプ（いまはサンプル）。ログインすると、本物のみんなの記録が見られます。</span>`; return; } return ft.apply(this, arguments); };
     const rd = MapV.render; MapV.render = function () { const r = rd.apply(this, arguments); if (T.on) { const sg = $("#mapSeg"); if (sg) sg.hidden = false; } return r; };
     const ob = Books.openBook; Books.openBook = function () { const r = ob.apply(this, arguments); if (T.on) T.hit("openbook"); return r; };
@@ -7684,7 +7691,7 @@ const Tour = {
       else if (b.aim === "anchor" && anc) { const q = anc.getBoundingClientRect(); p = { x: q.left + q.width / 2, y: q.top + q.height / 2 }; }
       else if (b.aim === "card1" && !tcv) { const e = $("#cards [data-open]"); if (e) { const q = e.getBoundingClientRect(); p = { x: q.left + q.width / 2, y: q.top + q.height / 2 }; } }
       else if (b.aim === "tcv" && tcv) { const q = CardView.el.querySelector("#tcvCard").getBoundingClientRect(); p = { x: q.left + q.width * 0.5, y: q.top + q.height * 0.4 }; }
-      else if (b.aim === "rarepin" && MapV.map && !this.el.pop) { const h = (MapV.pinHits || []).find(x => x.pub && this.rare.has(x.pub)) || (MapV.pinHits || []).find(x => x.pub); if (h) { const q = MapV.map.getContainer().getBoundingClientRect(); p = { x: q.left + h.px, y: q.top + h.py }; } }
+      else if (b.aim === "rarepin" && MapV.map && !this.el.pop) { this.mapWatch(); const h = this.redPin(); if (h) { const q = MapV.map.getContainer().getBoundingClientRect(); p = { x: q.left + h.px, y: q.top + h.py }; } }
       else if (b.aim === "book" && Books.mode === "shelf") { const e = document.querySelector("#shelfBox [data-book]"); if (e) { const q = e.getBoundingClientRect(); p = { x: q.left + q.width / 2, y: q.top + q.height / 2 }; } }
     }
     this.dot(p, kind);
@@ -7720,6 +7727,32 @@ const Tour = {
     if (area) { const on = cr && st && st.k === "journal" && Books.mode === "book" && cr.top + cr.height / 2 > innerHeight / 2; area.style.marginBottom = "";
       if (on) { const b = area.getBoundingClientRect(), need = Math.max(0, b.bottom - cr.top + 10); if (need) area.style.marginBottom = need + "px"; }
       if (this._room !== area.style.marginBottom) { this._room = area.style.marginBottom; try { Book.layout(); } catch (_) {} } }
+  },
+  // 指の丸で指す赤いピン: 画面の中にあって、青いピンや案内カードに隠れていないもの（レアを優先）
+  redPin() {
+    const H = MapV.pinHits || [], q = MapV.map.getContainer().getBoundingClientRect(), c = this.el.card, cr = c && !c.classList.contains("hide") ? c.getBoundingClientRect() : null;
+    const ok = h => { const x = q.left + h.px, y = q.top + h.py; if (x < q.left + 18 || x > q.right - 60 || y < q.top + 18 || y > q.bottom - 18) return false; if (cr && y > cr.top - 24 && x > cr.left - 10 && x < cr.right + 10) return false;
+      return !H.some(o => !o.pub && !o.pgrp && !o.zoomTo && Math.hypot(o.px - h.px, o.py - h.py) < 40); };
+    const red = H.filter(h => h.pub);
+    return red.find(h => this.rare.has(h.pub) && ok(h)) || red.find(ok) || null;
+  },
+  // 地図を動かしたら、指の丸もついていく
+  mapWatch() {
+    const m = MapV.map; if (!m || this._mw === m) return; this._mw = m; let raf = 0;
+    m.on("move zoom moveend zoomend", () => { if (!this.on || !this.cur || this.cur.k !== "map") return; cancelAnimationFrame(raf); raf = requestAnimationFrame(() => this.layout()); });
+  },
+  // 青いピン（じぶんのスタンプ・サンプル）をタップしたとき
+  minePop(ids) {
+    const s = SAMPLES.find(x => x.id === (ids || [])[0]) || SAMPLES[0]; this.popClose();
+    const el = document.createElement("div"); el.className = "tpop"; el.setAttribute("role", "dialog");
+    el.innerHTML = `<div class="tpop-in">${s && s.cut ? `<img src="${s.cut}" alt="">` : ""}<div><span class="tpop-tag mine">あなたの記録・サンプル</span><b>${esc((s && s.name) || "あなたのスタンプ")}</b>
+      <p>青いピンは、あなたが押したスタンプ。登録すると、押した場所に自動でピンが立ちます。${(ids || []).length > 1 ? `（ここには ${ids.length} 枚）` : ""}</p>
+      <p class="tpop-next">赤いピンは、みんなが見つけたスタンプ。赤いピンもタップしてみて！</p></div>
+      <button class="tc-x" type="button" aria-label="とじる">✕</button></div>`;
+    document.body.appendChild(el); this.el.pop = el; requestAnimationFrame(() => el.classList.add("in"));
+    el.querySelector(".tc-x").onclick = () => this.popClose();
+    clearTimeout(this._popT); this._popT = setTimeout(() => this.popClose(), 5200);
+    this.ev("minepin");
   },
   dot(r, kind) {
     let d = this.el.dot; if (!r) { if (d) d.hidden = true; return; }
