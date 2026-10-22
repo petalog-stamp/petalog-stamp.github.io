@@ -3856,7 +3856,7 @@ function parseTiff(v, t) {
   const str = tg => { const off = tg.count > 4 ? t + u32(tg.val) : tg.val; let s = ""; for (let i = 0; i < tg.count - 1; i++) s += String.fromCharCode(v.getUint8(off + i)); return s; };
   const rat = (off, n) => { const r = []; for (let i = 0; i < n; i++) r.push(u32(off + i * 8) / u32(off + i * 8 + 4)); return r; };
   const out = {}; const t0 = ifd(t + u32(t + 4));
-  const setDate = tg => { const m = str(tg).match(/^(\d{4}):(\d\d):(\d\d)/); if (m && m[1] !== "0000") out.date = `${m[1]}-${m[2]}-${m[3]}`; };
+  const setDate = tg => { const m = str(tg).match(/^(\d{4}):(\d\d):(\d\d)(?:[ T](\d\d):(\d\d):?(\d\d)?)?/); if (m && m[1] !== "0000") { out.date = `${m[1]}-${m[2]}-${m[3]}`; if (m[4] != null) out.at = new Date(+m[1], +m[2] - 1, +m[3], +m[4], +m[5], +(m[6] || 0)).getTime(); } };
   if (t0[0x8769]) { const ex = ifd(t + u32(t0[0x8769].val)); const dt = ex[0x9003] || ex[0x9004]; if (dt) setDate(dt); }
   if (!out.date && t0[0x0132]) setDate(t0[0x0132]);
   if (t0[0x8825]) {
@@ -4658,6 +4658,7 @@ async function updateExisting(t) {
   await commitSave(c, merged);
 }
 async function commitSave(c, d) {
+  if (c && c.mode === "add" && c.exif && c.exif.at && !d.shotAt && Math.abs(c.exif.at - Date.now()) < 400 * 864e5) d.shotAt = c.exif.at;   // 写真を撮った時刻（歩いた記録に、あとから登録したスタンプも入れるため）
   const fixLoc = locFixOf(c, d);
   if (c.mode === "add" && Store.mode === "cloud" && !Plan.campaign() && stamps.filter(s => !s.ghost).length >= Plan.free) { Plan.full(); return; }
   if (c.mode === "add" && !(+d.no > 0 && Numbers.vacant().includes(+d.no))) d.no = Numbers.next();   // 新しい番号（空き番号を選んだときはその番号）
@@ -6955,7 +6956,7 @@ const Walk = {
       for (const g of c.gaps) {
         if (g.done) continue; const dt = g.b[2] - g.a[2], d = mDist(g.a, g.b);
         if (d / Math.max(1, dt / 1000) > 3.4 || d > 30000) { g.done = 1; g.ride = 1; continue; }   // 歩くより速い＝電車などに乗った区間。道はたどらない
-        const via = stamps.filter(s => s.lat != null && !s.sample && Zukan.t(s) > g.a[2] && Zukan.t(s) < g.b[2]).sort((x, y) => Zukan.t(x) - Zukan.t(y)).map(s => [+s.lat, +s.lng, Zukan.t(s)]);
+        const via = stamps.filter(s => s.lat != null && !s.sample && this.tOf(s) > g.a[2] && this.tOf(s) < g.b[2]).sort((x, y) => this.tOf(x) - this.tOf(y)).map(s => [+s.lat, +s.lng, this.tOf(s)]);
         const seq = [g.a, ...via, g.b], out = []; let ok = true;
         for (let i = 0; i + 1 < seq.length; i++) { try { const r = await this.route(seq[i], seq[i + 1]); out.push(...(out.length ? r.pts.slice(1) : r.pts)); } catch (_) { ok = false; break; } }
         if (ok && out.length) { g.r = out; g.done = 1; }
@@ -6979,7 +6980,9 @@ const Walk = {
     let walk = 0, ride = 0; for (const s of this.segs(c)) { let d = 0; for (let i = 1; i < s.pts.length; i++) d += mDist(s.pts[i - 1], s.pts[i]); if (s.kind === "ride") ride += d; else walk += d; }
     const t0 = c.start, t1 = end || c.end || Date.now(); return { walk, ride, ms: t1 - t0, est: Math.round(walk / 0.7) };
   },
-  stampsOf(w) { const t1 = w.end || Date.now(); return stamps.filter(s => !s.sample && s.type !== "goshuin" && Zukan.t(s) >= w.start - 60000 && Zukan.t(s) <= t1 + 60000).sort((a, b) => Zukan.t(a) - Zukan.t(b)); },
+  // スタンプの時刻: 写真を撮った時刻があればそれ（家に帰ってから登録しても、その時間の記録に入る）、なければ登録した時刻
+  tOf(s) { return +s.shotAt > 0 ? +s.shotAt : Zukan.t(s); },
+  stampsOf(w) { const t1 = w.end || Date.now(); return stamps.filter(s => !s.sample && s.type !== "goshuin" && this.tOf(s) >= w.start - 60000 && this.tOf(s) <= t1 + 60000).sort((a, b) => this.tOf(a) - this.tOf(b)); },
   async stop() {
     const c = this.cur; if (!c) return; if (this.wid != null) { navigator.geolocation.clearWatch(this.wid); this.wid = null; } this.unlock(true);
     c.end = Date.now(); await this.fillGaps(c).catch(() => {});
@@ -7056,7 +7059,7 @@ const Walk = {
     const ss = $("#wkSteps"); if (ss) ss.onclick = () => this.askSteps(w);
     const sh = $("#wkScHelp"); if (sh) sh.onclick = e => { e.preventDefault(); this.scGuide(); };
   },
-  stampsOfW(w) { const ids = new Set(w.stamps || []); const S = stamps.filter(s => ids.has(s.id)); return S.length ? S.sort((a, b) => Zukan.t(a) - Zukan.t(b)) : this.stampsOf(w); },
+  stampsOfW(w) { const ids = new Set(w.stamps || []); const S = [...new Set([...stamps.filter(s => ids.has(s.id)), ...this.stampsOf(w)])]; return S.sort((a, b) => this.tOf(a) - this.tOf(b)); },
   // iPhone の歩数: サーバーで合言葉を作って、ショートカットに渡す
   async askSteps(w) {
     if (!(Store.mode === "cloud" && window.PetalogCloud)) { toast("歩数を入れるにはログインしてください（右上の設定から）"); return; }
@@ -7120,6 +7123,21 @@ function simplifyPts(P, tol) {
   return P.filter((_, i) => keep[i]);
 }
 // 歩いた地図（紙の上に、近くの路線と駅・道のり・スタンプ）。o.page: ジャーナル用（スタンプは貼るので印だけ）
+// 歩いた記録の地図の下地: 本物の地図（OpenFreeMap）を画面の外で描いて画像にする。だめなら和紙のまま
+async function walkBase(vx0, vx1, vy0, vy1, Wd, Hd) {
+  try {
+    await loadMapLib(); if (!window.maplibregl) return null;
+    const k = Wd / (vx1 - vx0), z = Math.log2(k) - 1, cx = (vx0 + vx1) / 2, cy = (vy0 + vy1) / 2;
+    const lng = cx / 256 * 360 - 180, lat = Math.atan(Math.sinh(Math.PI * (1 - 2 * cy / 256))) * 180 / Math.PI;
+    const box = document.createElement("div"); box.style.cssText = `position:fixed;left:-${Wd + 50}px;top:0;width:${Wd}px;height:${Hd}px;pointer-events:none;opacity:0`; document.body.appendChild(box);
+    const g = new maplibregl.Map({ container: box, style: OFM_STYLE, center: [lng, lat], zoom: z, interactive: false, attributionControl: false, pixelRatio: 1, preserveDrawingBuffer: true, fadeDuration: 0 });
+    const out = await new Promise(res => { let done = false; const fin = v => { if (!done) { done = true; res(v); } };
+      g.on("styledata", () => { try { jaLabels(g); } catch (_) {} });
+      g.once("idle", () => { try { const c = mkCanvas(Wd, Hd); c.getContext("2d").drawImage(g.getCanvas(), 0, 0, Wd, Hd); fin(c); } catch (_) { fin(null); } });
+      g.on("error", () => {}); setTimeout(() => fin(null), 9000); });
+    try { g.remove(); } catch (_) {} box.remove(); return out;
+  } catch (_) { return null; }
+}
 async function walkMap(w, S, Wd, Hd, o = {}) {
   const cv = mkCanvas(Wd, Hd), x = cv.getContext("2d"); x.fillStyle = "#FBF8F1"; x.fillRect(0, 0, Wd, Hd);
   try { const pat = x.createPattern(Paper.washi(), "repeat"); if (pat) { x.globalAlpha = 0.55; x.fillStyle = pat; x.fillRect(0, 0, Wd, Hd); x.globalAlpha = 1; } } catch (_) {}
@@ -7130,12 +7148,17 @@ async function walkMap(w, S, Wd, Hd, o = {}) {
   const top = (o.top || 0.08) * Hd, bot = (o.bottom || 0.08) * Hd, side = 0.09 * Wd, aw = Wd - side * 2, ah = Hd - top - bot, k = Math.min(aw / (x1 - x0), ah / (y1 - y0));
   const ox = side + (aw - (x1 - x0) * k) / 2, oy = top + (ah - (y1 - y0) * k) / 2, X = wx => ox + (wx - x0) * k, Y = wy => oy + (wy - y0) * k, P = (la, ln) => { const [a, b] = W(la, ln); return [X(a), Y(b)]; };
   const vx0 = x0 - (ox) / k, vx1 = x1 + (Wd - ox - (x1 - x0) * k) / k, vy0 = y0 - oy / k, vy1 = y1 + (Hd - oy - (y1 - y0) * k) / k, S1 = Wd / 900;
-  // 近くの路線と駅
+  const base = o.base === false ? null : await walkBase(vx0, vx1, vy0, vy1, Wd, Hd);
+  if (base) { x.drawImage(base, 0, 0, Wd, Hd); x.fillStyle = "rgba(251,248,241,.18)"; x.fillRect(0, 0, Wd, Hd);
+    x.save(); x.font = `500 ${11 * S1}px sans-serif`; x.textAlign = "right"; x.textBaseline = "bottom"; x.fillStyle = "rgba(60,60,60,.75)"; x.fillText("© OpenStreetMap · OpenFreeMap", Wd - 8 * S1, Hd - 6 * S1); x.restore(); }
+  // 近くの路線と駅（本物の地図がないときだけ）
+  if (!base) {
   x.save(); x.globalAlpha = 0.32; x.lineCap = x.lineJoin = "round";
   for (const L of GEO.lines) { const [a, b, c, d] = L.bb; if (c < vx0 || a > vx1 || d < vy0 || b > vy1) continue; x.beginPath(); for (const f of L.P) { x.moveTo(X(f[0]), Y(f[1])); for (let i = 2; i < f.length; i += 2) x.lineTo(X(f[i]), Y(f[i + 1])); } x.strokeStyle = L.c || "#8090A0"; x.lineWidth = 5 * S1; x.stroke(); }
   x.globalAlpha = 0.75; x.font = `600 ${15 * S1}px 'Zen Kaku Gothic New',sans-serif`; x.textBaseline = "middle";
   for (const s of GEO.stations) { if (s.x < vx0 || s.x > vx1 || s.y < vy0 || s.y > vy1) continue; const px = X(s.x), py = Y(s.y); x.beginPath(); x.arc(px, py, 5 * S1, 0, 7); x.fillStyle = "#fff"; x.fill(); x.lineWidth = 2 * S1; x.strokeStyle = "#5A6070"; x.stroke(); x.fillStyle = "#5A6070"; x.fillText(s.n + "駅", px + 9 * S1, py); }
   x.restore();
+  }
   // 道のり
   x.save(); x.lineCap = x.lineJoin = "round";
   for (const s of segs) { x.beginPath(); s.pts.forEach((p, i) => { const [a, b] = P(p[0], p[1]); i ? x.lineTo(a, b) : x.moveTo(a, b); });
