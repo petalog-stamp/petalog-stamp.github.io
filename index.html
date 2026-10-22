@@ -8696,10 +8696,12 @@ const ShapeMatch = {
 const ShapeLink = {
   V: 2, busy: false, ask: [],
   done() { try { return JSON.parse(localStorage.getItem("petalog.shapeLink") || "{}"); } catch (_) { return {}; } },
-  mark(o) { try { localStorage.setItem("petalog.shapeLink", JSON.stringify(o)); } catch (_) {} },
+  // 照合ずみの印は端末とアカウントの両方に残す（別の端末・アイコンを作り直したときに、また最初から照合しないように）
+  mark(o) { try { localStorage.setItem("petalog.shapeLink", JSON.stringify(o)); } catch (_) {} clearTimeout(this._mt); this._mt = setTimeout(() => { try { Store.putMeta("shapelink", { d: o }); } catch (_) {} }, 3000); },
   async run() {
     if (this.busy || Store.mode !== "cloud" || !window.PetalogCloud || !PetalogCloud.loggedIn || !PetalogCloud.loggedIn()) return; this.busy = true;
     try {
+      if (!this._acct) { this._acct = true; try { const m = await Store.getMeta("shapelink"); if (m && m.d) { const o = { ...m.d, ...this.done() }; try { localStorage.setItem("petalog.shapeLink", JSON.stringify(o)); } catch (_) {} } } catch (_) {} }
       const R = await ShapeMatch.rows(); if (!R.length) return; const catD = new Set(R.map(r => +r.design)), D = this.done();
       const L = stamps.filter(s => !s.sample && s.type !== "goshuin" && s.cut && s.lat != null && !(s.design && catD.has(+s.design)) && !s.cdesign && D[s.id] !== this.V);
       let linked = 0, err = 0, tried = 0; const t0 = Date.now();
@@ -9119,7 +9121,8 @@ document.addEventListener("contextmenu", e => { if (!e.target.closest("input,tex
   if (!Tour.fromURL()) { if (window.PetalogCloud) PetalogCloud.afterBoot(); else Tour.auto(); }
   setTimeout(() => Tour.nudge(), 1200);
   setTimeout(() => Privacy.firstSync(), 2500); loadSheets(); setTimeout(trimOld, 6000); setTimeout(() => Zukan.backfill(), 9000); Walk.init(); Track.init(); setTimeout(() => Numbers.ensure(), 1500);
-  if (!lsGet("petalog.pinchHint")) { lsSet("petalog.pinchHint", "1"); setTimeout(() => toast("トレカ一覧は、2本指でつまむと並べる列の数（1〜5列）を変えられます", 4200), 4000); }
+  // 2本指で列を変えられる案内は、トレカ一覧を初めて開いたときだけ
+  { const sv = show; show = function (v, ...a) { const r = sv.call(this, v, ...a); if (v === "book" && ready && stamps.length && !Tour.on && !lsGet("petalog.pinchHint")) { lsSet("petalog.pinchHint", "1"); setTimeout(() => toast("トレカ一覧は、2本指でつまむと並べる列の数（1〜5列）を変えられます", 4200), 1200); } return r; }; }
   (async () => { let n = 0; for (const s of stamps) { if (await fillStats(s)) { n++; if (!s.sample && findStamp(s.id) === s) await Store.saveStamp(s).catch(() => {}); } } if (n) Grid.render(); })();
 })();
 </script>
