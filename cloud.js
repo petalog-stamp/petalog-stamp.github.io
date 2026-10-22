@@ -21,6 +21,9 @@
 
   // ログイン直後に「この画面では保存できなかった」ときは、ログイン情報をURLで渡して読み込み直す（このしるしで判断）
   const memLogin = /[#&]pl_mem=1/.test(location.hash);
+  // ログインして読み込み直した直後のしるし。端末の保存が毎回消える画面（古いアイコンから開いた画面など）を見分ける
+  const reLogin = /[#&]pl_rl=1/.test(location.hash);
+  const hadDevice = (() => { try { return !!localStorage.getItem("petalog.did"); } catch { return false; } })();
   const storeOK = () => { try { const k = "petalog.ping"; localStorage.setItem(k, String(Date.now())); return !!localStorage.getItem(k); } catch { return false; } };
   let sb = null;
   try {
@@ -316,8 +319,10 @@
   async function reloadKeepingSession() {
     let s = null; try { const r = await within(sb.auth.getSession(), 4000); s = r.data && r.data.session; } catch {}
     if (s) await backupSession(s);
-    if (s && s.access_token && s.refresh_token && !(storeOK() && ls.get("petalog-auth"))) {
-      const h = `#access_token=${encodeURIComponent(s.access_token)}&refresh_token=${encodeURIComponent(s.refresh_token)}&expires_in=${s.expires_in || 3600}${s.expires_at ? "&expires_at=" + s.expires_at : ""}&token_type=bearer&pl_mem=1`;
+    // 端末に保存できたように見えても、読み込み直すと消えてしまう画面がある（iPhoneの一部のホーム画面アイコンなど）ので、いつもURLでも渡す
+    if (s && s.access_token && s.refresh_token) {
+      const mem = !(storeOK() && ls.get("petalog-auth"));
+      const h = `#access_token=${encodeURIComponent(s.access_token)}&refresh_token=${encodeURIComponent(s.refresh_token)}&expires_in=${s.expires_in || 3600}${s.expires_at ? "&expires_at=" + s.expires_at : ""}&token_type=bearer&${mem ? "pl_mem=1" : "pl_rl=1"}`;
       try { history.replaceState(null, "", location.pathname + location.search + h); } catch { location.hash = h.slice(1); }
     }
     location.reload();
@@ -643,6 +648,7 @@
       if (offline) { say("電波かサーバーにつながらないので、前回の記録を表示しています。いまは保存できません。", 6000); return; }
       if (recovery && attached) { openNewPassword(); return; }
       if (attached && (memLogin || !storeOK())) setTimeout(() => say("この画面ではログインを覚えておけないので、閉じるとログアウトします。Safariで開くか、ホーム画面のぺたろぐのアイコンから使ってください。", 9000), 3000);
+      if (attached && reLogin && !hadDevice) setTimeout(() => say("この画面では、ログインや記録がスマホに残らないようです（閉じるとまた最初の画面に戻ります）。Safariで petalog-stamp.github.io を開き、共有ボタン →「ホーム画面に追加」でアイコンを作り直して、古いアイコンは消してください。", 14000), 2500);
       if (attached) { offerMove(); return; }
       // ログインしていない人は、毎回かならず「ようこそ → さわってみる」から（Tour.auto）。端末にだけ記録がある人は、これまでどおり
       if (typeof Tour !== "undefined" && Tour.auto()) return;
