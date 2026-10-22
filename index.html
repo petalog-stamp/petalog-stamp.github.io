@@ -8655,7 +8655,7 @@ const ShapeFP = {
 };
 
 const ShapeMatch = {
-  AUTO: 0.85, ASK: 0.66, GAP: 0.06, KM: 1.5,
+  AUTO: 0.85, ASK: 0.78, GAP: 0.06, KM: 1.5,
   rowsP: null,
   rows() { if (!this.rowsP) { this.rowsP = (window.PetalogCloud && PetalogCloud.catalogPins ? PetalogCloud.catalogPins() : Promise.resolve([])).catch(() => []); setTimeout(() => { this.rowsP = null; }, 300000); } return this.rowsP; },
   pos(r) { return Spots.of(r.design) || r; },
