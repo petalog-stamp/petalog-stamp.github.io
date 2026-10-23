@@ -6572,7 +6572,7 @@ function openTriviaFix(s, after) {
     <div class="ptcur">${esc(cur || "（まだありません）")}</div>
     <label class="fld" style="margin-top:12px"><span>ちがうところ・本当に描かれているもの</span><textarea id="ptHint" rows="3" maxlength="120" placeholder="例: シーサーは描かれていない。描かれているのは飛行機と管制塔だけ"></textarea></label>
     <button class="btn primary" type="button" id="ptGo" style="width:100%;margin-top:10px">AIに書き直してもらう</button>
-    <p class="cap" style="margin:8px 0 0">書き直した文章は、同じスタンプを持つほかの人のトレカにも使われます。</p>
+    <p class="cap" style="margin:8px 0 0">書き直した文章は、同じスタンプを持つほかの人のトレカにも使われます。直すのは、1日10枚のプチ情報の数には入りません。</p>
     <div class="row2" style="margin-top:14px"><button class="btn small" type="button" id="ptOwn">自分で書きかえる</button><button class="btn small ghost" type="button" data-close>閉じる</button></div>`);
   const go = $("#ptGo");
   go.onclick = async () => {
@@ -7493,7 +7493,7 @@ const tI = k => `<svg viewBox="0 0 24 24" aria-hidden="true">${TICO[k] || ""}</s
 
 // 無料で登録できる数とキャンペーン（本部のサイトで変えられる。ここは読めなかったときの値）
 const Plan = {
-  free: 50, price: 330, until: Date.parse("2026-11-01T00:00:00+09:00"),
+  free: 50, price: 330, until: Date.parse("2026-12-01T00:00:00+09:00"),
   campaign() { return Date.now() < this.until; },
   untilText() { const d = new Date(this.until - 1); return `${d.getMonth() + 1}月${d.getDate()}日`; },
   daysLeft() { return Math.max(1, Math.ceil((this.until - Date.now()) / 864e5)); },
