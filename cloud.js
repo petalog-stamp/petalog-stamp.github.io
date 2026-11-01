@@ -148,6 +148,23 @@
     Cache.put("cuts", path, url);
     return url;
   }
+  // 端末に控えのない切り抜き画像は、画面を出したあとで裏で取りに行く。
+  // （以前は全部そろうまで「よみこみ中」のままだった。新しい端末では200枚・約40MBを待つことになり、止まって見えていた）
+  let cutsDone = Promise.resolve();
+  function fillCuts(waits) {
+    if (!waits.length) return Promise.resolve();
+    const fire = (done) => { try { dispatchEvent(new CustomEvent("petalog:cuts", { detail: { done } })); } catch {} };
+    let t = 0; const ping = () => { if (!t) t = setTimeout(() => { t = 0; fire(false); }, 1200); };
+    return pool(waits, 4, async ({ s, path }) => {
+      let url = null; try { url = await within(cutFor(path), 20000); } catch {}
+      delete s._cutWait;
+      if (!url) { cutFailed.add(s.id); return; }
+      const st = cutState.get(s.id);
+      if (s.cut === PLACEHOLDER) s.cut = url;   // その間に作り直された記録はそのまま
+      if (st && st.path === path && st.url === PLACEHOLDER) st.url = url;
+      ping();
+    }).catch(() => {}).then(() => { clearTimeout(t); t = 0; fire(true); });
+  }
 
   /* ---------- Store methods used when logged in ---------- */
   const methods = {
@@ -164,16 +181,19 @@
         const old = await snap.get("stamps"); if (!old) throw e;
         rows = old; offline = true;
       }
-      const out = [];
+      const out = [], waits = [];
       await pool(rows, 6, async (r) => {
         const s = { ...(r.data || {}), id: r.id }; delete s.kind;
-        let url = r.cut_path ? await cutFor(r.cut_path).catch(() => null) : null;
+        // ここでは端末の控えだけを見る（ネットからの取得は fillCuts で裏で）
+        let url = r.cut_path ? await Cache.get("cuts", r.cut_path).catch(() => null) : null;
+        if (!url && r.cut_path && !noNet()) { s._cutWait = true; waits.push({ s, path: r.cut_path }); }
         if (!url && !r.cut_path && s.ghost && s.ghostImg) url = s.ghostImg;   // 「押しただけ」はみんなの写真を仮に表示
-        if (!url) { url = PLACEHOLDER; cutFailed.add(r.id); }
+        if (!url) { url = PLACEHOLDER; if (!s._cutWait) cutFailed.add(r.id); }
         s.cut = url;
         cutState.set(r.id, { path: r.cut_path, url });
         out.push(s);
       });
+      cutsDone = fillCuts(waits);
       return out;
     },
     async saveStamp(s) {
@@ -571,6 +591,7 @@
       return true;
     },
     loggedIn() { return attached; },
+    whenCuts() { return cutsDone; },   // 裏で取りに行っている切り抜き画像がそろったら（失敗も含めて）終わる
     isOffline() { return offline || noNet(); },
     email() { return user ? user.email : ""; },
     aiAvailable() { return attached; },
