@@ -1995,6 +1995,7 @@ function shapeName(s) {
 }
 // For stamps saved before detection existed (and samples): read colors/corners from the cut image
 async function fillStats(s) {
+  if (s._cutWait) return false;   // 切り抜き画像がまだ届いていない（仮の画像から色を測らない）
   if (s.colors && s.corner != null) return false;
   try {
     const im = await loadImg(s.cut); const sc = Math.min(1, 200 / Math.max(im.width, im.height));
@@ -4264,7 +4265,7 @@ function sigFrom(img, rot = 0, dark = false) {
   for (let i = 0; i < v.length; i++) { v[i] = dark ? 255 - (d[i * 4] + d[i * 4 + 1] + d[i * 4 + 2]) / 3 : d[i * 4 + 3]; m += v[i]; } m /= v.length;
   let nn = 0; for (let i = 0; i < v.length; i++) { v[i] -= m; nn += v[i] * v[i]; } nn = Math.sqrt(nn) || 1; for (let i = 0; i < v.length; i++) v[i] /= nn; return v;
 }
-async function sigOf(s) { if (s._sig) return s._sig; try { const im = await loadImg(s.cut); s._sig = sigFrom(im, 0, s.type === "goshuin"); } catch { s._sig = null; } return s._sig; }
+async function sigOf(s) { if (s._cutWait) return null; if (s._sig) return s._sig; try { const im = await loadImg(s.cut); s._sig = sigFrom(im, 0, s.type === "goshuin"); } catch { s._sig = null; } return s._sig; }
 async function findDuplicates(cutUrl, d, type) {
   const im = await loadImg(cutUrl); const rots = []; for (let k = 0; k < 24; k++) rots.push(sigFrom(im, k * Math.PI / 12, type === "goshuin"));
   const out = [];
@@ -5097,6 +5098,7 @@ const wantShare = s => Store.mode === "cloud" && !!window.PetalogCloud && Privac
 const pubView = s => Privacy.date ? s : { ...s, date: "" };
 async function syncShares(quiet) {
   if (Store.mode !== "cloud" || !Store.pubPutMany) return;
+  await cutsSettled();   // 仮の画像のままみんなの地図に出さない
   const W = stamps.filter(wantShare), N = stamps.filter(s => !wantShare(s));
   try {
     if (N.length) await Store.pubDelMany(N.map(s => s.id));
@@ -6712,6 +6714,7 @@ const Zukan = {
   // 前に登録したスタンプも、1回だけ図鑑に入れる（古い順。早く登録した人が第一発見者）
   async backfill() {
     if (this.busy || !this.ok()) return; this.busy = true;
+    await cutsSettled();
     try {
       const L = stamps.filter(s => !s.sample && s.type !== "goshuin" && s.share && !s.design && s.cut && !/^data:image\/svg/.test(s.cut)).sort((a, b) => this.t(a) - this.t(b));
       let n = 0; for (const s of L) { if (!this.ok()) break; try { if (await this.register(s, null, true)) n++; } catch (e) { if (e && (e.code === "login_required" || e.code === "network")) break; } await new Promise(r => setTimeout(r, 250)); }
@@ -9126,6 +9129,16 @@ Tags.paint = function () {
 .cgv-body{touch-action:pan-y}`; document.head.appendChild(s); }
 
 /* ================= boot ================= */
+// 切り抜き画像は画面を出したあとで裏で届く（cloud.js の fillCuts）。届いたら差し替える
+const cutsSettled = () => Promise.resolve(window.PetalogCloud && PetalogCloud.whenCuts ? PetalogCloud.whenCuts() : null).catch(() => {});
+Fall.swapImgs = function () {
+  (this.bodies || []).forEach(b => { const p = b.plugin; if (!p) return; if (p.s) p.img = imgFor(artOf(p.s).url); else if (p.bundle) p.imgs = p.bundle.items.slice(0, 3).map(s => imgFor(s.cut)); });
+};
+addEventListener("petalog:cuts", e => {
+  if (!ready) return;
+  Fall.swapImgs(); Grid.render(); if (typeof Gos !== "undefined") Gos.render(); if (view === "map") MapV.draw();
+  if (e.detail && e.detail.done) { Books.thumbs.clear(); Books.refresh(); }
+});
 addEventListener("resize", () => { Book.layout(); if (view === "fall") { Fall.stop(); Fall.start(); } if (view === "map") MapV.draw(); });
 document.addEventListener("visibilitychange", () => { if (document.hidden) Fall.stop(); else if (view === "fall") Fall.start(); });
 document.addEventListener("contextmenu", e => { if (!e.target.closest("input,textarea")) e.preventDefault(); });
@@ -9146,7 +9159,7 @@ document.addEventListener("contextmenu", e => { if (!e.target.closest("input,tex
   setTimeout(() => Privacy.firstSync(), 2500); loadSheets(); setTimeout(trimOld, 6000); setTimeout(() => Zukan.backfill(), 9000); Walk.init(); Track.init(); setTimeout(() => Numbers.ensure(), 1500);
   // 2本指で列を変えられる案内は、トレカ一覧を初めて開いたときだけ
   { const sv = show; show = function (v, ...a) { const r = sv.call(this, v, ...a); if (v === "book" && ready && stamps.length && !Tour.on && !lsGet("petalog.pinchHint")) { lsSet("petalog.pinchHint", "1"); setTimeout(() => toast("トレカ一覧は、2本指でつまむと並べる列の数（1〜5列）を変えられます", 4200), 1200); } return r; }; }
-  (async () => { let n = 0; for (const s of stamps) { if (await fillStats(s)) { n++; if (!s.sample && findStamp(s.id) === s) await Store.saveStamp(s).catch(() => {}); } } if (n) Grid.render(); })();
+  (async () => { await cutsSettled(); let n = 0; for (const s of stamps) { if (await fillStats(s)) { n++; if (!s.sample && findStamp(s.id) === s) await Store.saveStamp(s).catch(() => {}); } } if (n) Grid.render(); })();
 })();
 </script>
 
