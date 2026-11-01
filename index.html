@@ -6916,8 +6916,9 @@ const Walk = {
     if (Store.mode === "cloud" && window.PetalogCloud) await PetalogCloud.saveWalk(w); else await Store.putMeta("walks", { walks: L });
   },
   async remove(id) {
-    const L = await this.loadList(); this.list = L.filter(x => x.id !== id);
-    if (Store.mode === "cloud" && window.PetalogCloud) await PetalogCloud.delWalk(id); else await Store.putMeta("walks", { walks: this.list });
+    const L = await this.loadList(), rest = L.filter(x => x.id !== id);
+    if (Store.mode === "cloud" && window.PetalogCloud) await PetalogCloud.delWalk(id); else await Store.putMeta("walks", { walks: rest });
+    this.list = rest;   // 消せたときだけ一覧から外す
   },
   keep(now) { if (!this.cur) return; clearTimeout(this.saveT); const go = () => lsSet(this.K, JSON.stringify(this.cur)); if (now) go(); else this.saveT = setTimeout(go, 1500); },
   // ---- はじめ／おわり ----
@@ -7058,7 +7059,14 @@ const Walk = {
     walkMap(w, S, Math.round(W0), Math.round(W0 * 0.9), { thumbs: true }).then(m => { if (sheetCtx !== ctx) return; cv.width = m.width; cv.height = m.height; cv.getContext("2d").drawImage(m, 0, 0); });
     $("#wkSave").onclick = async () => { const im = await walkCard(w, S); saveImage(im, "petalog-walk-" + new Date(w.start).toISOString().slice(0, 10)); };
     $("#wkPage").onclick = () => this.toPage(w, S);
-    $("#wkDel").onclick = async () => { if (!confirm("この歩いた記録を消しますか？（スタンプは消えません）")) return; try { await this.remove(w.id); toast("消しました"); this.home(); } catch (_) { toast("消せませんでした"); } };
+    // ブラウザの確認ダイアログ（confirm）は、アプリ内ブラウザなどで出ずに「キャンセル」扱いになり無反応に見えるので、ボタンを2回押す形にする
+    { const del = $("#wkDel"); let armed = false, t = 0;
+      del.onclick = async () => {
+        if (!armed) { armed = true; del.textContent = "もう一度押すと消します（スタンプは消えません）"; del.classList.add("danger"); clearTimeout(t); t = setTimeout(() => { armed = false; del.textContent = "この記録を消す"; del.classList.remove("danger"); }, 5000); return; }
+        clearTimeout(t); del.disabled = true; del.textContent = "消しています…";
+        try { await this.remove(w.id); toast("消しました"); this.home(); }
+        catch (_) { toast("消せませんでした。通信を確かめてもう一度どうぞ"); armed = false; del.disabled = false; del.textContent = "この記録を消す"; del.classList.remove("danger"); }
+      }; }
     const ss = $("#wkSteps"); if (ss) ss.onclick = () => this.askSteps(w);
     const sh = $("#wkScHelp"); if (sh) sh.onclick = e => { e.preventDefault(); this.scGuide(); };
   },
