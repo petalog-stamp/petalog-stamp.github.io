@@ -119,6 +119,15 @@
     let i = 0; const run = async () => { while (i < items.length) { const k = i++; await fn(items[k], k); } };
     await Promise.all(Array.from({ length: Math.min(n, items.length) }, run));
   }
+  /* ランキングの合図（Supabase Realtime のブロードキャスト。データは流さない） */
+  const rankSubs = new Set(); let rankCh = null, rankT = 0;
+  function rankChan() {
+    if (rankCh || !sb || !sb.channel) return rankCh;
+    try { rankCh = sb.channel("pl-rank", { config: { broadcast: { self: false } } }).on("broadcast", { event: "stamp" }, () => rankSubs.forEach((f) => { try { f(); } catch (_) {} })).subscribe(); } catch (_) { rankCh = null; }
+    return rankCh;
+  }
+  function rankPing() { clearTimeout(rankT); rankT = setTimeout(() => { try { const c = rankChan(); c && c.send({ type: "broadcast", event: "stamp", payload: {} }); } catch (_) {} rankSubs.forEach((f) => { try { f(); } catch (_) {} }); }, 1500); }
+
   function fail(error) { const e = new Error((error && error.message) || "cloud"); e.code = (error && error.code) || "error"; e.cause = error; throw e; }
 
   async function upload(bucket, path, blob, upsert) {
@@ -215,6 +224,7 @@
       if (changed) { cutFailed.delete(s.id); cutState.set(s.id, { path, url: cut }); }
       else if (!prev) cutState.set(s.id, { path, url: cut });
       if (oldPath && oldPath !== path) { removeFiles("cuts", [oldPath]); Cache.del("cuts", oldPath); }
+      rankPing();
     },
     async removeStamp(s) {
       const { error } = await sb.from("stamps").delete().eq("user_id", uid).eq("id", s.id);
@@ -223,6 +233,7 @@
       if (st && st.path) { removeFiles("cuts", [st.path]); Cache.del("cuts", st.path); }
       const keys = ["ph_" + s.id, "sh_" + s.id, s.id, ...(s.scenes || []).map((k) => "sc_" + s.id + "_" + k)];
       removeFiles("photos", keys.map((k) => `${uid}/${safeKey(k)}`));
+      rankPing();
     },
     async putPhoto(key, url) {
       const blob = await fit(toBlob(url), 4800000, { maxEdge: 3000 });
@@ -283,6 +294,8 @@
 
     /* everyone's public collections (server functions decide what can be seen) */
     async pubRanking() { const { data } = await ask(sb.rpc("public_ranking")); return data || []; },
+    // ランキングをリアルタイムに：だれかがスタンプを保存・削除したら合図が届く（中身は送らない。合図を受けたら数え直す）
+    onRank(cb) { rankSubs.add(cb); rankChan(); return () => rankSubs.delete(cb); },
     async pubCollection(u) { const { data } = await ask(sb.rpc("public_collection", { p_user: u })); return data || []; },
     async pubBooks(u) { const { data } = await ask(sb.rpc("public_books", { p_user: u })); return (data && Array.isArray(data.books)) ? data.books : []; },
     async cutOf(path) { return cutFor(path); },

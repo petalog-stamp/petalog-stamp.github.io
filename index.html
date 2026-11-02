@@ -5242,12 +5242,26 @@ const Others = {
     if (!window.PetalogCloud) { box.innerHTML = `<div class="empty">ほかの人のコレクションは、Web版で見られます。</div>`; return; }
     if (Store.mode !== "cloud") { box.innerHTML = `<div class="empty">ほかの人のコレクションは、ログインすると見られます。<br><br><button class="btn primary" type="button" id="oLogin">ログイン / 新規登録</button></div>`; $("#oLogin").onclick = () => PetalogCloud.openLogin(false); return; }
     if (this.user) { this.renderUser(); return; }
-    if (!this.rank && !this.loading) this.loadRank(); else this.renderRank();
+    this.live();
+    if ((!this.rank || Date.now() - (this.at || 0) > 10000) && !this.loading) this.loadRank(); else this.renderRank();
   },
-  async loadRank() {
-    this.loading = true; this.err = null; this.renderRank();
-    try { this.rank = await Store.pubRanking(); } catch (e) { this.err = e; this.rank = null; }
-    this.loading = false; this.renderRank();
+  // リアルタイム更新：だれかがスタンプを保存・削除したら数え直す。合図が届かない環境のために、見ている間は30秒ごとにも数え直す
+  live() {
+    if (this._live) return; this._live = true;
+    const vis = () => { const b = this.box(); return !document.hidden && b && b.offsetParent !== null && !this.user; };
+    const soon = () => { clearTimeout(this._lt); this._lt = setTimeout(() => { if (vis()) this.loadRank(true); else this.at = 0; }, 800); };
+    try { Store.onRank && Store.onRank(soon); } catch (_) {}
+    setInterval(() => { if (vis() && Date.now() - (this.at || 0) > 25000) this.loadRank(true); }, 5000);
+    document.addEventListener("visibilitychange", () => { if (vis() && Date.now() - (this.at || 0) > 10000) this.loadRank(true); });
+  },
+  async loadRank(quiet) {
+    if (this.loading) return;
+    this.loading = true; this.err = null; if (!quiet || !this.rank) this.renderRank();
+    const keep = this.rank, y = scrollY;
+    try { this.rank = await Store.pubRanking(); this.at = Date.now(); } catch (e) { if (quiet && keep) { this.rank = keep; this.loading = false; return; } this.err = e; this.rank = null; }
+    this.loading = false;
+    if (quiet && keep && JSON.stringify(keep.map(r => [r.user_id, r.n, r.nick, (r.thumbs || []).join()])) === JSON.stringify(this.rank.map(r => [r.user_id, r.n, r.nick, (r.thumbs || []).join()]))) { this.rank = keep; return; }   // 変わっていなければ描き直さない
+    this.renderRank(); if (quiet) scrollTo(0, y);
     if (this.rank) inPool(this.rank.flatMap(r => (r.thumbs || []).slice(0, 4)), 6, async p => { const u = await this.cut(p); if (!u) return; document.querySelectorAll(`#othersMode img[data-cp="${CSS.escape(p)}"]`).forEach(im => { im.src = u; }); });
   },
   renderRank() {
