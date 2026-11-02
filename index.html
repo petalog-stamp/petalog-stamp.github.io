@@ -1681,6 +1681,20 @@ const Store = {
   async pubReport(o) { if (!this.pub) throw new Error("no"); return this.pub.doc(this.uid + "_miss_" + Date.now().toString(36)).set(this.clean({ miss: true, type: "report", by: this.uid, nick: Profile.nick || "", rk: o.rk || "", name: o.name || "", lat: o.lat ?? null, lng: o.lng ?? null, date: todayStr(), reason: o.reason || "", spot: o.note || "", t: Date.now() })); },
   async pubDel(sid) { if (!this.pub) return; try { await this.pub.doc(this.uid + "_" + sid).delete(); } catch {} }
 };
+/* トレカの名前が枠に入りきらない（…で切れる）ときは、その名前だけ字を小さくして全部入れる */
+function tcFitNames(root) {
+  (root || document).querySelectorAll(".tc-nm:not([data-fit])").forEach(el => {
+    const cw = el.clientWidth; if (!cw) return;   // まだ見えていない（次に表示されたときに合わせる）
+    el.dataset.fit = "1"; const sw = el.scrollWidth; if (sw <= cw + 1) return;
+    const fs = Math.max(1.6, (+el.dataset.fs || 4) * cw / sw * 0.97); el.style.fontSize = `calc(var(--u) * ${fs.toFixed(2)})`;
+  });
+}
+(() => { let q = 0; const run = () => { q = 0; try { tcFitNames(); } catch (_) {} };
+  const kick = () => { if (!q) q = requestAnimationFrame(run); };
+  try { new MutationObserver(kick).observe(document.documentElement, { childList: true, subtree: true, attributes: true, attributeFilter: ["hidden", "class", "open"] }); } catch (_) {}
+  // 明朝の字が読み込まれる前に測ったものは、読み込み後に測り直す
+  try { document.fonts && document.fonts.ready.then(() => { document.querySelectorAll(".tc-nm[data-fit]").forEach(el => { el.removeAttribute("data-fit"); el.style.fontSize = `calc(var(--u) * ${el.dataset.fs})`; }); kick(); }); } catch (_) {}
+  addEventListener("load", kick); })();
 const Profile = { nick: "", shareDefault: false, refs: [], events: [], lines: [], fallBg: "washi", celebrated: 0,
   async load() { try { const p = await Store.getMeta("profile"); if (p) Object.assign(this, { nick: p.nick || "", shareDefault: !!p.shareDefault, refs: Array.isArray(p.refs) ? p.refs : [], events: Array.isArray(p.events) ? p.events : [], lines: Array.isArray(p.lines) ? p.lines.filter(x => typeof x === "string") : [], fallBg: p.fallBg || "washi", celebrated: +p.celebrated || 0 }); } catch {} },
   save() { return Store.putMeta("profile", { nick: this.nick, shareDefault: this.shareDefault, refs: this.refs, events: this.events, lines: this.lines, fallBg: this.fallBg, celebrated: this.celebrated }).catch(() => toast("設定を保存できませんでした")); },
@@ -2040,7 +2054,7 @@ function cardHTML(s, no, o = {}) {   // スタンプトレカ（印刷の表と�
       ${s.overlap || isDigi(s) || (FIRST_ON && s.first) ? `<span class="tc-badges">${FIRST_ON && s.first ? '<span class="tc-badge fd">第一発見者</span>' : ""}${s.overlap ? '<span class="tc-badge">重ね押し</span>' : ""}${isDigi(s) ? '<span class="tc-badge dgs">デジスタ</span>' : ""}</span>` : ""}
       <span class="tc-art${L.A.sheet ? " sh" : ""}" style="left:${u(L.x)};top:${u(L.y)};width:${u(L.w)};height:${u(L.h)}"><img src="${L.A.url}" alt="" loading="lazy" draggable="false" data-ck="${esc(s.id)}"></span>
       ${L.dimY != null ? `<span class="tc-dim" style="left:${u(L.x)};top:${u(L.dimY)};width:${u(L.w)}"><i></i><i></i><b>${L.dimTxt}</b></span>` : ""}
-      <span class="tc-nm" style="font-size:${u(L.fs)}">${esc(s.name || "名前未設定")}</span><span class="tc-rule"></span>
+      <span class="tc-nm" data-fs="${(+L.fs).toFixed(2)}" style="font-size:${u(L.fs)}">${esc(s.name || "名前未設定")}</span><span class="tc-rule"></span>
       <span class="tc-facts"><span>${esc(fmtDate(s.date))}</span>${L.real ? '<span class="tc-real">実寸大</span>' : ""}${s.pref ? `<span class="tc-pf">${esc(s.pref)}</span>` : ""}</span></span>
     <span class="tc-ft"><span>${geo}</span><span class="tc-logo">スタンプトレカ</span></span></button>`;
 }
@@ -6319,8 +6333,9 @@ function tcLayout(s) {
   else { w = Math.min(TC.maxW, maxH * ar) * 0.88; h = w / ar; }
   const G = h + (known ? TC.gap + TC.dimh : 0), y = TC.top + (room - G) * 0.56, x = (TC.ww - w) / 2;   // C3: ひとかたまりを真ん中より少し下に
   const wmm = known ? sizeDims(s).lw : 0;
-  const len = [...String(s.name || "名前未設定")].reduce((a, ch) => a + (/[\x20-\x7e]/.test(ch) ? 0.58 : 1), 0) * 1.04;
-  return { A, ar, x, y, w, h, real, dimY: known ? y + h + TC.gap : null, dimTxt: known ? fmtCm(wmm) : "", fs: clamp(49.5 / Math.max(1, len), 2.4, 5.2) };
+  // 名前の幅の見積もり（明朝の英大文字・数字は和文の7割くらいの幅がある）。入りきらないものは描いたあとで tcFitNames が縮める
+  const len = [...String(s.name || "名前未設定")].reduce((a, ch) => a + (/[A-Z0-9]/.test(ch) ? 0.72 : /[a-z]/.test(ch) ? 0.56 : ch === " " ? 0.32 : /[\x21-\x7e]/.test(ch) ? 0.5 : /[\uff61-\uff9f]/.test(ch) ? 0.55 : 1), 0) * 1.04;
+  return { A, ar, x, y, w, h, real, dimY: known ? y + h + TC.gap : null, dimTxt: known ? fmtCm(wmm) : "", fs: clamp(49.5 / Math.max(1, len), 1.8, 5.2) };
 }
 // 窓の白い紙（細かい凹凸の粒）
 const TCPaper = (() => { let cv = null; return () => { if (cv) return cv;
