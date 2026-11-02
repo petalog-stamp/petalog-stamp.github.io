@@ -3496,7 +3496,7 @@ async function openStation(r, st) {
       </div>
       <div class="sec"><h4>みんなの情報</h4>${Store.mode !== "cloud" ? `<p class="cap">${window.PetalogCloud ? "みんなの情報は、ログインすると読めます（右上の設定から）。" : "みんなの情報は、クラウド保存の版で読めます。"}</p>` : !MapV.pubs ? `<p class="cap"><span class="spin"></span> 読み込み中…</p>` : freshHTML(cm) +
         (cm.spots.length ? `<ul class="spots">${cm.spots.slice(0, 12).map(x => `<li>「${esc(x.t)}」<small>${esc(x.who)} · ${esc(fmtDate(x.date))}</small></li>`).join("")}</ul>${cm.spots.length >= 2 ? `<button class="btn small" type="button" id="sumBtn">メモをまとめる</button><div id="sumOut" class="cap"></div>` : ""}` : "")}
-        <div class="row2" style="margin-top:8px"><button class="btn small" type="button" id="missOpen">行ったけど終わってた</button><button class="btn small ghost" type="button" id="wrongOpen">ちがうよ</button></div>${missPanelHTML()}${wrongPanelHTML()}</div>
+        <div class="row2" style="margin-top:8px"><button class="btn small" type="button" id="missOpen">行ったけどなかった</button><button class="btn small ghost" type="button" id="wrongOpen">ちがうよ</button></div>${missPanelHTML()}${wrongPanelHTML()}</div>
       <div class="acts"><a class="btn" href="${gmapsDir((cm.avg || st).lat, (cm.avg || st).lng)}" target="_blank" rel="noopener">道案内（Googleマップ）</a><button class="btn" type="button" id="stMap">地図で見る</button></div>
       <div class="acts" style="margin-top:8px"><a class="btn ghost" href="https://www.google.com/search?q=${encodeURIComponent(st.n + "駅 " + r.name + " 駅スタンプ")}" target="_blank" rel="noopener">ネットで調べる</a><button class="btn primary" type="button" id="stAdd">このスタンプを追加</button></div>`);
     $("#stMap").onclick = () => { closeSheet(); show("map"); MapV.go(st.lat, st.lng, 16); };
@@ -3523,7 +3523,7 @@ function openPub(id) {
     openSheet(`<div class="sheet-head"><h2>みんなの記録</h2><button class="btn small ghost" type="button" data-close>閉じる</button></div>
       <div class="hero washi"><div class="hi"><img src="${p.thumb || ""}" alt=""></div><div><span class="datestamp" style="display:inline-block">${esc(fmtDate(p.date))}</span><h3>${esc(p.name)}</h3><div class="meta">${p.place ? `<span>${esc(p.place)}</span>` : ""}${p.pref ? `<span>${esc(p.pref)}</span>` : ""}${p.cat ? `<span class="chip" style="color:${gcol(p.cat)}">${esc(p.cat)}</span>` : ""}${p.sizeMm ? `<span>⌀ ${fmtCm(p.sizeMm)}</span>` : ""}</div><div class="meta" style="margin-top:8px">記録した人: ${esc(p.nick || "だれか")}</div></div></div>
       <div class="sec"><h4>置き場所</h4>${freshHTML(cm)}${p.spot ? `<p style="font-size:14px;margin:8px 0 0">「${esc(p.spot)}」</p>` : ""}${cm.spots.filter(x => x.t !== p.spot).length ? `<ul class="spots">${cm.spots.filter(x => x.t !== p.spot).slice(0, 8).map(x => `<li>「${esc(x.t)}」<small>${esc(x.who)} · ${esc(fmtDate(x.date))}</small></li>`).join("")}</ul>` : ""}
-        <div class="row2" style="margin-top:8px"><button class="btn small" type="button" id="missOpen">行ったけど終わってた</button><button class="btn small ghost" type="button" id="wrongOpen">ちがうよ</button></div>${missPanelHTML()}${wrongPanelHTML()}</div>
+        <div class="row2" style="margin-top:8px"><button class="btn small" type="button" id="missOpen">行ったけどなかった</button><button class="btn small ghost" type="button" id="wrongOpen">ちがうよ</button></div>${missPanelHTML()}${wrongPanelHTML()}</div>
       ${p.lat != null ? `<div class="acts"><a class="btn primary" href="${gmapsDir((cm.avg || p).lat, (cm.avg || p).lng)}" target="_blank" rel="noopener">道案内（Googleマップ）</a></div>` : ""}`);
     wireMiss({ rk: p.rk || "", name: p.name, lat: p.lat, lng: p.lng }, draw); wireWrong({ rk: p.rk || "", name: p.name, lat: p.lat, lng: p.lng }, draw);
   };
@@ -8216,8 +8216,14 @@ const Catalog = {
     openSheet(`<div class="sheet-head"><h2>${CATALOG_TAG}</h2><button class="btn small ghost" type="button" data-close>閉じる</button></div>
       <div class="hero washi"><div class="hi"><img src="${esc(p.thumb || "")}" alt=""></div><div><h3>${esc(p.name)}</h3><div class="meta">${p.place ? `<span>${esc(p.place)}</span>` : ""}${p.pref ? `<span>${esc(p.pref)}</span>` : ""}${p.cat ? `<span class="chip" style="color:${gcol(p.cat)}">${esc(p.cat)}</span>` : ""}</div></div></div>
       <div class="sec"><h4>場所の案内</h4>${info ? `<p class="cat-memo">${esc(info.memo || info.addr || "")}</p>` : `<p class="cap"><span class="spin"></span> 読み込み中…</p>`}</div>
-      ${p.lat != null ? `<div class="acts"><a class="btn primary" href="${gmapsDir(p.lat, p.lng)}" target="_blank" rel="noopener">道案内（Googleマップ）</a></div>` : ""}`); };
-  draw(null); PetalogCloud.catalogInfo(p.catalog).then(i => draw(i || { memo: "" })).catch(() => draw({ memo: "" }));
+      <div class="sec"><h4>みんなの確認</h4>${freshHTML(communityFor(p.rk || "", p.name, p.lat, p.lng))}
+        <div class="row2" style="margin-top:8px"><button class="btn small" type="button" id="missOpen">行ったけどなかった</button><button class="btn small ghost" type="button" id="wrongOpen">ちがうよ</button></div>${missPanelHTML()}${wrongPanelHTML()}</div>
+      ${p.lat != null ? `<div class="acts"><a class="btn primary" href="${gmapsDir(p.lat, p.lng)}" target="_blank" rel="noopener">道案内（Googleマップ）</a></div>` : ""}`);
+    // 公式の一覧から置いたピンにも「行ったけどなかった」「ちがうよ」（みんなの記録のピンと同じ報告。同じ名前で近くの記録・報告とまとめて数える）
+    const tg = { rk: p.rk || "", name: p.name, lat: p.lat, lng: p.lng }, again = () => draw(last);
+    wireMiss(tg, again); wireWrong(tg, again); };
+  let last = null; const draw0 = draw;
+  draw(null); PetalogCloud.catalogInfo(p.catalog).then(i => { last = i || { memo: "" }; draw0(last); }).catch(() => { last = { memo: "" }; draw0(last); });
 }; }
 
 // つながりが一瞬わるいときのために、1回だけ待ってやり直す
